@@ -1,0 +1,11 @@
+{
+  "name": "abraveses-racing",
+  "private": true,
+  "description": "Delega scripts npm al joc web (carpeta web/)",
+  "scripts": {
+    "dev": "npm run dev --prefix web",
+    "build": "npm run build --prefix web",
+    "preview": "npm run preview --prefix web",
+    "postinstall": "npm install --prefix web"
+  }
+}

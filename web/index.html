@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ca">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Abraveses Racing</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a1e; font-family: system-ui, sans-serif; }
+      #hud {
+        position: fixed; left: 12px; top: 12px; z-index: 10;
+        color: #f2f2f2; background: rgba(0,0,0,.55); padding: 10px 14px; border-radius: 8px;
+        font-size: 14px; line-height: 1.45; max-width: 320px;
+      }
+      #hud kbd { background: #333; padding: 1px 6px; border-radius: 4px; }
+      #credit {
+        position: fixed; right: 10px; bottom: 8px; z-index: 10;
+        font-size: 11px; color: rgba(255,255,255,.55);
+      }
+      #minimap {
+        position: fixed; right: 16px; top: 16px; z-index: 10;
+        width: 200px; height: 200px; border-radius: 50%; cursor: zoom-in;
+      }
+      #bigmap {
+        position: fixed; inset: 0; z-index: 30; background: rgba(8, 10, 12, .8);
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+      }
+      #bigmap[hidden] { display: none; }
+      #bigmap-canvas {
+        border-radius: 12px; cursor: crosshair; box-shadow: 0 10px 40px rgba(0,0,0,.6);
+        outline: 3px solid rgba(255,255,255,.85);
+      }
+      #bigmap-hint { color: #f2f2f2; font-size: 15px; min-height: 20px; }
+      #bigmap-hint::before {
+        content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px;
+        background: #ffc93c; border-radius: 3px; vertical-align: -1px;
+      }
+      #bigmap-close {
+        position: absolute; top: 14px; right: 18px; width: 40px; height: 40px;
+        border: 0; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff;
+        font-size: 26px; line-height: 40px; cursor: pointer;
+      }
+      #bigmap-close:hover, #bigmap-zoom button:hover { background: rgba(255,255,255,.28); }
+      #options {
+        position: fixed; inset: 0; z-index: 40; background: rgba(8, 10, 12, .55);
+        display: flex; align-items: center; justify-content: center; padding: 16px;
+      }
+      #options[hidden] { display: none; }
+      #options .panel {
+        position: relative; width: min(420px, 100%); background: #1d2126; color: #f2f2f2;
+        border-radius: 14px; padding: 22px 24px 18px; box-shadow: 0 16px 50px rgba(0,0,0,.55);
+      }
+      #options h2 { font-size: 20px; margin-bottom: 16px; }
+      #options .option {
+        display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px;
+        background: rgba(255,255,255,.06); cursor: pointer; font-size: 15px;
+      }
+      #options .option:hover { background: rgba(255,255,255,.1); }
+      #options input[type=checkbox] { width: 20px; height: 20px; accent-color: #f5c518; cursor: pointer; }
+      #options .hint { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,.55); }
+      #options-close {
+        position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border: 0; border-radius: 50%;
+        background: rgba(255,255,255,.1); color: #fff; font-size: 22px; line-height: 34px; cursor: pointer;
+      }
+      #options-close:hover { background: rgba(255,255,255,.22); }
+      #bigmap-zoom { position: absolute; top: 14px; left: 18px; display: flex; flex-direction: column; gap: 6px; }
+      #bigmap-zoom button {
+        width: 40px; height: 40px; border: 0; border-radius: 10px; background: rgba(255,255,255,.14);
+        color: #fff; font-size: 22px; line-height: 40px; cursor: pointer;
+      }
+      #street-banner {
+        position: fixed; left: 50%; top: 22px; z-index: 11; pointer-events: none;
+        transform: translate(-50%, -12px); opacity: 0;
+        transition: opacity .35s ease, transform .35s ease;
+        color: #fff; background: rgba(20,20,24,.78); border: 2px solid #f5c518;
+        padding: 8px 20px; border-radius: 999px;
+        font-size: 20px; font-weight: 700; letter-spacing: .02em; white-space: nowrap;
+      }
+      #street-banner.visible { opacity: 1; transform: translate(-50%, 0); }
+      #speedometer {
+        position: fixed; left: 16px; bottom: 16px; z-index: 10; pointer-events: none;
+        color: #fff; background: rgba(0,0,0,.55); padding: 6px 14px; border-radius: 8px;
+        font: 700 22px/1.2 system-ui, sans-serif; font-variant-numeric: tabular-nums; min-width: 120px;
+      }
+      #perf {
+        position: fixed; left: 16px; bottom: 62px; z-index: 10; pointer-events: none;
+        color: #c8f7c5; background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 6px;
+        font: 600 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap;
+      }
+      #perf.slow { color: #ff9a8f; }
+      #autopilot-badge {
+        position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 11;
+        color: #0b2230; background: #40c8ff; padding: 6px 16px; border-radius: 999px;
+        font-size: 14px; font-weight: 800; letter-spacing: .12em; pointer-events: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,.35);
+      }
+      #loading {
+        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: #111; color: #ccc; z-index: 20; font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Carregant Abraveses de Tera…</div>
+    <canvas id="minimap" hidden></canvas>
+    <div id="street-banner" aria-live="polite"></div>
+    <div id="perf" aria-live="off">– FPS</div>
+    <div id="speedometer" aria-live="off">0 km/h</div>
+    <div id="autopilot-badge" hidden>AUTOPILOT · P per sortir</div>
+    <div id="bigmap" hidden>
+      <canvas id="bigmap-canvas"></canvas>
+      <div id="bigmap-hint"></div>
+      <button id="bigmap-close" type="button" aria-label="Tancar el mapa">×</button>
+      <div id="bigmap-zoom">
+        <button id="bigmap-zoom-in" type="button" aria-label="Apropar">+</button>
+        <button id="bigmap-zoom-out" type="button" aria-label="Allunyar">−</button>
+        <button id="bigmap-zoom-reset" type="button" aria-label="Veure tot el poble">⤢</button>
+      </div>
+    </div>
+    <div id="options" hidden role="dialog" aria-modal="true" aria-labelledby="options-title">
+      <div class="panel">
+        <h2 id="options-title">Opcions</h2>
+        <label class="option">
+          <input type="checkbox" id="opt-hide-street-names" />
+          Amaga els noms dels carrers
+        </label>
+        <p class="hint">O o Esc per tancar</p>
+        <button id="options-close" type="button" aria-label="Tancar les opcions">×</button>
+      </div>
+    </div>
+    <div id="credit" hidden>Ortofoto PNOA cedida per © Instituto Geográfico Nacional (CC BY 4.0) · Mapes © OpenStreetMap · Edificis i parcel·les © Dirección General del Catastro</div>
+    <div id="hud" hidden>
+      <strong>Abraveses Racing</strong><br />
+      <kbd>W</kbd> accelerar · <kbd>S</kbd> frenar / enrere · <kbd>A</kbd>/<kbd>D</kbd> girar · <kbd>Maj</kbd> salt · <kbd>Espai</kbd> fre · <kbd>R</kbd> respawn · <kbd>P</kbd> autopilot · <kbd>M</kbd> mapa · <kbd>O</kbd> opcions
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

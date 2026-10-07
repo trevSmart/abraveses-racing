@@ -1,0 +1,16 @@
+.venv/
+data/raw/
+data/processed/
+
+unity/AbravesesRacing/Library/
+unity/AbravesesRacing/Temp/
+unity/AbravesesRacing/Logs/
+unity/AbravesesRacing/UserSettings/
+unity/AbravesesRacing/obj/
+unity/AbravesesRacing/*.csproj
+unity/AbravesesRacing/*.sln
+
+web/node_modules/
+web/dist/
+
+.DS_Store

@@ -1,0 +1,83 @@
+# Abraveses de Tera — nucli del poble (~700 m)
+center_wgs84:
+  lat: 41.9930
+  lon: -5.8950
+
+# south, west, north, east
+bbox_wgs84:
+  south: 41.9898
+  west: -5.8988
+  north: 41.9962
+  east: -5.8912
+
+# Sortida: Calle Santibáñez (carretera de Santibáñez), entrant al poble per l'oest
+spawn_wgs84:
+  lat: 41.992631
+  lon: -5.898381
+  # Graus al voltant de l'eix Y (0 = +Z local/sud, 90 = +X/est): encarat cap al poble
+  heading_deg: 85.6
+
+utm_epsg: 25830
+
+# Mida del mesh de terreny (metres)
+terrain_size_m: 700
+terrain_resolution: 128
+# Malla del joc web: més densa perquè el talús dels camins quedi net (~1,8 m per cel·la)
+terrain_mesh_resolution: 385
+# Trossos del terreny per costat (frustum culling al joc): 384 cel·les / 8 = 48
+terrain_tiles: 8
+
+# Terreny i cases fora dels camins s'eleven perquè el traçat conduïble es vegi clar
+offroad_raise_m: 0.5
+# Marge pla a banda i banda de la calçada abans del talús, i amplada del talús
+offroad_margin_m: 0.8
+offroad_ramp_m: 1.2
+
+# Opcional: GeoTIFF MDT05 IGN (huso 29). Si no existeix, es descarrega Copernicus GLO-30.
+mdt_local_path: data/raw/PNOA_MDT05_ETRS89_HU29_0307_LID.tif
+
+paths:
+  osm_geojson: data/raw/osm_abraveses.geojson
+  dem_tif: data/raw/dem_clip.tif
+  heightmap_png: data/processed/heightmap.png
+  world_meta_json: data/processed/world_meta.json
+  spawn_json: web/public/spawn.json
+  world_glb: web/public/world.glb
+  world_obj: data/processed/world.obj
+  ortho_jpg: web/public/terrain.jpg
+  trees_json: web/public/trees.json
+  streets_json: web/public/streets.json
+  cadastre_dir: data/raw/catastro
+  village_json: web/public/village.json
+
+road_width_by_highway:
+  primary: 8.0
+  secondary: 7.0
+  tertiary: 6.0
+  unclassified: 5.5
+  residential: 5.0
+  service: 4.0
+  default: 5.5
+
+building_default_height_m: 6.0
+building_level_height_m: 3.0
+
+overpass_url: https://overpass-api.de/api/interpreter
+overpass_urls:
+  - https://overpass-api.de/api/interpreter
+  - https://overpass.kumi.systems/api/interpreter
+
+# Copernicus DEM Open Data (WGS84 geotiff per tile)
+copernicus_dem_template: https://copernicus-dem-30m.s3.eu-central-1.amazonaws.com/Copernicus_DSM_COG_10_N{lat_int}_00_E{lon_int}_00_DEM.tif
+
+# Ortofoto del terreny: pnoa (IGN, CC BY 4.0, 25 cm o millor) o esri. Es descarrega en UTM
+# exactament sobre el quadrat del terreny. 4096 px / 700 m ≈ 17 cm per píxel.
+ortho_source: pnoa
+ortho_px: 4096
+
+# Poble en 3D (Cadastre + anàlisi de l'ortofoto). full_map: tot el terreny; si és false,
+# només la franja de `buffer_m` a banda i banda dels `streets`.
+village_detail:
+  full_map: true
+  streets: ["Calle Santibáñez"]
+  buffer_m: 45

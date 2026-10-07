@@ -1,0 +1,10 @@
+{
+  "utm_epsg": 25830,
+  "origin_utm_x": 260205.84805883048,
+  "origin_utm_y": 4653053.943667801,
+  "size_m": 700.0,
+  "resolution": 128,
+  "elevation_min_m": 713.1742553710938,
+  "elevation_max_m": 717.8618774414062,
+  "elevation_range_m": 4.6876220703125
+}
