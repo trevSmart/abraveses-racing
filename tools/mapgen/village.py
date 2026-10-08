@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import itertools
 import zlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -1106,6 +1107,29 @@ def _floors(value) -> int:
         return 1
 
 
+# Atribut de vèrtex amb l'identificador de casa (glTF `_HOUSE`, al joc `_house`): el mode dev
+# (Maj+D) pinta cada casa d'un color. 0 = no és cap casa (tàpies, albardilles).
+HOUSE_ATTR = "_HOUSE"
+
+
+def tag_house(meshes: list, house_id: int) -> list:
+    for m in meshes:
+        m.vertex_attributes[HOUSE_ATTR] = np.full(len(m.vertices), house_id, dtype=np.float32)
+    return meshes
+
+
+def concat_tagged(meshes: list):
+    """Com trimesh.util.concatenate, però l'atribut de casa només es conserva si el tenen totes
+    les malles: les que no en tenen hi van amb 0."""
+    import trimesh
+
+    if any(HOUSE_ATTR in m.vertex_attributes for m in meshes):
+        for m in meshes:
+            if HOUSE_ATTR not in m.vertex_attributes:
+                tag_house([m], 0)
+    return trimesh.util.concatenate(meshes)
+
+
 def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], ox: float, oy: float) -> Village:
     import trimesh
 
@@ -1147,6 +1171,9 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
 
     walls, roofs, details, window_panes = [], [], [], []
     taken = OpeningRegistry()
+    # Un identificador per model de casa (cada part del Cadastre, cada cobert detectat i cada
+    # model propi): el mode dev del joc el fa servir per pintar-les de colors diferents.
+    house_ids = itertools.count(1)
     # Edificis singulars amb model propi (ara, l'església): les seves parts no es fan com a casa.
     church_ref = str(cfg.get("village_detail", {}).get("church_ref", ""))
     church_rows = parts[parts["building"] == church_ref] if church_ref else parts.iloc[0:0]
@@ -1160,6 +1187,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         street = str(cfg.get("village_detail", {}).get("church_street", ""))
         toward = _street_point(cfg, street, footprint, ox, oy) if street else None
         st, rf, dt = church_meshes(footprint, ground, toward)
+        tag_house(st + rf + dt, next(house_ids))
         landmark_hulls.append(_occupied(st))
         church_stone += st
         roofs += rf
@@ -1176,6 +1204,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         footprint = max(getattr(footprint, "geoms", [footprint]), key=lambda g: g.area)
         unwalled = unary_union(list(parcels[parcels.intersects(footprint)].geometry) + [footprint])
         st, rf, dt = hermitage_meshes(footprint, ground)
+        tag_house(st + rf + dt, next(house_ids))
         landmark_hulls.append(_occupied(st))
         church_stone += st
         roofs += rf
@@ -1198,6 +1227,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
             w, r, d, win = house_meshes(
                 poly, _floors(row["numberOfFloorsAboveGround"]), ground, color, facing_street, roads_u, seed, taken
             )
+            tag_house(w + r + d + win, next(house_ids))
             walls += w
             roofs += r
             details += d
@@ -1206,6 +1236,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         w, r, d, win = house_meshes(
             rect, 1, ground, WALL_PALETTE[(k * 3 + 1) % len(WALL_PALETTE)], facing_street, roads_u, 9000 + k, taken
         )
+        tag_house(w + r + d + win, next(house_ids))
         walls += w
         roofs += r
         details += d
@@ -1260,17 +1291,17 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
 
     meshes = []
     if church_stone:
-        meshes.append(("building_church_stone", trimesh.util.concatenate(church_stone)))
+        meshes.append(("building_church_stone", concat_tagged(church_stone)))
     if walls:
-        meshes.append(("building_houses", trimesh.util.concatenate(walls)))
+        meshes.append(("building_houses", concat_tagged(walls)))
     if tapias:
-        meshes.append(("building_tapias", trimesh.util.concatenate(tapias)))
+        meshes.append(("building_tapias", concat_tagged(tapias)))
     if details:
-        meshes.append(("prop_facades", trimesh.util.concatenate(details)))
+        meshes.append(("prop_facades", concat_tagged(details)))
     if window_panes:
-        meshes.append(("prop_windows", trimesh.util.concatenate(window_panes)))
+        meshes.append(("prop_windows", concat_tagged(window_panes)))
     if roofs:
-        meshes.append(("roofs", trimesh.util.concatenate(roofs)))
+        meshes.append(("roofs", concat_tagged(roofs)))
     counts = {k: sum(1 for p in parcel_info if p["type"] == k) for k in PARCEL_TYPES}
     print(f"Village: parcel·les {counts}, {len(tapia_lines)} trams de tàpia, {len(trees)} arbres, {len(plants)} plantes d'hort")
     return Village(zone, meshes, trees, plants, parcel_info)
