@@ -147,18 +147,16 @@ export function asphaltDetail(): THREE.DataTexture {
   return grayTexture(size, normalizeDetail(v, 0.14));
 }
 
-/** Camí de terra: sorra, còdols i solcs suaus. ~2 m per repetició. */
+/** Camí de terra: sorra fina, grava i algun còdol. ~2 m per repetició. Sense franges: la textura
+ * es projecta des de dalt amb els eixos del món i uns solcs no seguirien la direcció del camí. */
 export function dirtDetail(): THREE.DataTexture {
   const size = DETAIL_SIZE;
-  const v = fbm(size, 16, 4, 31, 0.6);
-  speckles(v, size, Math.round(1400 * K * K), Math.max(0.5, 0.8 * K), 3.0 * K, 0.3, 32);
-  // Solcs de rodes: franges suaus al llarg d'un eix (la textura es repeteix en totes dues direccions).
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      v[y * size + x] += 0.06 * Math.sin((x / size) * Math.PI * 2 * 3);
-    }
-  }
-  return grayTexture(size, normalizeDetail(v, 0.17));
+  const v = fbm(size, 12, 4, 31, 0.55);
+  const grain = fbm(size, 128, 2, 33);
+  for (let i = 0; i < v.length; i++) v[i] = v[i] * 0.55 + grain[i] * 0.45;
+  speckles(v, size, Math.round(2600 * K * K), Math.max(0.5, 0.5 * K), 1.6 * K, 0.22, 32);
+  speckles(v, size, Math.round(260 * K * K), 1.5 * K, 4.0 * K, 0.18, 34);
+  return grayTexture(size, normalizeDetail(v, 0.15));
 }
 
 /** Arrebossat de façana: taques, regalims verticals i gra. ~2,5 m per repetició. */
@@ -184,24 +182,19 @@ export function plasterDetail(): THREE.DataTexture {
   return grayTexture(size, normalizeDetail(v, 0.12));
 }
 
-/** Vidre de finestres: base freda amb ratlles i taques brillants (reflex del cel i del sol). */
+/** Vidre de finestres: pla, blau-gris uniforme amb un toc de grà (estil joc, no foto). */
 export function windowGlassMap(): THREE.DataTexture {
-  const size = 128;
-  const n = fbm(size, 10, 4, 771, 0.52);
+  const size = 64;
+  const n = fbm(size, 6, 2, 771, 0.4);
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = y * size + x;
-      const u = x / size;
-      const v = y / size;
       const grain = n[i];
-      const streak = Math.exp(-((u * 0.85 + v * 0.55 - 0.42 - grain * 0.15) ** 2) * 48);
-      const streak2 = Math.exp(-((u * 0.3 - v * 0.9 + 0.15) ** 2) * 90) * 0.35;
-      const glint = Math.max(streak, streak2) * (0.65 + grain * 0.5);
-      const base = 0.22 + grain * 0.12;
-      const r = Math.round(255 * Math.min(1, base + glint * 0.95));
-      const g = Math.round(255 * Math.min(1, base + 0.04 + glint));
-      const b = Math.round(255 * Math.min(1, base + 0.1 + glint * 1.05));
+      const base = 0.26 + grain * 0.035;
+      const r = Math.round(255 * base);
+      const g = Math.round(255 * (base + 0.025));
+      const b = Math.round(255 * (base + 0.055));
       data[i * 4] = r;
       data[i * 4 + 1] = g;
       data[i * 4 + 2] = b;

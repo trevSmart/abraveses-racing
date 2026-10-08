@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -291,6 +292,76 @@ FLOOR_H = 2.9
 PLINTH_H = 0.7
 # Façanes de pati / laterals (no d'accés): probabilitat que tinguin alguna finestra.
 SIDE_FACADE_WINDOW_CHANCE = 0.88
+# Ampit sobre el terra just davant de la finestra (planta baixa) o sobre el forjat (pisos).
+GROUND_SILL_M = 1.45
+UPPER_SILL_M = 0.95
+IRON_COLOR = (44, 42, 40)
+SILL_STONE = (206, 198, 182)
+# Marcs: blanc, pedra, maó i fusta fosca; None = finestra sense marc, només llinda i ampit.
+FRAME_COLORS = [FRAME_COLOR, FRAME_COLOR, (196, 186, 166), (168, 98, 66), (92, 66, 46), None]
+# Porticons de llibret oberts a banda i banda (verd, marró, blau, granat, crema).
+SHUTTER_COLORS = [None, None, (66, 98, 72), (104, 70, 44), (84, 106, 128), (128, 52, 42), (214, 204, 176)]
+
+
+@dataclass(frozen=True)
+class WindowShape:
+    w: float
+    h: float
+    mullion: bool = False  # travesser vertical al mig
+    balcony: bool = False  # balconera: arriba gairebé al forjat i porta balcó
+
+
+# Formes per planta baixa i per pisos; cada casa en tria una de cada (amb repeticions = pes).
+GROUND_SHAPES = [
+    WindowShape(0.8, 1.15),
+    WindowShape(0.9, 0.9),
+    WindowShape(0.6, 0.95),
+    WindowShape(0.55, 0.55),
+    WindowShape(1.25, 1.0, mullion=True),
+]
+UPPER_SHAPES = [
+    WindowShape(0.8, 1.25),
+    WindowShape(0.8, 1.25),
+    WindowShape(0.95, 1.0),
+    WindowShape(0.65, 1.15),
+    WindowShape(1.3, 1.1, mullion=True),
+    WindowShape(0.95, 2.05, balcony=True),
+    WindowShape(0.9, 2.0),  # balconera sense balcó, amb barana de ferro arran de façana
+]
+ATTIC_SHAPE = WindowShape(0.6, 0.55)
+
+
+@dataclass(frozen=True)
+class WindowStyle:
+    """Aspecte de les finestres d'una casa: totes comparteixen marc i porticons."""
+
+    ground: WindowShape
+    upper: WindowShape
+    frame: tuple[int, int, int] | None
+    shutters: tuple[int, int, int] | None
+    bars: bool  # reixa a la planta baixa
+    attic: bool  # l'últim pis (si n'hi ha 3 o més) amb finestretes de golfes
+
+    @classmethod
+    def pick(cls, rng: np.random.Generator, floors: int) -> "WindowStyle":
+        ground = GROUND_SHAPES[rng.integers(len(GROUND_SHAPES))]
+        upper = UPPER_SHAPES[rng.integers(len(UPPER_SHAPES))]
+        shutters = SHUTTER_COLORS[rng.integers(len(SHUTTER_COLORS))]
+        return cls(
+            ground=ground,
+            upper=upper,
+            frame=FRAME_COLORS[rng.integers(len(FRAME_COLORS))],
+            shutters=shutters,
+            bars=ground.h > 0.6 and rng.random() < 0.45,
+            attic=floors >= 3 and rng.random() < 0.6,
+        )
+
+    def shape(self, floor: int, floors: int) -> WindowShape:
+        if floor == 0:
+            return self.ground
+        if self.attic and floor == floors - 1:
+            return ATTIC_SHAPE
+        return self.upper
 
 
 def _ccw(poly: Polygon) -> Polygon:
@@ -378,45 +449,180 @@ def _primary_street_edge_index(ext: np.ndarray, facing_street, roads_u) -> int:
     return best_i
 
 
-def _window_half_t(length: float) -> float:
-    return 0.5 / max(length, 1e-6)
+def _wall_ground(ground, a, b, t0: float, t1: float) -> np.ndarray:
+    """Alçada del terra al peu del mur entre les fraccions t0..t1 de l'aresta (3 mostres)."""
+    ts = np.linspace(t0, t1, 3)
+    return ground.height(a[0] + (b[0] - a[0]) * ts, a[1] + (b[1] - a[1]) * ts)
 
 
-def _overlaps_door_t(tc: float, length: float, door_tc: float, door_hw: float) -> bool:
-    """True si el centre `tc` d'una finestra a planta baixa topa amb la porta."""
-    hw = _window_half_t(length)
-    return abs(tc - door_tc) < door_hw + hw + 0.06 / max(length, 1e-6)
+def _fit_window(shape: WindowShape, style: WindowStyle, avail_m: float) -> tuple[WindowShape, bool] | None:
+    """Ajusta la finestra a l'amplada lliure del mur: primer treu els porticons, després l'estreny.
+    Retorna (forma, amb_porticons) o None si no hi cap."""
+    margin = 0.16  # marc
+    if style.shutters is not None and shape.h >= 0.8 and 2 * shape.w + margin <= avail_m:
+        return shape, True
+    if shape.w + margin <= avail_m:
+        return shape, False
+    w = avail_m - margin
+    if w < 0.45:
+        return None
+    return WindowShape(w, shape.h, mullion=shape.mullion and w >= 1.0, balcony=False), False
 
 
-def _add_window(a, b, nx, ny, length: float, tc: float, z0: float, details: list, windows: list) -> None:
-    hw = _window_half_t(length)
-    details.append(
-        _box_on_wall(*a, *b, tc - hw - 0.08 / length, tc + hw + 0.08 / length, z0 - 0.08, z0 + 1.18, 0.03, nx, ny, FRAME_COLOR)
-    )
-    windows.append(_box_on_wall(*a, *b, tc - hw, tc + hw, z0, z0 + 1.1, 0.06, nx, ny, GLASS_COLOR))
+def _window_half_extent_m(shape: WindowShape, shutters: bool) -> float:
+    return (shape.w if shutters else shape.w / 2) + 0.08
+
+
+def _overlaps_door_t(tc: float, length: float, half_m: float, door_tc: float, door_hw: float) -> bool:
+    """True si una finestra centrada a `tc` (mitja amplada `half_m`, en metres) topa amb la porta."""
+    return abs(tc - door_tc) < door_hw + (half_m + 0.06) / max(length, 1e-6)
+
+
+def _window_z0(shape: WindowShape, floor: int, level0: float, local_ground: float) -> float:
+    """Cota de l'ampit: la planta baixa es mesura des del terra real davant la finestra."""
+    if floor == 0:
+        return local_ground + GROUND_SILL_M
+    level = level0 + floor * FLOOR_H
+    return level + (0.1 if shape.h >= 1.9 else UPPER_SILL_M)
+
+
+def _railing(box, t0: float, t1: float, z0: float, d0: float, length: float, details: list) -> None:
+    """Barana de ferro (barrots + passamà) entre t0..t1, de z0 a z0 + 0,95, a `d0` del mur."""
+    top = z0 + 0.95
+    details.append(box(t0, t1, top - 0.04, top, d0 + 0.04, IRON_COLOR, d0))
+    details.append(box(t0, t1, z0 + 0.08, z0 + 0.11, d0 + 0.03, IRON_COLOR, d0))
+    n = max(2, int((t1 - t0) * length / 0.18))
+    for k in range(1, n):
+        t = t0 + (t1 - t0) * k / n
+        details.append(box(t - 0.012 / length, t + 0.012 / length, z0, top, d0 + 0.025, IRON_COLOR, d0))
+
+
+def _add_window(
+    a, b, nx, ny, length: float, tc: float, z0: float, shape: WindowShape, style: WindowStyle,
+    shutters: bool, floor: int, details: list, windows: list,
+) -> None:
+    L = max(length, 1e-6)
+    hw = shape.w / 2 / L
+    z1 = z0 + shape.h
+
+    def box(t0, t1, zb, zt, depth, color, d0=0.0):
+        return _box_on_wall(*a, *b, t0, t1, zb, zt, depth, nx, ny, color, d0)
+
+    if style.frame is not None:
+        details.append(box(tc - hw - 0.08 / L, tc + hw + 0.08 / L, z0 - 0.08, z1 + 0.08, 0.03, style.frame))
+    else:
+        details.append(box(tc - hw - 0.15 / L, tc + hw + 0.15 / L, z1, z1 + 0.2, 0.05, SILL_STONE))  # llinda
+    windows.append(box(tc - hw, tc + hw, z0, z1, 0.06, GLASS_COLOR))
+    if shape.mullion:
+        details.append(box(tc - 0.035 / L, tc + 0.035 / L, z0, z1, 0.075, style.frame or FRAME_COLOR))
+    if shutters:
+        leaf = shape.w / 2 / L
+        edge = hw + 0.08 / L
+        for s in (-1, 1):
+            t_in, t_out = tc + s * edge, tc + s * (edge + leaf)
+            details.append(box(min(t_in, t_out), max(t_in, t_out), z0, z1, 0.05, style.shutters))
+
+    if shape.balcony and floor > 0:
+        # Balcó: llosana de pedra que surt de la façana i barana de ferro al voltant.
+        bw = (shape.w / 2 + 0.35) / L
+        t0, t1 = tc - bw, tc + bw
+        details.append(box(t0, t1, z0 - 0.16, z0 - 0.02, 0.6, SILL_STONE))
+        _railing(box, t0, t1, z0 - 0.02, 0.54, L, details)
+        for t in (t0, t1 - 0.03 / L):
+            details.append(box(t, t + 0.03 / L, z0 + 0.89, z0 + 0.93, 0.58, IRON_COLOR))
+        return
+    if shape.h >= 1.9 and floor > 0:
+        # Balconera sense balcó: barana arran de façana a la part baixa.
+        _railing(box, tc - hw, tc + hw, z0, 0.07, L, details)
+        return
+    details.append(box(tc - hw - 0.1 / L, tc + hw + 0.1 / L, z0 - 0.12, z0 - 0.03, 0.11, SILL_STONE))  # ampit
+    if floor == 0 and style.bars and shape.h > 0.6:
+        # Reixa de planta baixa: barrots verticals i dues travesses.
+        n = max(2, int(shape.w / 0.17))
+        for k in range(1, n):
+            t = tc - hw + 2 * hw * k / n
+            details.append(box(t - 0.012 / L, t + 0.012 / L, z0 - 0.02, z1 + 0.02, 0.11, IRON_COLOR, 0.08))
+        for zb in (z0 + 0.12, z1 - 0.15):
+            details.append(box(tc - hw, tc + hw, zb, zb + 0.03, 0.11, IRON_COLOR, 0.08))
+
+
+class OpeningRegistry:
+    """Obertures ja col·locades al poble (graella de 4 m), perquè dues parts cadastrals que
+    comparteixen façana no hi posin finestres trepitjant-se."""
+
+    CELL = 4.0
+
+    def __init__(self) -> None:
+        self._cells: dict[tuple[int, int], list[tuple[float, float, float, float, float]]] = {}
+
+    def claim(self, x: float, y: float, half_m: float, z0: float, z1: float) -> bool:
+        """Reserva l'obertura si no en topa cap altra; retorna si s'ha pogut."""
+        cx, cy = int(np.floor(x / self.CELL)), int(np.floor(y / self.CELL))
+        for i in (cx - 1, cx, cx + 1):
+            for j in (cy - 1, cy, cy + 1):
+                for ox, oy, oh, oz0, oz1 in self._cells.get((i, j), ()):
+                    if np.hypot(x - ox, y - oy) < half_m + oh + 0.1 and z0 < oz1 and oz0 < z1:
+                        return False
+        self._cells.setdefault((cx, cy), []).append((x, y, half_m, z0, z1))
+        return True
+
+
+def _claim(taken: OpeningRegistry | None, a, b, tc: float, half_m: float, z0: float, z1: float) -> bool:
+    if taken is None:
+        return True
+    return taken.claim(a[0] + (b[0] - a[0]) * tc, a[1] + (b[1] - a[1]) * tc, half_m, z0, z1)
+
+
+def _place_window(
+    a, b, nx, ny, length: float, tc: float, avail_m: float, floor: int, floors: int,
+    level0: float, ground, style: WindowStyle, details: list, windows: list,
+    door: tuple[float, float] | None = None, taken: OpeningRegistry | None = None,
+) -> None:
+    """Col·loca una finestra centrada a `tc` si hi cap (dins `avail_m` i sense trepitjar la porta)."""
+    fit = _fit_window(style.shape(floor, floors), style, avail_m)
+    if fit is None:
+        return
+    shape, shutters = fit
+    if door is not None and _overlaps_door_t(tc, length, _window_half_extent_m(shape, shutters), *door):
+        if not shutters:
+            return
+        shutters = False
+        if _overlaps_door_t(tc, length, _window_half_extent_m(shape, False), *door):
+            return
+    hw = shape.w / 2 / max(length, 1e-6)
+    local = float(_wall_ground(ground, a, b, tc - hw, tc + hw).max())
+    z0 = _window_z0(shape, floor, level0, local)
+    if not _claim(taken, a, b, tc, _window_half_extent_m(shape, shutters), z0 - 0.1, z0 + shape.h + 0.1):
+        return
+    _add_window(a, b, nx, ny, length, tc, z0, shape, style, shutters, floor, details, windows)
 
 
 def _facade_door_window(
-    a, b, nx, ny, length: float, floors: int, floor0: float, details: list, windows: list
+    a, b, nx, ny, length: float, floors: int, level0: float, ground, style: WindowStyle,
+    details: list, windows: list, taken: OpeningRegistry | None = None,
 ) -> tuple[float, float]:
     """Almenys una porta i una finestra a la façana d'accés (també si el mur és curt). Retorna (door_tc, door_hw)."""
     door_tc = 0.5
     door_hw = min(0.55, max(0.32, length * 0.38)) / max(length, 1e-6)
+    door_z = float(_wall_ground(ground, a, b, door_tc - door_hw, door_tc + door_hw).min()) - 0.02
+    _claim(taken, a, b, door_tc, door_hw * length, door_z, door_z + 2.15)
     details.append(
-        _box_on_wall(*a, *b, door_tc - door_hw, door_tc + door_hw, floor0, floor0 + 2.15, 0.06, nx, ny, DOOR_COLOR)
+        _box_on_wall(*a, *b, door_tc - door_hw, door_tc + door_hw, door_z, door_z + 2.15, 0.06, nx, ny, DOOR_COLOR)
     )
-    if length >= 1.7:
-        win_tc = 0.24 if door_tc >= 0.4 else 0.76
-        win_floor = 0
-    elif floors > 1:
-        win_tc = door_tc
-        win_floor = 1
+    # Finestra de planta baixa al centre del tros lliure al costat de la porta.
+    free_m = (door_tc - door_hw) * length - 0.15
+    if free_m >= 0.6:
+        tc = (door_tc - door_hw) / 2
+        _place_window(a, b, nx, ny, length, tc, free_m, 0, floors, level0, ground, style, details, windows, taken=taken)
+    elif floors > 1 and length < 2.4:  # a partir de 2,4 m els pisos ja els omple house_meshes
+        _place_window(
+            a, b, nx, ny, length, door_tc, length - 0.3, 1, floors, level0, ground, style, details, windows, taken=taken
+        )
     else:
-        win_tc = door_tc
-        win_floor = 0
-    z0 = floor0 + win_floor * FLOOR_H + (2.35 if win_tc == door_tc and win_floor == 0 else 1.0)
-    if not _overlaps_door_t(win_tc, length, door_tc, door_hw):
-        _add_window(a, b, nx, ny, length, win_tc, z0, details, windows)
+        # Mur massa curt i casa d'una planta: finestreta sobre la porta.
+        fit = _fit_window(ATTIC_SHAPE, style, length - 0.3)
+        if fit is not None and _claim(taken, a, b, door_tc, fit[0].w / 2 + 0.08, door_z + 2.2, door_z + 3.0):
+            _add_window(a, b, nx, ny, length, door_tc, door_z + 2.35, fit[0], style, False, 1, details, windows)
     return door_tc, door_hw
 
 
@@ -441,9 +647,12 @@ def _openings_courtyard_facades(
     primary_i: int,
     facing_street,
     floors: int,
-    floor0: float,
+    level0: float,
+    ground,
+    style: WindowStyle,
     details: list,
     windows: list,
+    taken: OpeningRegistry | None = None,
 ) -> None:
     """Finestres a façanes que no són la d'accés ni donen directament al carrer."""
     for i in range(len(ext)):
@@ -463,27 +672,36 @@ def _openings_courtyard_facades(
             n = 1 if slots == 1 else rng.integers(1, 2)
             for s in sorted(rng.choice(slots, size=n, replace=False)):
                 tc = (s + 0.5) / slots
-                z0 = floor0 + f * FLOOR_H + 1.0
-                _add_window(a, b, nx, ny, length, tc, z0, details, windows)
+                _place_window(
+                    a, b, nx, ny, length, tc, length / slots - 0.3, f, floors, level0, ground, style, details, windows,
+                    taken=taken,
+                )
 
 
-def _box_on_wall(ax, ay, bx, by, t0, t1, z0, z1, depth, nx, ny, color):
-    """Caixa plana enganxada a la façana entre les fraccions t0..t1 de l'aresta i alçades z0..z1."""
+def _box_on_wall(ax, ay, bx, by, t0, t1, z0, z1, depth, nx, ny, color, d0=0.0):
+    """Caixa plana enganxada a la façana entre les fraccions t0..t1 de l'aresta i alçades z0..z1;
+    sobresurt del mur de `d0` a `depth`."""
     import trimesh
 
     p0 = np.array([ax + (bx - ax) * t0, ay + (by - ay) * t0])
     p1 = np.array([ax + (bx - ax) * t1, ay + (by - ay) * t1])
-    off = np.array([nx, ny]) * depth
+    n = np.array([nx, ny])
+    p0, p1, off = p0 + n * d0, p1 + n * d0, n * (depth - d0)
     corners = [p0, p1, p1 + off, p0 + off]
     verts = [_w(c[0], c[1], z0) for c in corners] + [_w(c[0], c[1], z1) for c in corners]
     faces = [[0, 1, 2], [0, 2, 3], [4, 6, 5], [4, 7, 6], [0, 4, 5], [0, 5, 1], [1, 5, 6], [1, 6, 2], [2, 6, 7], [2, 7, 3], [3, 7, 4], [3, 4, 0]]
     m = _vc(np.array(verts), np.array(faces), color)
     trimesh.repair.fix_normals(m)
+    # La cara que mira al mur no es veu mai: fora (orienta primer amb la caixa tancada).
+    keep = np.ones(len(faces), dtype=bool)
+    keep[4:6] = False
+    m.update_faces(keep)
     return m
 
 
 def house_meshes(
-    poly: Polygon, floors: int, ground, wall_color, facing_street, roads_u=None, seed: int = 0
+    poly: Polygon, floors: int, ground, wall_color, facing_street, roads_u=None, seed: int = 0,
+    taken: OpeningRegistry | None = None,
 ) -> tuple[list, list, list, list]:
     """Retorna (parets, teulada, detalls de façana) per a una part d'edifici.
     `facing_street(ax, ay, bx, by, nx, ny)` diu si una aresta dóna al carrer."""
@@ -522,14 +740,19 @@ def house_meshes(
         walls.append(_quad(_w(ax, ay, plinth_top), _w(bx, by, plinth_top), _w(bx, by, tops[j]), _w(ax, ay, tops[i]), wall_color, outward))
 
     # Porta i finestra mínimes a la façana d'accés; més obertures a les altres façanes al carrer.
-    floor0 = base + 0.25
+    # Els pisos es compten des del ràfec cap avall (planta baixa a g.max() + 0,3), perquè les
+    # finestres de dalt quedin sempre per sota la teulada encara que la casa sigui en pendent.
+    level0 = eave - floors * FLOOR_H
+    style = WindowStyle.pick(rng, floors)
     primary_i = _primary_street_edge_index(ext, facing_street, roads_u)
     primary_door: tuple[float, float] | None = None
     if primary_i >= 0:
         a, b = ext[primary_i], ext[(primary_i + 1) % len(ext)]
         length = float(np.hypot(*(b - a)))
         nx, ny = (b[1] - a[1]) / length, -(b[0] - a[0]) / length
-        primary_door = _facade_door_window(a, b, nx, ny, length, floors, floor0, details, windows)
+        primary_door = _facade_door_window(
+            a, b, nx, ny, length, floors, level0, ground, style, details, windows, taken
+        )
 
     for i in range(len(ext)):
         a, b = ext[i], ext[(i + 1) % len(ext)]
@@ -548,12 +771,15 @@ def house_meshes(
                 continue
             for s in win_slots:
                 tc = (s + 0.5) / slots
-                if i == primary_i and primary_door is not None and _overlaps_door_t(tc, length, primary_door[0], primary_door[1]):
-                    continue
-                z0 = floor0 + f * FLOOR_H + 1.0
-                _add_window(a, b, nx, ny, length, tc, z0, details, windows)
+                door = primary_door if i == primary_i else None
+                _place_window(
+                    a, b, nx, ny, length, tc, length / slots - 0.3, f, floors, level0, ground, style, details, windows,
+                    door, taken,
+                )
 
-    _openings_courtyard_facades(rng, ext, primary_i, facing_street, floors, floor0, details, windows)
+    _openings_courtyard_facades(
+        rng, ext, primary_i, facing_street, floors, level0, ground, style, details, windows, taken
+    )
 
     # Teulada: voladís de 0,3 m, partida pel carener; cada meitat és un pla.
     from shapely.ops import split
@@ -920,6 +1146,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         return probe.intersects(roads_u) and not probe.intersects(buildings_u.buffer(-0.05))
 
     walls, roofs, details, window_panes = [], [], [], []
+    taken = OpeningRegistry()
     # Edificis singulars amb model propi (ara, l'església): les seves parts no es fan com a casa.
     church_ref = str(cfg.get("village_detail", {}).get("church_ref", ""))
     church_rows = parts[parts["building"] == church_ref] if church_ref else parts.iloc[0:0]
@@ -961,13 +1188,15 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
     for _, row in parts.iterrows():
         if row["building"] in {church_ref, hermitage_ref}:
             continue
-        seed = sum(ord(c) for c in row["building"])
-        color = WALL_PALETTE[seed % len(WALL_PALETTE)]
+        color = WALL_PALETTE[sum(ord(c) for c in row["building"]) % len(WALL_PALETTE)]
+        # Llavor per edifici (totes les parts amb el mateix estil de finestra); la suma de
+        # caràcters es repetia massa entre referències cadastrals.
+        seed = zlib.crc32(str(row["building"]).encode())
         for poly in getattr(row.geometry, "geoms", [row.geometry]):
             if poly.area < 4:
                 continue
             w, r, d, win = house_meshes(
-                poly, _floors(row["numberOfFloorsAboveGround"]), ground, color, facing_street, roads_u, seed
+                poly, _floors(row["numberOfFloorsAboveGround"]), ground, color, facing_street, roads_u, seed, taken
             )
             walls += w
             roofs += r
@@ -975,7 +1204,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
             window_panes += win
     for k, rect in enumerate(extra):
         w, r, d, win = house_meshes(
-            rect, 1, ground, WALL_PALETTE[(k * 3 + 1) % len(WALL_PALETTE)], facing_street, roads_u, 9000 + k
+            rect, 1, ground, WALL_PALETTE[(k * 3 + 1) % len(WALL_PALETTE)], facing_street, roads_u, 9000 + k, taken
         )
         walls += w
         roofs += r

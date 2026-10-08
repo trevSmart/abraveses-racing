@@ -175,6 +175,10 @@ def _build_heightmap(cfg: dict, dem: DemSampler) -> dict:
 def _terrain_mesh(ground: Ground, meta: dict, res: int) -> trimesh.Trimesh:
     gx, gy = _grid(float(meta["size_m"]), res)
     z = ground.height(gx, gy)
+    if ground.water is not None:
+        surf = ground.water.surface_y(ground, gx, gy)
+        cap = np.isfinite(surf)
+        z = np.where(cap, np.minimum(z, surf), z)
     vertices = np.column_stack([gx.ravel(), z.ravel(), -gy.ravel()])
     j, i = np.meshgrid(np.arange(res - 1), np.arange(res - 1), indexing="ij")
     a = (j * res + i).ravel()

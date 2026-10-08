@@ -75,12 +75,14 @@ class Waterways:
         r1 = np.concatenate([r[1:] for _, r, _ in seg_rows])
         n = np.array([len(p) - 1 for p, _, _ in seg_rows])
         sec_cols = {
-            k: np.repeat([getattr(s, k) for _, _, s in seg_rows], n) for k in ("bed_m", "bank_m", "depth_m")
+            k: np.repeat([getattr(s, k) for _, _, s in seg_rows], n)
+            for k in ("bed_m", "bank_m", "depth_m", "water_frac")
         }
         self.p0, self.p1, self.r0, self.r1 = p0, p1, r0, r1
         self.half_bed = sec_cols["bed_m"] / 2
         self.bank = sec_cols["bank_m"]
         self.depth = sec_cols["depth_m"]
+        self.water_frac = sec_cols["water_frac"]
         self.water_half = np.repeat([s.water_half_m for _, _, s in seg_rows], n)
         self.reach = float((self.half_bed + self.bank).max() + FADE_M[1])
         self.tree = shapely.STRtree(shapely.linestrings(np.stack([p0, p1], axis=1)))
@@ -137,6 +139,30 @@ class Waterways:
         delta = np.minimum(cut - np.asarray(dem_abs, dtype=np.float64).ravel()[pi], 0.0) * fade
         np.minimum.at(out, pi, delta)
         return out
+
+    def surface_y(self, ground, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
+        """Alçada local (Y) de la làmina; nan fora del llit excavat."""
+        shape = np.asarray(xs).shape
+        xs = np.asarray(xs, dtype=np.float64).ravel()
+        ys = np.asarray(ys, dtype=np.float64).ravel()
+        out = np.full(xs.size, np.nan)
+        if self.tree is None or xs.size == 0:
+            return out.reshape(shape)
+        pi, si, dist, _ = self._pairs(xs, ys)
+        if pi.size == 0:
+            return out.reshape(shape)
+        edge = self.half_bed[si] + self.bank[si]
+        # Inclou una corona per evitar triangles del terreny per sobre de la làmina.
+        in_ch = dist <= edge + FADE_M[1]
+        if not np.any(in_ch):
+            return out.reshape(shape)
+        px = xs[pi[in_ch]]
+        py = ys[pi[in_ch]]
+        si_in = si[in_ch]
+        bed = np.asarray(ground.height(px, py, raised=True), dtype=np.float64)
+        col = self.depth[si_in] * self.water_frac[si_in]
+        out[pi[in_ch]] = bed + col + 0.06
+        return out.reshape(shape)
 
     def water_distance(self, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
         """Distància (m) a la vora de la làmina d'aigua; negativa a dins."""
