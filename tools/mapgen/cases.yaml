@@ -47,3 +47,102 @@
     gate: [0.56, 0.67]
     rail: [228, 222, 205]
     base: [170, 160, 140]
+
+# --- Entrada del poble per la Calle Santibáñez (Street View, set. 2024) ---------------------
+
+# Casa A, costat nord: cobert d'una planta amb porta de garatge (part1) i casa de dues plantes
+# amb la planta baixa de pedra i balcó corregut (part3). part2 (cobert del darrere) com sempre.
+0032901TM6503S:
+  photo: "Street View, set. 2024, des de la ZA-P-2547 mirant al nord (només referència)"
+  facade: S
+  footprint: rect
+  windows:
+    frame: [112, 76, 52]
+    roller: [138, 128, 112]
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.7
+      wall: [226, 213, 182]  # arrebossat crema
+      cladding: {material: stone, color: [168, 124, 92], height_m: 1.1}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.21, w: 0.65, h: 0.4, sill_m: 1.65}
+        - {kind: garage, t: 0.8, w: 2.3, h: 2.5, color: [165, 168, 165], frame: [92, 130, 178], leaves: 3, glass_top_m: 0.4}
+    part3:
+      floors: 2
+      eave_m: 6.1
+      wall: [228, 220, 196]
+      cladding: {material: stone, color: [168, 124, 92], height_m: 3.0}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 1.0}
+      openings:
+        - {kind: window, t: 0.3, w: 1.5, h: 1.2, sill_m: 1.1}
+        - {kind: door, t: 0.6, w: 0.95, h: 2.2, bottom_m: 0.72, color: [118, 74, 50], steps: 4, step_color: [196, 192, 182], step_rail: [right]}
+        - {kind: window, t: 0.84, w: 0.6, h: 1.1, sill_m: 1.4}
+        - {kind: window, floor: 1, t: 0.3, w: 1.2, h: 1.3, sill_m: 0.9, roller: 0.4}
+        - {kind: door, floor: 1, t: 0.62, w: 0.9, h: 2.1, color: [112, 76, 52]}
+        - {kind: window, floor: 1, t: 0.86, w: 0.9, h: 1.2, sill_m: 0.95, roller: 0.3}
+      balconies:
+        - {floor: 1, from: 0.0, to: 1.0, depth_m: 1.1, slab: [212, 202, 182]}
+
+# Casa de maó vist amb balcó corregut i garatge (0032941 part2); part1 (cobert) com sempre.
+0032941TM6503S:
+  photo: "Street View, set. 2024, des de la ZA-P-2547 mirant al nord (només referència)"
+  facade: S
+  footprint: rect
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.0
+      wall: [178, 98, 72]
+      wall_material: brick
+      cladding: {material: stone, color: [166, 142, 116], height_m: 0.6}
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.9, fascia: [236, 232, 224]}
+      windows:
+        frame: [238, 236, 230]
+        roller: [232, 230, 224]  # persianes blanques
+      openings:
+        - {kind: garage, t: 0.19, w: 4.6, h: 2.6, color: [118, 124, 124], frame: [170, 62, 52], leaves: 4}
+        - {kind: window, t: 0.67, w: 1.1, h: 1.1, sill_m: 1.0, roller: 0.75}
+        - {kind: door, t: 0.95, w: 0.9, h: 2.1, bottom_m: 0.1, color: [240, 238, 232]}
+        - {kind: window, floor: 1, t: 0.17, w: 1.3, h: 1.2, sill_m: 0.9, roller: 0.1}
+        - {kind: window, floor: 1, t: 0.39, w: 1.3, h: 1.2, sill_m: 0.9, roller: 0.6}
+        - {kind: window, floor: 1, t: 0.63, w: 1.5, h: 1.2, sill_m: 0.9, roller: 0.4}
+        - {kind: door, floor: 1, t: 0.79, w: 0.8, h: 2.1, color: [240, 238, 232]}
+      balconies:
+        - {floor: 1, from: 0.0, to: 1.0, depth_m: 1.2, slab: [200, 186, 160], edge: [170, 150, 122]}
+
+# Casa B, costat sud: dues plantes granat amb emmarcats crema (part2) i annex baix amb
+# xemeneia de barret (part1).
+0132102TM6503S:
+  photo: "Street View, set. 2024, des de la ZA-P-2547 mirant al sud (només referència)"
+  facade: N
+  footprint: rect
+  wall: [166, 56, 60]  # arrebossat granat
+  plinth: [204, 170, 104]
+  plinth_h: 0.35
+  windows:
+    frame: [228, 210, 166]
+    frame_w: 0.14
+    roller: [150, 100, 62]
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.9
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35}
+      openings:
+        # Porta de garatge blanca a la punta oest (foto de façana del Cadastre).
+        - {kind: garage, t: 0.82, w: 2.3, h: 2.3, color: [236, 234, 228], frame: [236, 234, 228], leaves: 1}
+      chimneys:
+        - {t: 0.4, depth_m: 2.5, size_m: 0.8, above_m: 0.9, color: [224, 204, 160], cap: [92, 80, 70]}
+    part2:
+      floors: 2
+      eave_m: 5.6
+      roof: {type: gable, ridge: along, pitch_deg: 24, overhang_m: 0.4}
+      openings:
+        - {kind: window, t: 0.16, w: 0.95, h: 1.0, sill_m: 1.0, roller: 0.95}
+        - {kind: door, t: 0.4, w: 1.0, h: 2.2, bottom_m: 0.45, color: [150, 96, 56], steps: 3, step_color: [180, 92, 62]}
+        - {kind: window, t: 0.73, w: 1.3, h: 1.05, sill_m: 1.0, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.17, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.39, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.73, w: 1.25, h: 1.1, sill_m: 0.85, roller: 0.9}

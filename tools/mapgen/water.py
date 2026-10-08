@@ -24,6 +24,15 @@ MAX_CUT_M = 0.6
 # de FADE_M[0] m de la vora es fon cap al MDT original (en FADE_M[1] ja no toca res).
 OUT_SLOPE = 1.0
 FADE_M = (3.0, 5.0)
+# Si el DEM puja més de TUNNEL_COVER_M per damunt del grau ideal i el tram fa ≥ TUNNEL_MIN_M,
+# l'aigua passa sota el turó (sense trinxera) i es posen boques de formigó als extrems.
+TUNNEL_COVER_M = 2.0
+TUNNEL_MIN_M = 8.0
+# Collar de la boca: gruix axial, volada lateral i lliure per damunt de la làmina.
+PORTAL_DEPTH_M = 0.45
+PORTAL_LIP_M = 0.35
+PORTAL_HEAD_M = 0.55
+PORTAL_RGB = (168, 166, 158)
 
 
 @dataclass
@@ -44,14 +53,59 @@ def _smoothstep(u: np.ndarray) -> np.ndarray:
     return u * u * (3 - 2 * u)
 
 
+def tunnel_mask(
+    smooth: np.ndarray,
+    step_m: float = STEP_M,
+    cover_m: float = TUNNEL_COVER_M,
+    min_m: float = TUNNEL_MIN_M,
+    expand_cover_m: float = MAX_CUT_M,
+) -> np.ndarray:
+    """Marca trams on el terreny cobreix el grau ideal (≥ `cover_m`) en un tram ≥ `min_m`.
+
+    `smooth` ha d'estar orientat aigües avall (cota no creixent en mitjana).
+    Un cop detectat el crest, s'expandeix mentre la coberta superi `expand_cover_m`
+    perquè els vessants no obrin trinxera amb el límit MAX_CUT.
+    """
+    s = np.asarray(smooth, dtype=np.float64)
+    ideal = np.minimum.accumulate(s)
+    cover = s - ideal
+    deep = cover >= cover_m
+    out = np.zeros(s.shape, dtype=bool)
+    if not np.any(deep):
+        return out
+    # Etiqueta runs contigues i queda només les prou llargues; després expandeix als vessants.
+    padded = np.concatenate([[False], deep, [False]])
+    edges = np.flatnonzero(padded[1:] != padded[:-1])
+    for a, b in edges.reshape(-1, 2):
+        if (b - a) * step_m < min_m:
+            continue
+        lo, hi = int(a), int(b)
+        while lo > 0 and cover[lo - 1] > expand_cover_m:
+            lo -= 1
+        while hi < cover.size and cover[hi] > expand_cover_m:
+            hi += 1
+        out[lo:hi] = True
+    return out
+
+
+def water_ref_profile(smooth: np.ndarray, tunnel: np.ndarray, max_cut_m: float = MAX_CUT_M) -> np.ndarray:
+    """Nivell de vora del llit: sota túnel segueix el grau ideal; altrament no talla > max_cut."""
+    s = np.asarray(smooth, dtype=np.float64)
+    ideal = np.minimum.accumulate(s)
+    open_ref = np.maximum(ideal, s - max_cut_m)
+    return np.where(tunnel, ideal, open_ref)
+
+
 class Waterways:
     def __init__(self, gdf: gpd.GeoDataFrame, dem, origin: tuple[float, float], half: float, cfg: dict) -> None:
         """`gdf` en coordenades locals (origen `origin` en UTM, al centre del terreny); `dem` en UTM."""
         table = cfg.get("waterways", {})
         self.half = half
-        self.lines: list[tuple[np.ndarray, np.ndarray, Section, str, bool]] = []
+        # (pts, ref, section, kind, downhill, tunnel_mask)
+        self.lines: list[tuple[np.ndarray, np.ndarray, Section, str, bool, np.ndarray]] = []
         clip = box(-half - 20, -half - 20, half + 20, half + 20)
         seg_rows = []
+        n_tunnel = 0
         for _, row in gdf.iterrows():
             spec = table.get(row.get("kind"))
             if not spec or row.geometry is None:
@@ -61,39 +115,47 @@ class Waterways:
             for line in getattr(geom, "geoms", [geom]):
                 if not isinstance(line, LineString) or line.length < STEP_M:
                     continue
-                pts, ref, downhill = self._profile(line, dem, origin)
-                self.lines.append((pts, ref, sec, str(row.get("kind")), downhill))
-                seg_rows.append((pts, ref, sec))
+                pts, ref, downhill, tun = self._profile(line, dem, origin)
+                self.lines.append((pts, ref, sec, str(row.get("kind")), downhill, tun))
+                seg_rows.append((pts, ref, sec, tun))
+                if tun.any():
+                    n_tunnel += 1
 
         if not seg_rows:
             self.tree = None
             self.reach = 0.0
             return
-        p0 = np.concatenate([p[:-1] for p, _, _ in seg_rows])
-        p1 = np.concatenate([p[1:] for p, _, _ in seg_rows])
-        r0 = np.concatenate([r[:-1] for _, r, _ in seg_rows])
-        r1 = np.concatenate([r[1:] for _, r, _ in seg_rows])
-        n = np.array([len(p) - 1 for p, _, _ in seg_rows])
+        p0 = np.concatenate([p[:-1] for p, _, _, _ in seg_rows])
+        p1 = np.concatenate([p[1:] for p, _, _, _ in seg_rows])
+        r0 = np.concatenate([r[:-1] for _, r, _, _ in seg_rows])
+        r1 = np.concatenate([r[1:] for _, r, _, _ in seg_rows])
+        t0 = np.concatenate([t[:-1] for _, _, _, t in seg_rows]).astype(np.float64)
+        t1 = np.concatenate([t[1:] for _, _, _, t in seg_rows]).astype(np.float64)
+        n = np.array([len(p) - 1 for p, _, _, _ in seg_rows])
         sec_cols = {
-            k: np.repeat([getattr(s, k) for _, _, s in seg_rows], n)
+            k: np.repeat([getattr(s, k) for _, _, s, _ in seg_rows], n)
             for k in ("bed_m", "bank_m", "depth_m", "water_frac")
         }
         self.p0, self.p1, self.r0, self.r1 = p0, p1, r0, r1
+        self.t0, self.t1 = t0, t1
         self.half_bed = sec_cols["bed_m"] / 2
         self.bank = sec_cols["bank_m"]
         self.depth = sec_cols["depth_m"]
         self.water_frac = sec_cols["water_frac"]
-        self.water_half = np.repeat([s.water_half_m for _, _, s in seg_rows], n)
+        self.water_half = np.repeat([s.water_half_m for _, _, s, _ in seg_rows], n)
         self.reach = float((self.half_bed + self.bank).max() + FADE_M[1])
         self.tree = shapely.STRtree(shapely.linestrings(np.stack([p0, p1], axis=1)))
         kinds = {}
-        for _, _, _, kind, _ in self.lines:
+        for _, _, _, kind, _, _ in self.lines:
             kinds[kind] = kinds.get(kind, 0) + 1
-        print(f"Water: {len(self.lines)} cursos {kinds}, {len(p0)} trams")
+        tun_msg = f", {n_tunnel} amb túnel" if n_tunnel else ""
+        print(f"Water: {len(self.lines)} cursos {kinds}, {len(p0)} trams{tun_msg}")
 
     @staticmethod
-    def _profile(line: LineString, dem, origin: tuple[float, float]) -> tuple[np.ndarray, np.ndarray, bool]:
-        """Eix densificat i nivell de referència (cota absoluta de la vora del llit) a cada punt."""
+    def _profile(
+        line: LineString, dem, origin: tuple[float, float]
+    ) -> tuple[np.ndarray, np.ndarray, bool, np.ndarray]:
+        """Eix densificat, nivell de referència, sentit i màscara de túnel."""
         d = np.append(np.arange(0.0, line.length, STEP_M), line.length)
         pts = np.array([line.interpolate(float(s)).coords[0] for s in d])
         tangent = np.gradient(pts, axis=0)
@@ -101,16 +163,31 @@ class Waterways:
         normal = np.column_stack([-tangent[:, 1], tangent[:, 0]])
         offsets = np.linspace(-SEEK_M, SEEK_M, 5)
         ox, oy = origin
-        z = np.min([dem(ox + pts[:, 0] + normal[:, 0] * o, oy + pts[:, 1] + normal[:, 1] * o) for o in offsets], axis=0)
+        z = np.min(
+            [dem(ox + pts[:, 0] + normal[:, 0] * o, oy + pts[:, 1] + normal[:, 1] * o) for o in offsets],
+            axis=0,
+        )
+        z = np.asarray(z, dtype=np.float64)
+        if np.isnan(z).any():
+            # Interpola forats del MDT perquè el suavitzat i el grau ideal no es trenquin.
+            good = np.isfinite(z)
+            if good.any():
+                idx = np.arange(z.size)
+                z = np.interp(idx, idx[good], z[good])
+            else:
+                z = np.zeros_like(z)
         smooth = ndimage.gaussian_filter1d(z, SMOOTH_SAMPLES, mode="nearest")
         # L'IGN no sempre digitalitza en el sentit del corrent: aigües amunt és l'extrem més alt.
-        downhill = smooth[0] >= smooth[-1]
+        downhill = bool(smooth[0] >= smooth[-1])
         s = smooth if downhill else smooth[::-1]
-        ref = np.maximum(np.minimum.accumulate(s), s - MAX_CUT_M)
-        return pts, (ref if downhill else ref[::-1]), downhill
+        tun_down = tunnel_mask(s, step_m=STEP_M)
+        ref_down = water_ref_profile(s, tun_down)
+        if downhill:
+            return pts, ref_down, True, tun_down
+        return pts, ref_down[::-1], False, tun_down[::-1]
 
     def _pairs(self, xs: np.ndarray, ys: np.ndarray):
-        """Parelles (punt, tram) a menys de `reach`, amb la distància i el nivell projectat."""
+        """Parelles (punt, tram) a menys de `reach`, amb distància, nivell i factor de túnel."""
         pts = shapely.points(xs, ys)
         pi, si = self.tree.query(pts, predicate="dwithin", distance=self.reach)
         a, b = self.p0[si], self.p1[si]
@@ -119,7 +196,8 @@ class Waterways:
         t = np.clip((ap * ab).sum(axis=1) / np.maximum((ab * ab).sum(axis=1), 1e-9), 0.0, 1.0)
         dist = np.linalg.norm(ap - ab * t[:, None], axis=1)
         ref = self.r0[si] + (self.r1[si] - self.r0[si]) * t
-        return pi, si, dist, ref
+        tun = self.t0[si] + (self.t1[si] - self.t0[si]) * t
+        return pi, si, dist, ref, tun
 
     def carve(self, xs: np.ndarray, ys: np.ndarray, dem_abs: np.ndarray) -> np.ndarray:
         """Quant s'ha d'enfonsar el MDT (≤ 0) a cada punt per fer-hi el llit."""
@@ -128,16 +206,27 @@ class Waterways:
         out = np.zeros(xs.size)
         if self.tree is None or xs.size == 0:
             return out
-        pi, si, dist, ref = self._pairs(xs, ys)
+        pi, si, dist, ref, tun = self._pairs(xs, ys)
         if pi.size == 0:
             return out
+        # Un punt pot caure a l'abast de diversos trams: només el més proper compta
+        # (si no, un tram obert del vessant excavaria el crest del túnel).
+        order = np.argsort(dist)
+        pi, si, dist, ref, tun = pi[order], si[order], dist[order], ref[order], tun[order]
+        _, first = np.unique(pi, return_index=True)
+        pi, si, dist, ref, tun = pi[first], si[first], dist[first], ref[first], tun[first]
+        # Sota el turó no s'obre trinxera: l'aigua hi passa en túnel.
+        open_ch = tun < 0.5
+        if not np.any(open_ch):
+            return out
+        pi, si, dist, ref = pi[open_ch], si[open_ch], dist[open_ch], ref[open_ch]
         half_bed, bank = self.half_bed[si], self.bank[si]
         edge = half_bed + bank
-        s = _smoothstep(np.clip((dist - half_bed) / bank, 0.0, 1.0))
+        s = _smoothstep(np.clip((dist - half_bed) / np.maximum(bank, 1e-9), 0.0, 1.0))
         cut = ref - self.depth[si] * (1 - s) + np.maximum(dist - edge, 0.0) * OUT_SLOPE
         fade = np.clip((edge + FADE_M[1] - dist) / (FADE_M[1] - FADE_M[0]), 0.0, 1.0)
         delta = np.minimum(cut - np.asarray(dem_abs, dtype=np.float64).ravel()[pi], 0.0) * fade
-        np.minimum.at(out, pi, delta)
+        out[pi] = delta
         return out
 
     def surface_y(self, ground, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
@@ -148,7 +237,7 @@ class Waterways:
         out = np.full(xs.size, np.nan)
         if self.tree is None or xs.size == 0:
             return out.reshape(shape)
-        pi, si, dist, _ = self._pairs(xs, ys)
+        pi, si, dist, ref, tun = self._pairs(xs, ys)
         if pi.size == 0:
             return out.reshape(shape)
         edge = self.half_bed[si] + self.bank[si]
@@ -159,8 +248,13 @@ class Waterways:
         px = xs[pi[in_ch]]
         py = ys[pi[in_ch]]
         si_in = si[in_ch]
-        bed = np.asarray(ground.height(px, py, raised=True), dtype=np.float64)
+        tun_in = tun[in_ch]
         col = self.depth[si_in] * self.water_frac[si_in]
+        bed_open = np.asarray(ground.height(px, py, raised=True), dtype=np.float64)
+        # En túnel el terreny no s'excava: la làmina segueix el grau hidràulic (ref).
+        z_min = float(ground.z_min)
+        bed_tun = ref[in_ch] - z_min - self.depth[si_in]
+        bed = np.where(tun_in >= 0.5, bed_tun, bed_open)
         out[pi[in_ch]] = bed + col + 0.06
         return out.reshape(shape)
 
@@ -171,7 +265,7 @@ class Waterways:
         out = np.full(xs.size, np.inf)
         if self.tree is None or xs.size == 0:
             return out
-        pi, si, dist, _ = self._pairs(xs, ys)
+        pi, si, dist, _, _ = self._pairs(xs, ys)
         np.minimum.at(out, pi, dist - self.water_half[si])
         return out
 
@@ -188,11 +282,79 @@ class Waterways:
             colors[2 * i + 1] = (*enc, 0)
         return colors
 
-    def mesh(self, ground, z_min: float, keep_off_road_m: float = 0.35) -> tuple[trimesh.Trimesh | None, trimesh.Trimesh | None]:
-        """Superfície de l'aigua i parets/fons del volum (sota la làmina). Sota els camins es talla."""
+    @staticmethod
+    def _portal_mesh(
+        center: np.ndarray,
+        tangent: np.ndarray,
+        normal: np.ndarray,
+        half_w: float,
+        y_water: float,
+        water_h: float,
+        outward: float,
+    ) -> trimesh.Trimesh:
+        """Collar rectangular de formigó a la boca del túnel (eix local: tangent, normal, up)."""
+        t = tangent / max(float(np.linalg.norm(tangent)), 1e-9)
+        n = normal / max(float(np.linalg.norm(normal)), 1e-9)
+        # Orientació: la cara exterior mira cap a `outward` (±1 al llarg de t).
+        t = t * outward
+        half_w = half_w + PORTAL_LIP_M
+        y0 = y_water - water_h - PORTAL_LIP_M
+        y1 = y_water + PORTAL_HEAD_M
+        # Profunditat del collar cap a dins del túnel (−t) i una mica cap enfora.
+        d0, d1 = -PORTAL_DEPTH_M * 0.25, PORTAL_DEPTH_M
+        # Forat interior (una mica més estret que el collar exterior).
+        inner_w = half_w - PORTAL_LIP_M
+        inner_y0 = y_water - water_h
+        inner_y1 = y_water + PORTAL_HEAD_M * 0.35
+
+        def corner(side: float, y: float, depth: float) -> list[float]:
+            p = center + n * side + t * depth
+            return [float(p[0]), float(y), float(-p[1])]
+
+        # 8 vèrtexs del bloc exterior + 8 del forat; cares del marc (sense tapar el pas).
+        ov = [
+            corner(-half_w, y0, d0),
+            corner(half_w, y0, d0),
+            corner(half_w, y1, d0),
+            corner(-half_w, y1, d0),
+            corner(-half_w, y0, d1),
+            corner(half_w, y0, d1),
+            corner(half_w, y1, d1),
+            corner(-half_w, y1, d1),
+        ]
+        iv = [
+            corner(-inner_w, inner_y0, d0),
+            corner(inner_w, inner_y0, d0),
+            corner(inner_w, inner_y1, d0),
+            corner(-inner_w, inner_y1, d0),
+            corner(-inner_w, inner_y0, d1),
+            corner(inner_w, inner_y0, d1),
+            corner(inner_w, inner_y1, d1),
+            corner(-inner_w, inner_y1, d1),
+        ]
+        verts = ov + iv
+        # Índexs: exterior 0..7, interior 8..15.
+        faces: list[list[int]] = []
+        # Cara exterior (anell): connecta exterior amb forat a d0.
+        faces += [[0, 1, 9], [0, 9, 8], [1, 2, 10], [1, 10, 9], [2, 3, 11], [2, 11, 10], [3, 0, 8], [3, 8, 11]]
+        # Cara interior (anell) a d1.
+        faces += [[4, 12, 13], [4, 13, 5], [5, 13, 14], [5, 14, 6], [6, 14, 15], [6, 15, 7], [7, 15, 12], [7, 12, 4]]
+        # Costats exteriors del bloc.
+        faces += [[0, 4, 5], [0, 5, 1], [1, 5, 6], [1, 6, 2], [2, 6, 7], [2, 7, 3], [3, 7, 4], [3, 4, 0]]
+        # Parets del forat (mirant cap al pas).
+        faces += [[8, 9, 13], [8, 13, 12], [9, 10, 14], [9, 14, 13], [10, 11, 15], [10, 15, 14], [11, 8, 12], [11, 12, 15]]
+        mesh = trimesh.Trimesh(vertices=np.asarray(verts, dtype=np.float64), faces=np.asarray(faces, dtype=np.int64), process=False)
+        mesh.visual.vertex_colors = np.tile([*PORTAL_RGB, 255], (len(verts), 1)).astype(np.uint8)
+        return mesh
+
+    def mesh(
+        self, ground, z_min: float, keep_off_road_m: float = 0.35
+    ) -> tuple[trimesh.Trimesh | None, trimesh.Trimesh | None, trimesh.Trimesh | None]:
+        """Superfície d'aigua, volum i boques de túnel (prop). Sota els camins es talla la làmina."""
         parts: list[trimesh.Trimesh] = []
         vol_parts: list[trimesh.Trimesh] = []
-        for pts, ref, sec, _, downhill in self.lines:
+        portal_parts: list[trimesh.Trimesh] = []
+        for pts, ref, sec, _, downhill, tun in self.lines:
             sign = 1.0 if downhill else -1.0
             tangent = np.gradient(pts, axis=0)
             tangent /= np.maximum(np.linalg.norm(tangent, axis=1, keepdims=True), 1e-9)
@@ -205,13 +367,16 @@ class Waterways:
             left = pts + normal * sec.water_half_m
             right = pts - normal * sec.water_half_m
             water_h = sec.depth_m * sec.water_frac
-            # Superfície a l'alçada del llit excavat (mateix càlcul que el MDT del joc) + columna d'aigua.
-            bed = np.asarray(ground.height(pts[:, 0], pts[:, 1], raised=True), dtype=np.float64)
+            bed_open = np.asarray(ground.height(pts[:, 0], pts[:, 1], raised=True), dtype=np.float64)
+            bed_tun = ref - z_min - sec.depth_m
+            bed = np.where(tun, bed_tun, bed_open)
             level = bed + water_h + 0.06
             depth_b = int(np.clip(water_h / 2.0, 0.08, 1.0) * 255)
             # Fora del terreny no hi ha llit: la cinta quedaria penjant a la vora del mapa.
             inside = (np.abs(left) <= self.half).all(axis=1) & (np.abs(right) <= self.half).all(axis=1)
-            ok = inside & (ground.road_distance(pts[:, 0], pts[:, 1]) > keep_off_road_m)
+            # En túnel l'aigua continua sota el turó encara que el "camí" hi passi a sobre.
+            off_road = ground.road_distance(pts[:, 0], pts[:, 1]) > keep_off_road_m
+            ok = inside & (off_road | tun)
             n = len(pts)
             verts = np.empty((2 * n, 3))
             verts[0::2] = np.column_stack([left[:, 0], level, -left[:, 1]])
@@ -288,6 +453,26 @@ class Waterways:
                 vol.visual.vertex_colors = np.asarray(vol_colors, dtype=np.uint8)
                 vol_parts.append(vol)
 
+            # Boques als canvis open↔tunnel.
+            for i in range(n - 1):
+                if bool(tun[i]) == bool(tun[i + 1]):
+                    continue
+                # Índex de la boca: el primer/últim punt del tram túnel.
+                mouth = i + 1 if tun[i + 1] else i
+                # Cap a fora del túnel: del crest cap a la vall oberta.
+                outward = -1.0 if tun[i + 1] else 1.0
+                portal_parts.append(
+                    self._portal_mesh(
+                        pts[mouth],
+                        tangent[mouth],
+                        normal[mouth],
+                        sec.water_half_m,
+                        float(level[mouth]),
+                        water_h,
+                        outward,
+                    )
+                )
+
         def _merge(parts_list: list[trimesh.Trimesh]) -> trimesh.Trimesh | None:
             if not parts_list:
                 return None
@@ -295,4 +480,4 @@ class Waterways:
             out.remove_unreferenced_vertices()
             return out
 
-        return _merge(parts), _merge(vol_parts)
+        return _merge(parts), _merge(vol_parts), _merge(portal_parts)

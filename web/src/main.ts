@@ -25,6 +25,7 @@ import { CraneFlocks } from "./birds";
 import { Sky, SUN_VISUAL_ELEVATION_DEG, sunDirection } from "./sky";
 import { R12, stepSpeed, stepSteer, turnRadius, yawRate } from "./vehicle";
 import { applyWaterMaterial, setWaterEnvironment, waterTime } from "./water";
+import { houseIdFromHit, resolveHouseRef } from "./housePick";
 
 type SpawnData = {
   position: { x: number; y: number; z: number };
@@ -1130,7 +1131,7 @@ function tintWorld(root: THREE.Object3D): void {
       computeOwnBoundsTree(mesh.geometry);
       mesh.material = !mesh.geometry.attributes.color
         ? new THREE.MeshStandardMaterial({ color: 0xd9a088, roughness: 0.78 })
-        : /tapia/.test(mesh.name.toLowerCase())
+        : /tapia|brick/.test(mesh.name.toLowerCase())
           ? worldMaterials.tapia
           : /stone/.test(mesh.name.toLowerCase())
             ? worldMaterials.stone
@@ -1219,6 +1220,8 @@ type VillageFile = {
   trees: { x: number; y: number; z: number; r: number; h: number; c: [number, number, number] }[];
   /** Format compacte [x, y, z, r, g, b]. */
   plants: [number, number, number, number, number, number][];
+  /** house_id → referència cadastral (mode DEV, hover). */
+  houses?: Record<string, string>;
 };
 
 /** Color de la foto en sRGB; `gain` compensa que la foto inclou les ombres de dins la copa. */
@@ -1632,6 +1635,7 @@ async function loadVillage(): Promise<void> {
     return;
   }
   const data = (await res.json()) as VillageFile;
+  houseRefs = data.houses ?? {};
   if (data.trees?.length) {
     registerVillageTrees(data.trees);
   }
@@ -1678,7 +1682,16 @@ function freezeStatic(root: THREE.Object3D): void {
 /** Color del camí en mode dev; les cases eviten aquesta franja de to (vegeu houseDevMaterial). */
 const DEV_ROAD_COLOR = 0xffd400;
 const devBadge = document.getElementById("dev-badge");
+const houseTooltip = document.getElementById("house-tooltip");
 let devMode = false;
+/** house_id → referència cadastral (village.json). */
+let houseRefs: Record<string, string> = {};
+/** Malles amb atribut houseId: raycast del hover en mode DEV. */
+const housePickMeshes: THREE.Object3D[] = [];
+const housePickRaycaster = new THREE.Raycaster();
+housePickRaycaster.firstHitOnly = true;
+housePickRaycaster.layers.enable(DETAIL_LAYER);
+const housePickNdc = new THREE.Vector2();
 /** Malles que canvien de material en mode dev, amb el material normal per tornar-hi. */
 const devTinted: { mesh: THREE.Mesh; normal: THREE.Material | THREE.Material[]; dev: THREE.Material }[] = [];
 
@@ -1741,6 +1754,10 @@ function prepareDevTint(root: THREE.Object3D): void {
       // El GLTFLoader el deixa com a `_house`; amb un nom normal per al shader.
       mesh.geometry.setAttribute("houseId", houseIds);
       mesh.geometry.deleteAttribute("_house");
+      housePickMeshes.push(mesh);
+      if (!mesh.geometry.boundsTree) {
+        mesh.userData.lazyBvh = true;
+      }
       dev = house[kind];
     }
     if (dev) {
@@ -1749,14 +1766,64 @@ function prepareDevTint(root: THREE.Object3D): void {
   });
 }
 
+function hideHouseTooltip(): void {
+  houseTooltip?.toggleAttribute("hidden", true);
+}
+
+function showHouseTooltip(ref: string, clientX: number, clientY: number): void {
+  if (!houseTooltip) {
+    return;
+  }
+  houseTooltip.textContent = ref;
+  houseTooltip.style.left = `${clientX}px`;
+  houseTooltip.style.top = `${clientY}px`;
+  houseTooltip.toggleAttribute("hidden", false);
+}
+
+function pickHouseRef(clientX: number, clientY: number): string | null {
+  if (!housePickMeshes.length) {
+    return null;
+  }
+  const rect = renderer.domElement.getBoundingClientRect();
+  housePickNdc.set(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -((clientY - rect.top) / rect.height) * 2 + 1,
+  );
+  housePickRaycaster.setFromCamera(housePickNdc, camera);
+  const hits = housePickRaycaster.intersectObjects(housePickMeshes, false);
+  if (!hits.length) {
+    return null;
+  }
+  return resolveHouseRef(houseRefs, houseIdFromHit(hits[0]));
+}
+
+function onDevHousePointerMove(e: PointerEvent): void {
+  if (!devMode || bigMapOpen || optionsOpen) {
+    hideHouseTooltip();
+    return;
+  }
+  const ref = pickHouseRef(e.clientX, e.clientY);
+  if (ref) {
+    showHouseTooltip(ref, e.clientX, e.clientY);
+  } else {
+    hideHouseTooltip();
+  }
+}
+
 function setDevMode(on: boolean): void {
   devMode = on;
   for (const t of devTinted) {
     t.mesh.material = on ? t.dev : t.normal;
   }
   devBadge?.toggleAttribute("hidden", !on);
+  if (!on) {
+    hideHouseTooltip();
+  }
   lastMinimapRender = -Infinity; // el minimapa també es pinta amb els colors del mode dev
 }
+
+renderer.domElement.addEventListener("pointermove", onDevHousePointerMove);
+renderer.domElement.addEventListener("pointerleave", hideHouseTooltip);
 
 // --- Minimapa: vista cenital orientada amb el kart, zoom segons la velocitat ---
 
