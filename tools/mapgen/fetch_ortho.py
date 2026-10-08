@@ -9,6 +9,8 @@ from pathlib import Path
 import requests
 from PIL import Image
 
+Image.MAX_IMAGE_PIXELS = None  # la mestra de 8192² supera el límit per defecte de PIL
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.config import ensure_parent, load_config, utm_origin  # noqa: E402
 
@@ -85,9 +87,27 @@ def _download_mosaic(source: str, epsg: int, ox: float, oy: float, size_m: float
     return mosaic
 
 
+def _write_web_textures(cfg: dict, master: Image.Image, size_m: float) -> None:
+    """Textures del joc: tot el terreny a 4096 px i, si cal, el centre a resolució completa."""
+    web_px = int(cfg.get("ortho_web_px", 4096))
+    full_path = ensure_parent(cfg["paths"]["ortho_jpg"])
+    master.resize((web_px, web_px), Image.LANCZOS).save(full_path, quality=85, optimize=True, progressive=True)
+    print(f"Orthophoto (web, tot) → {full_path} ({size_m / web_px * 100:.0f} cm/px)")
+    center_m = float(cfg.get("ortho_center_m", 0))
+    if 0 < center_m < size_m:
+        n = master.width
+        a = int(round((size_m - center_m) / 2 / size_m * n))
+        b = n - a
+        crop = master.crop((a, a, b, b))
+        center_path = ensure_parent(cfg["paths"]["ortho_center_jpg"])
+        crop.resize((web_px, web_px), Image.LANCZOS).save(center_path, quality=85, optimize=True, progressive=True)
+        print(f"Orthophoto (web, centre {center_m:.0f} m) → {center_path} ({center_m / web_px * 100:.0f} cm/px)")
+
+
 def fetch_ortho(pixels: int | None = None) -> Path | None:
+    """Baixa la mestra d'alta resolució (per a l'anàlisi del poble) i en deriva les textures web."""
     cfg = load_config()
-    out_path = ensure_parent(cfg["paths"]["ortho_jpg"])
+    master_path = ensure_parent(cfg["paths"]["ortho_master"])
     pixels = int(pixels or cfg.get("ortho_px", 4096))
     size_m = float(cfg["terrain_size_m"])
     ox, oy = utm_origin(cfg)
@@ -102,9 +122,10 @@ def fetch_ortho(pixels: int | None = None) -> Path | None:
         except Exception as exc:  # noqa: BLE001
             print(f"  {source} failed ({exc})")
             continue
-        img.save(out_path, quality=85, optimize=True, progressive=True)
-        print(f"Orthophoto → {out_path} ({source})")
-        return out_path
+        img.save(master_path, quality=90, optimize=True)
+        print(f"Orthophoto (mestra) → {master_path} ({source})")
+        _write_web_textures(cfg, img, size_m)
+        return master_path
     print("Orthophoto skipped. Terrain will use flat color.")
     return None
 

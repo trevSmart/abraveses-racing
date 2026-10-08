@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import json
 import random
 import shutil
@@ -53,7 +54,8 @@ class DemSampler:
 
 
 class Ground:
-    """Alçada local del terreny: MDT + elevació fora dels camins (els carrers queden en una pista enfonsada)."""
+    """Alçada local del terreny: MDT + llits dels rius i sèquies + elevació fora dels camins (els
+    carrers queden en una pista enfonsada)."""
 
     def __init__(
         self,
@@ -63,6 +65,7 @@ class Ground:
         z_min: float,
         road_polys: list[Polygon],
         cfg: dict,
+        water=None,
     ) -> None:
         self.dem = dem
         self.ox = ox
@@ -73,6 +76,7 @@ class Ground:
         self.raise_m = float(cfg.get("offroad_raise_m", 0.5))
         self.margin_m = float(cfg.get("offroad_margin_m", 0.8))
         self.ramp_m = float(cfg.get("offroad_ramp_m", 1.2))
+        self.water = water
 
     def road_distance(self, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
         xs = np.asarray(xs, dtype=np.float64)
@@ -85,17 +89,32 @@ class Ground:
         dist[idx[0]] = d
         return dist.reshape(xs.shape)
 
+    def _offroad(self, road_dist: np.ndarray) -> np.ndarray:
+        """0 a la calçada i el marge, 1 un cop passat el talús."""
+        return np.clip((road_dist - self.margin_m) / self.ramp_m, 0.0, 1.0)
+
     def offroad_raise(self, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
         # Sota la carretera el terreny baixa una mica perquè no faci z-fighting amb la calçada.
-        t = np.clip((self.road_distance(xs, ys) - self.margin_m) / self.ramp_m, 0.0, 1.0)
-        return -0.08 + (self.raise_m + 0.08) * t
+        return -0.08 + (self.raise_m + 0.08) * self._offroad(self.road_distance(xs, ys))
+
+    def in_water(self, xs: np.ndarray, ys: np.ndarray, margin_m: float = 0.5) -> np.ndarray:
+        xs = np.asarray(xs, dtype=np.float64)
+        if self.water is None:
+            return np.zeros(xs.shape, dtype=bool)
+        return (self.water.water_distance(xs, ys) < margin_m).reshape(xs.shape)
 
     def height(self, xs: np.ndarray | float, ys: np.ndarray | float, raised: bool = True) -> np.ndarray:
         xs = np.asarray(xs, dtype=np.float64)
         ys = np.asarray(ys, dtype=np.float64)
-        h = self.dem(self.ox + xs, self.oy + ys) - self.z_min
+        dem = self.dem(self.ox + xs, self.oy + ys)
+        road = self.road_distance(xs, ys)
+        t = self._offroad(road)
+        h = dem - self.z_min
+        if self.water is not None:
+            # Els camins passen per sobre (pont o alcantarella): sota la calçada no s'excava.
+            h = h + self.water.carve(xs, ys, dem).reshape(xs.shape) * t
         if raised:
-            h = h + self.offroad_raise(xs, ys)
+            h = h - 0.08 + (self.raise_m + 0.08) * t
         return h
 
 
@@ -139,6 +158,8 @@ def _build_heightmap(cfg: dict, dem: DemSampler) -> dict:
         "elevation_min_m": z_min,
         "elevation_max_m": z_max,
         "elevation_range_m": z_range,
+        # Zona central amb textura d'alta resolució (terrain_center.jpg); 0 = no n'hi ha.
+        "ortho_center_m": float(cfg.get("ortho_center_m", 0)),
     }
     meta_path = ensure_parent(cfg["paths"]["world_meta_json"])
     with meta_path.open("w", encoding="utf-8") as f:
@@ -314,6 +335,8 @@ def _scatter_trees(gdf: gpd.GeoDataFrame, cfg: dict, ground: Ground, exclude=Non
                 continue
             if exclude is not None and exclude.contains(Point(px, py)):
                 continue
+            if ground.in_water(np.array([px]), np.array([py]))[0]:
+                continue
             y = float(ground.height(px, py)) + 0.05
             scale = rng.uniform(0.75, 1.35)
             trees.append([float(px), y, float(-py), scale])
@@ -328,9 +351,33 @@ def _write_trees(cfg: dict, trees: list[list[float]]) -> None:
     print(f"Trees → {path} ({len(trees)} instances)")
 
 
-def _write_streets(cfg: dict, gdf: gpd.GeoDataFrame) -> None:
-    """Polilínies en coordenades locals (x, z): `streets` (amb nom, per al minimapa i el rètol)
-    i `roads` (totes les vies, per al graf de l'autopilot; comparteixen vèrtexs a les cruïlles)."""
+def _waterways_for_map(cfg: dict, ox: float, oy: float, half: float) -> list[dict]:
+    """Eixos d'aigua en (x, z) locals i ample aproximat (m) per al minimapa."""
+    path = Path(cfg["paths"].get("water_geojson", ""))
+    if not path.is_file():
+        return []
+    table = cfg.get("waterways", {})
+    gdf = gpd.clip(_local_geom(gpd.read_file(path), ox, oy), box(-half, -half, half, half))
+    out: list[dict] = []
+    for _, row in gdf.iterrows():
+        kind = row.get("kind")
+        spec = table.get(kind)
+        if not spec or row.geometry is None or row.geometry.is_empty:
+            continue
+        width = float(spec.get("bed_m", 2.0))
+        geom = row.geometry
+        lines = [geom] if isinstance(geom, LineString) else list(getattr(geom, "geoms", []))
+        for line in lines:
+            if not isinstance(line, LineString) or line.length < 0.5:
+                continue
+            points = [[round(x, 2), round(-y, 2)] for x, y in line.coords]
+            out.append({"kind": str(kind), "width": round(width, 2), "points": points})
+    return out
+
+
+def _write_streets(cfg: dict, gdf: gpd.GeoDataFrame, ox: float, oy: float, half: float) -> None:
+    """Polilínies en coordenades locals (x, z): `streets` (amb nom, per al minimapa i el rètol),
+    `roads` (graf de l'autopilot) i `waterways` (cursos d'aigua)."""
     streets: list[dict] = []
     roads: list[list[list[float]]] = []
     if "highway" in gdf.columns:
@@ -347,10 +394,11 @@ def _write_streets(cfg: dict, gdf: gpd.GeoDataFrame) -> None:
                 roads.append(points)
                 if isinstance(name, str) and name and line.length >= 10.0:
                     streets.append({"name": name, "points": points})
+    waterways = _waterways_for_map(cfg, ox, oy, half)
     path = ensure_parent(cfg["paths"].get("streets_json", "web/public/streets.json"))
     with path.open("w", encoding="utf-8") as f:
-        json.dump({"streets": streets, "roads": roads}, f, ensure_ascii=False)
-    print(f"Streets → {path} ({len(streets)} named, {len(roads)} road polylines)")
+        json.dump({"streets": streets, "roads": roads, "waterways": waterways}, f, ensure_ascii=False)
+    print(f"Streets → {path} ({len(streets)} named, {len(roads)} road polylines, {len(waterways)} waterways)")
 
 
 def _road_width(cfg: dict, props: dict) -> float:
@@ -400,22 +448,89 @@ def _shapely_to_y_up_mesh(poly: Polygon, height: float, base_y: float) -> trimes
     return mesh
 
 
-def _road_polygons(gdf: gpd.GeoDataFrame, cfg: dict) -> list[Polygon]:
+# Superfície de cada via: l'etiqueta `surface` de l'OSM mana; si no n'hi ha, els camins agrícoles
+# són de terra (llevat dels de grau 1) i la resta es classifica pel color de l'ortofoto.
+PAVED_TAGS = {"asphalt", "paved", "concrete", "concrete:plates", "paving_stones", "sett", "chipseal"}
+DIRT_TAGS = {"dirt", "unpaved", "gravel", "fine_gravel", "ground", "compacted", "earth", "grass", "sand", "mud", "pebblestone"}
+# Calibrat sobre el PNOA del poble: l'asfalt i el formigó surten grisos (saturació 0,05–0,09, to
+# neutre); els camins de terra, beix i càlids (saturació 0,12–0,22).
+PAVED_MAX_SATURATION = 0.11
+PAVED_MAX_WARMTH = 0.11
+
+
+def _line_pixels(ortho, line: LineString) -> np.ndarray:
+    """Píxels de l'ortofoto al llarg de l'eix, sense ombres ni vegetació que tapi la via."""
+    d = np.arange(0.0, line.length, 1.0)
+    pts = np.array([line.interpolate(float(x)).coords[0] for x in d]) if len(d) else np.empty((0, 2))
+    if len(pts) == 0:
+        return np.empty((0, 3))
+    col, row = ortho.to_px(pts[:, 0], pts[:, 1])
+    ok = (col >= 0) & (col < ortho.rgb.shape[1]) & (row >= 0) & (row < ortho.rgb.shape[0])
+    px = ortho.rgb[row[ok].astype(int), col[ok].astype(int)].astype(np.float64)
+    if len(px) == 0:
+        return px
+    exg = (2 * px[:, 1] - px[:, 0] - px[:, 2]) / (px.sum(axis=1) + 1e-3)
+    keep = (px.mean(axis=1) > 60) & (exg < 0.03)
+    return px[keep] if keep.sum() >= 5 else px
+
+
+def _road_surface(props: dict, pixels: np.ndarray) -> str:
+    tag = str(props.get("surface") or "").lower()
+    if tag in PAVED_TAGS:
+        return "paved"
+    if tag in DIRT_TAGS:
+        return "dirt"
+    if props.get("highway") in {"track", "path", "footway", "bridleway"}:
+        return "paved" if props.get("tracktype") == "grade1" else "dirt"
+    if len(pixels) < 5:
+        return "paved"
+    med = np.median(pixels, axis=0)
+    sat = float(np.median((pixels.max(axis=1) - pixels.min(axis=1)) / (pixels.max(axis=1) + 1e-3)))
+    warmth = float((med[0] - med[2]) / (med.mean() + 1e-3))
+    return "paved" if sat < PAVED_MAX_SATURATION and warmth < PAVED_MAX_WARMTH else "dirt"
+
+
+@dataclass
+class RoadPieces:
+    polys: list[Polygon]
+    surfaces: list[str]
+    colors: dict[str, tuple[int, int, int]]  # color mitjà de la foto per superfície (sRGB)
+
+
+def _road_polygons(gdf: gpd.GeoDataFrame, cfg: dict, ortho=None) -> RoadPieces:
+    pieces = RoadPieces([], [], {})
     if "highway" not in gdf.columns:
-        return []
-    polys: list[Polygon] = []
+        return pieces
+    samples: dict[str, list[np.ndarray]] = {"paved": [], "dirt": []}
     for _, row in gdf[gdf["highway"].notna()].iterrows():
         geom = row.geometry
         if geom is None or geom.is_empty:
             continue
         lines = [geom] if isinstance(geom, LineString) else list(getattr(geom, "geoms", []))
-        width = _road_width(cfg, row.to_dict())
+        props = row.to_dict()
+        width = _road_width(cfg, props)
         for line in lines:
             if not isinstance(line, LineString) or line.length < 1.0:
                 continue
+            pixels = _line_pixels(ortho, line) if ortho is not None else np.empty((0, 3))
+            surface = _road_surface(props, pixels)
+            if len(pixels):
+                samples[surface].append(pixels)
             buffered = line.buffer(width / 2.0)
-            polys.extend(p for p in getattr(buffered, "geoms", [buffered]) if not p.is_empty)
-    return polys
+            for p in getattr(buffered, "geoms", [buffered]):
+                if not p.is_empty:
+                    pieces.polys.append(p)
+                    pieces.surfaces.append(surface)
+    defaults = {"paved": (150, 148, 144), "dirt": (176, 156, 128)}
+    for surface, chunks in samples.items():
+        if chunks:
+            med = np.median(np.concatenate(chunks), axis=0)
+            pieces.colors[surface] = tuple(int(c) for c in med)
+        else:
+            pieces.colors[surface] = defaults[surface]
+    counts = {k: pieces.surfaces.count(k) for k in ("paved", "dirt")}
+    print(f"Roads: {counts} trams; color de la foto {pieces.colors}")
+    return pieces
 
 
 def _iter_polygons(geom) -> list[Polygon]:
@@ -429,36 +544,60 @@ def _iter_polygons(geom) -> list[Polygon]:
     return out
 
 
-def _road_meshes(ground: Ground, meta: dict, tile_m: float = 100.0) -> list[tuple[str, trimesh.Trimesh]]:
-    """Calçada enganxada al relleu, partida en rajoles perquè el raycast descarti per bounding sphere."""
-    if not ground.road_polys:
+def _srgb_to_linear(c: tuple[int, int, int], gain: float = 1.0) -> list[int]:
+    """Els colors de vèrtex del glTF són lineals; la foto és sRGB."""
+    return [int(round(255 * ((min(255, v * gain) / 255) ** 2.2))) for v in c] + [255]
+
+
+def _surface_color(c: tuple[int, int, int], surface: str) -> tuple[int, int, int]:
+    r, g, b = (float(v) for v in c)
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    if surface == "paved":
+        v = lum * 0.72
+        return (int(v), int(v), int(v * 1.02))
+    sat_boost = 1.6
+    return tuple(int(np.clip((lum + (v - lum) * sat_boost) * 0.8, 0, 255)) for v in (r, g, b))  # type: ignore[return-value]
+
+
+def _road_meshes(ground: Ground, meta: dict, roads: RoadPieces, tile_m: float = 100.0) -> list[tuple[str, trimesh.Trimesh]]:
+    """Calçada enganxada al relleu, una malla per superfície (asfalt / terra) i rajola de 100 m
+    perquè el raycast descarti per bounding sphere. On s'encreuen, l'asfalt mana."""
+    if not roads.polys:
         return []
-    union = unary_union(ground.road_polys)
+    paved = unary_union([p for p, s in zip(roads.polys, roads.surfaces) if s == "paved"])
+    dirt = unary_union([p for p, s in zip(roads.polys, roads.surfaces) if s == "dirt"]).difference(paved)
     half = float(meta["size_m"]) / 2.0
     edges = np.arange(-half, half, tile_m)
     out: list[tuple[str, trimesh.Trimesh]] = []
-    for ti, tx in enumerate(edges):
-        for tj, ty in enumerate(edges):
-            piece = union.intersection(box(tx, ty, min(tx + tile_m, half), min(ty + tile_m, half)))
-            parts: list[trimesh.Trimesh] = []
-            for poly in _iter_polygons(piece):
-                if poly.area < 0.5:
-                    continue
-                # Vores densificades: els triangles creuen la calçada i segueixen el relleu
-                # sense omplir l'interior de vèrtexs.
-                v2, f = trimesh.creation.triangulate_polygon(shapely.segmentize(poly, 2.5))
-                v3 = np.column_stack([v2, np.zeros(len(v2))])
-                v3, f = trimesh.remesh.subdivide_to_size(v3, f, max_edge=10.0)
-                h = ground.height(v3[:, 0], v3[:, 1], raised=False) + 0.03
-                verts = np.column_stack([v3[:, 0], h, -v3[:, 1]])
-                mesh = trimesh.Trimesh(vertices=verts, faces=f, process=False)
-                if mesh.face_normals[:, 1].mean() < 0:
-                    mesh.invert()
-                parts.append(mesh)
-            if parts:
-                mesh = trimesh.util.concatenate(parts)
-                mesh.visual.face_colors = [70, 70, 75, 255]
-                out.append((f"road_{ti}_{tj}", mesh))
+    for surface, union in (("paved", paved), ("dirt", dirt)):
+        if union.is_empty:
+            continue
+        # A la foto de juliol tot surt clar i els dos tipus s'assemblen: n'accentuem la diferència
+        # real (asfalt gris neutre, terra càlida) i, com que al joc la llum del sol s'hi torna a
+        # sumar, ho enfosquim una mica.
+        color = _srgb_to_linear(_surface_color(roads.colors[surface], surface))
+        for ti, tx in enumerate(edges):
+            for tj, ty in enumerate(edges):
+                piece = union.intersection(box(tx, ty, min(tx + tile_m, half), min(ty + tile_m, half)))
+                parts: list[trimesh.Trimesh] = []
+                for poly in _iter_polygons(piece):
+                    if poly.area < 0.5:
+                        continue
+                    # Vores densificades: els triangles creuen la calçada i segueixen el relleu
+                    # sense omplir l'interior de vèrtexs.
+                    v2, f = trimesh.creation.triangulate_polygon(shapely.segmentize(poly, 2.5))
+                    v3 = np.column_stack([v2, np.zeros(len(v2))])
+                    v3, f = trimesh.remesh.subdivide_to_size(v3, f, max_edge=10.0)
+                    h = ground.height(v3[:, 0], v3[:, 1], raised=False) + 0.03
+                    verts = np.column_stack([v3[:, 0], h, -v3[:, 1]])
+                    mesh = trimesh.Trimesh(vertices=verts, faces=f, process=False)
+                    if mesh.face_normals[:, 1].mean() < 0:
+                        mesh.invert()
+                    parts.append(mesh)
+                if parts:
+                    mesh = trimesh.util.concatenate(parts)
+                    mesh.visual.vertex_colors = np.tile(color, (len(mesh.vertices), 1)).astype(np.uint8)
+                    out.append((f"road_{surface}_{ti}_{tj}", mesh))
     return out
 
 
@@ -503,16 +642,31 @@ def _write_spawn(cfg: dict, meta: dict, ground: Ground) -> None:
     print(f"Spawn → {path}")
 
 
-def _build_village(cfg: dict, ground: Ground, ox: float, oy: float):
+def _load_water(cfg: dict, dem: DemSampler, ox: float, oy: float, half: float):
+    from water import Waterways
+
+    path = Path(cfg["paths"].get("water_geojson", ""))
+    if not path.is_file():
+        print("Water: sense xarxa hidrogràfica; executa fetch_water.py")
+        return None
+    return Waterways(_local_geom(gpd.read_file(path), ox, oy), dem, (ox, oy), half, cfg)
+
+
+def _load_ortho(cfg: dict):
+    from village import Ortho
+
+    path = Path(cfg["paths"]["ortho_master"])
+    return Ortho.load(path, float(cfg["terrain_size_m"])) if path.is_file() else None
+
+
+def _build_village(cfg: dict, ground: Ground, ortho, ox: float, oy: float):
     """Cases, tàpies, arbres i horts reals als carrers de detall (Cadastre + ortofoto)."""
-    from village import Ortho, build_village
+    from village import build_village
 
     cad = Path(cfg["paths"].get("cadastre_dir", ""))
-    ortho_path = Path(cfg["paths"]["ortho_jpg"])
-    if not cfg.get("village_detail") or not (cad / "BuildingPart.gml").is_file() or not ortho_path.is_file():
+    if not cfg.get("village_detail") or not list(cad.glob("BuildingPart*.gml")) or ortho is None:
         print("Village: sense dades del Cadastre o ortofoto; executa fetch_cadastre.py i fetch_ortho.py")
         return None
-    ortho = Ortho.load(ortho_path, float(cfg["terrain_size_m"]))
     village = build_village(cfg, ground, ortho, ground.road_polys, ox, oy)
     path = ensure_parent(cfg["paths"]["village_json"])
     with path.open("w", encoding="utf-8") as f:
@@ -541,16 +695,19 @@ def build_world(use_blender: bool = False) -> Path:
     half = float(meta["size_m"]) / 2.0
     gdf = gpd.clip(gdf, box(-half, -half, half, half))
 
-    ground = Ground(dem, ox, oy, meta["elevation_min_m"], _road_polygons(gdf, cfg), cfg)
+    ortho = _load_ortho(cfg)
+    roads = _road_polygons(gdf, cfg, ortho)
+    water = _load_water(cfg, dem, ox, oy, half)
+    ground = Ground(dem, ox, oy, meta["elevation_min_m"], roads.polys, cfg, water)
 
     mesh_res = int(cfg.get("terrain_mesh_resolution", cfg["terrain_resolution"]))
     # Les UV del terreny les calcula el joc (projecció planar de l'ortofoto).
     terrain_tiles = _terrain_tiles(ground, meta, mesh_res, int(cfg.get("terrain_tiles", 8)))
 
-    _write_streets(cfg, gdf)
-    village = _build_village(cfg, ground, ox, oy)
+    _write_streets(cfg, gdf, ox, oy, half)
+    village = _build_village(cfg, ground, ortho, ox, oy)
     zone = village.zone if village else None
-    road_parts = _road_meshes(ground, meta)
+    road_parts = _road_meshes(ground, meta, roads)
     green_parts = _green_meshes(gdf, ground, exclude=zone)
     building_parts = _building_meshes(gdf if zone is None else gdf[~gdf.intersects(zone)], cfg, ground)
     _write_trees(cfg, _scatter_trees(gdf, cfg, ground, exclude=zone))
@@ -565,6 +722,12 @@ def build_world(use_blender: bool = False) -> Path:
         scene.add_geometry(greens, geom_name="greens")
     for name, mesh in road_parts:
         scene.add_geometry(mesh, geom_name=name)
+    if water:
+        water_surface, water_volume = water.mesh(ground, meta["elevation_min_m"])
+        if water_surface is not None:
+            scene.add_geometry(water_surface, geom_name="water")
+        if water_volume is not None:
+            scene.add_geometry(water_volume, geom_name="water_volume")
     for name, mesh in village.meshes if village else []:
         scene.add_geometry(mesh, geom_name=name)
     if building_parts:
@@ -613,8 +776,10 @@ def main() -> None:
         from fetch_dem import fetch_dem  # noqa: WPS433
         from fetch_ortho import fetch_ortho  # noqa: WPS433
         from fetch_osm import fetch_osm  # noqa: WPS433
+        from fetch_water import fetch_water  # noqa: WPS433
 
         fetch_osm()
+        fetch_water()
         fetch_dem()
         fetch_ortho()
         fetch_cadastre()

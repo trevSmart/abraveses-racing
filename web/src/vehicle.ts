@@ -4,21 +4,21 @@ export const R12 = {
   lengthM: 4.35,
   widthM: 1.64,
   wheelbaseM: 2.44,
-  /** ~155 km/h (un R12 una mica alegre, tipus TS). */
-  maxSpeed: 43,
-  /** m/s² a baixa velocitat; amb la caiguda quadràtica, 0–100 km/h ≈ 13 s. */
-  engineAccel: 2.6,
+  /** ~130 km/h. */
+  maxSpeed: 36,
+  /** m/s² a baixa velocitat; amb la caiguda quadràtica cap a la punta, 0–100 km/h ≈ 9 s. */
+  engineAccel: 4,
   reverseAccel: 1.5,
   /** ~16 km/h. */
   maxReverse: 4.5,
-  /** ~0,7 g. */
-  brakeDecel: 7,
+  /** ~1,2 g, frens de competició: de 50 km/h a 0 en ~8 m. */
+  brakeDecel: 12,
   /** Fre motor + rodolament a velocitat baixa (m/s²). */
   coastDecel: 0.35,
   /** Arrossegament aerodinàmic: decel = k·v². */
   dragK: 0.0005,
-  /** Radi de gir mínim a l'eix (~10,4 m de paret a paret). */
-  minTurnRadius: 5.2,
+  /** Radi de gir mínim a l'eix (~8 m de paret a paret). */
+  minTurnRadius: 3.8,
   /** Límit d'adherència en corba (m/s²): per sobre, el cotxe subvira. */
   maxLateralAccel: 6.5,
   /** Fracció del recorregut del volant per segon: de topall a topall en ~0,8 s. */

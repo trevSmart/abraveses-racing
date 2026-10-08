@@ -9,10 +9,19 @@
       html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a1e; font-family: system-ui, sans-serif; }
       #hud {
         position: fixed; left: 12px; top: 12px; z-index: 10;
-        color: #f2f2f2; background: rgba(0,0,0,.55); padding: 10px 14px; border-radius: 8px;
-        font-size: 14px; line-height: 1.45; max-width: 320px;
+        color: #f2f2f2; background: rgba(0,0,0,.55); padding: 6px 12px; border-radius: 8px;
+        font: 600 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums; white-space: nowrap;
+        cursor: copy; user-select: none;
       }
-      #hud kbd { background: #333; padding: 1px 6px; border-radius: 4px; }
+      #hud:hover { background: rgba(0,0,0,.68); }
+      #hud.copied { color: #c8f7c5; }
+      #options kbd { background: #333; padding: 1px 6px; border-radius: 4px; font-family: inherit; }
+      #options .shortcuts {
+        margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1);
+        font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.88);
+      }
+      #options .shortcuts h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: rgba(255,255,255,.65); }
       #credit {
         position: fixed; right: 10px; bottom: 8px; z-index: 10;
         font-size: 11px; color: rgba(255,255,255,.55);
@@ -106,7 +115,7 @@
     <div id="street-banner" aria-live="polite"></div>
     <div id="perf" aria-live="off">– FPS</div>
     <div id="speedometer" aria-live="off">0 km/h</div>
-    <div id="autopilot-badge" hidden>AUTOPILOT · P per sortir</div>
+    <div id="autopilot-badge" hidden>AUTOPILOT · I per sortir</div>
     <div id="bigmap" hidden>
       <canvas id="bigmap-canvas"></canvas>
       <div id="bigmap-hint"></div>
@@ -124,15 +133,18 @@
           <input type="checkbox" id="opt-hide-street-names" />
           Amaga els noms dels carrers
         </label>
-        <p class="hint">O o Esc per tancar</p>
+        <div class="shortcuts" aria-label="Controls del joc">
+          <h3>Controls</h3>
+          <kbd>W</kbd> accelerar · <kbd>S</kbd> frenar / enrere · <kbd>A</kbd>/<kbd>D</kbd> girar · <kbd>Espai</kbd> salt ·
+          <kbd>R</kbd> respawn · <kbd>Maj</kbd>+<kbd>R</kbd> inici · <kbd>I</kbd> autopilot · <kbd>M</kbd> mapa ·
+          <kbd>O</kbd><kbd>K</kbd><kbd>L</kbd><kbd>Ñ</kbd> càmera · <kbd>Esc</kbd> opcions
+        </div>
+        <p class="hint">Esc per tancar</p>
         <button id="options-close" type="button" aria-label="Tancar les opcions">×</button>
       </div>
     </div>
     <div id="credit" hidden>Ortofoto PNOA cedida per © Instituto Geográfico Nacional (CC BY 4.0) · Mapes © OpenStreetMap · Edificis i parcel·les © Dirección General del Catastro</div>
-    <div id="hud" hidden>
-      <strong>Abraveses Racing</strong><br />
-      <kbd>W</kbd> accelerar · <kbd>S</kbd> frenar / enrere · <kbd>A</kbd>/<kbd>D</kbd> girar · <kbd>Maj</kbd> salt · <kbd>Espai</kbd> fre · <kbd>R</kbd> respawn · <kbd>P</kbd> autopilot · <kbd>M</kbd> mapa · <kbd>O</kbd> opcions
-    </div>
+    <div id="hud" hidden aria-live="polite" title="Clic per copiar les coordenades"><span id="hud-coords">—</span></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

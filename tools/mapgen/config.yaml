@@ -1,14 +1,14 @@
-# Abraveses de Tera — nucli del poble (~700 m)
+# Abraveses de Tera — poble i rodalia (1,82 × 1,82 km)
 center_wgs84:
   lat: 41.9930
   lon: -5.8950
 
 # south, west, north, east
 bbox_wgs84:
-  south: 41.9898
-  west: -5.8988
-  north: 41.9962
-  east: -5.8912
+  south: 41.98416
+  west: -5.90684
+  north: 42.00183
+  east: -5.88316
 
 # Sortida: Calle Santibáñez (carretera de Santibáñez), entrant al poble per l'oest
 spawn_wgs84:
@@ -20,12 +20,12 @@ spawn_wgs84:
 utm_epsg: 25830
 
 # Mida del mesh de terreny (metres)
-terrain_size_m: 700
-terrain_resolution: 128
-# Malla del joc web: més densa perquè el talús dels camins quedi net (~1,8 m per cel·la)
-terrain_mesh_resolution: 385
-# Trossos del terreny per costat (frustum culling al joc): 384 cel·les / 8 = 48
-terrain_tiles: 8
+terrain_size_m: 1820
+terrain_resolution: 256
+# Malla del joc web: ~2,6 m per cel·la (compromís entre talús net dels camins i mida del GLB)
+terrain_mesh_resolution: 705
+# Trossos del terreny per costat (frustum culling al joc): 704 cel·les / 16 = 44
+terrain_tiles: 16
 
 # Terreny i cases fora dels camins s'eleven perquè el traçat conduïble es vegi clar
 offroad_raise_m: 0.5
@@ -33,11 +33,22 @@ offroad_raise_m: 0.5
 offroad_margin_m: 0.8
 offroad_ramp_m: 1.2
 
+# Rius, rierols i sèquies (xarxa hidrogràfica de l'IGN, fetch_water.py). El MDT05 gairebé no
+# en recull el llit, així que s'excava: fons pla de `bed_m`, talussos suaus de `bank_m` a cada
+# banda i `depth_m` de fondària; l'aigua omple `water_frac` de la fondària. Amb la malla a ~2,6 m
+# per cel·la, bed_m + 2·bank_m ha de fer ≥ 6 m o el llit es veu a salts.
+waterways:
+  river:  {bed_m: 5.0, bank_m: 3.0, depth_m: 1.6, water_frac: 0.6}
+  stream: {bed_m: 1.6, bank_m: 2.6, depth_m: 1.0, water_frac: 0.35}
+  canal:  {bed_m: 2.2, bank_m: 2.0, depth_m: 1.1, water_frac: 0.6}
+  ditch:  {bed_m: 1.2, bank_m: 2.6, depth_m: 0.6, water_frac: 0.45}
+
 # Opcional: GeoTIFF MDT05 IGN (huso 29). Si no existeix, es descarrega Copernicus GLO-30.
 mdt_local_path: data/raw/PNOA_MDT05_ETRS89_HU29_0307_LID.tif
 
 paths:
   osm_geojson: data/raw/osm_abraveses.geojson
+  water_geojson: data/raw/waterways.geojson
   dem_tif: data/raw/dem_clip.tif
   heightmap_png: data/processed/heightmap.png
   world_meta_json: data/processed/world_meta.json
@@ -45,6 +56,8 @@ paths:
   world_glb: web/public/world.glb
   world_obj: data/processed/world.obj
   ortho_jpg: web/public/terrain.jpg
+  ortho_center_jpg: web/public/terrain_center.jpg
+  ortho_master: data/processed/ortho_master.jpg
   trees_json: web/public/trees.json
   streets_json: web/public/streets.json
   cadastre_dir: data/raw/catastro
@@ -71,9 +84,12 @@ overpass_urls:
 copernicus_dem_template: https://copernicus-dem-30m.s3.eu-central-1.amazonaws.com/Copernicus_DSM_COG_10_N{lat_int}_00_E{lon_int}_00_DEM.tif
 
 # Ortofoto del terreny: pnoa (IGN, CC BY 4.0, 25 cm o millor) o esri. Es descarrega en UTM
-# exactament sobre el quadrat del terreny. 4096 px / 700 m ≈ 17 cm per píxel.
+# exactament sobre el quadrat del terreny. Mestra: 10240 px / 1820 m ≈ 18 cm per píxel (anàlisi
+# del poble). Al joc: tot el terreny a 4096 px (~44 cm) i els 700 m centrals a 4096 px (~17 cm).
 ortho_source: pnoa
-ortho_px: 4096
+ortho_px: 10240
+ortho_web_px: 4096
+ortho_center_m: 700
 
 # Poble en 3D (Cadastre + anàlisi de l'ortofoto). full_map: tot el terreny; si és false,
 # només la franja de `buffer_m` a banda i banda dels `streets`.
@@ -81,3 +97,11 @@ village_detail:
   full_map: true
   streets: ["Calle Santibáñez"]
   buffer_m: 45
+  # Referència cadastral de l'església de Santiago Apòstol (model propi amb espadanya, church.py)
+  church_ref: "0333803TM6503S"
+  # Carrer on dona l'entrada de l'església (porxo de tres arcs): el costat de la nau més proper
+  church_street: "Calle de la Iglesia"
+  # Ermita de Nuestra Señora de las Encinas, als afores (model propi, hermitage.py)
+  hermitage_ref: "000100400TM65A"
+# Trossos per costat de les peticions al WFS del Cadastre (limita l'àrea per petició)
+cadastre_grid: 3

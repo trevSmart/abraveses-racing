@@ -2,9 +2,10 @@
   "utm_epsg": 25830,
   "origin_utm_x": 260205.84805883048,
   "origin_utm_y": 4653053.943667801,
-  "size_m": 700.0,
-  "resolution": 128,
-  "elevation_min_m": 713.222866074848,
-  "elevation_max_m": 717.8101990727059,
-  "elevation_range_m": 4.58733299785797
+  "size_m": 1820.0,
+  "resolution": 256,
+  "elevation_min_m": 712.537672477252,
+  "elevation_max_m": 766.3376748674465,
+  "elevation_range_m": 53.800002390194436,
+  "ortho_center_m": 700.0
 }
