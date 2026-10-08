@@ -1,0 +1,29 @@
+== 0431703TM6503S
+   ús 1_residential · 1 habitatges · 344 m² construïts · construïda 1900 · functional
+-- part1: 2 plantes · 68 m² · centre UTM 260245.3, 4652895.4
+     façana  S: 11.53 m, esquerra (t=0) a 260240.2, 4652891.5
+     façana  E:  6.51 m, esquerra (t=0) a 260251.6, 4652893.5 (mitgera: toca una altra part o un altre edifici)
+     façana  N: 10.39 m, esquerra (t=0) a 260249.6, 4652899.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9917676,-5.8943306&heading=167&pitch=8&fov=100
+     façana  O:  5.98 m, esquerra (t=0) a 260239.5, 4652897.4 (mitgera: toca una altra part o un altre edifici)
+-- part2: 1 plantes · 188 m² · centre UTM 260249.2, 4652908.4
+     façana  S:  9.88 m, esquerra (t=0) a 260251.4, 4652900.1 (mitgera: toca una altra part o un altre edifici)
+     façana NE: 16.69 m, esquerra (t=0) a 260261.0, 4652902.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9917334,-5.8942990&heading=236&pitch=8&fov=100
+     façana  N:  7.27 m, esquerra (t=0) a 260251.6, 4652916.2 (mitgera: toca una altra part o un altre edifici)
+     façana  N:  9.73 m, esquerra (t=0) a 260244.8, 4652913.7 (mitgera: toca una altra part o un altre edifici)
+     façana SO:  5.59 m, esquerra (t=0) a 260235.2, 4652912.0
+     façana  S:  8.57 m, esquerra (t=0) a 260237.4, 4652906.9
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9917266,-5.8942927&heading=345&pitch=8&fov=100
+     façana SO: 10.66 m, esquerra (t=0) a 260245.7, 4652909.1
+-- part3: 1 plantes · 101 m² · centre UTM 260232.1, 4652898.3
+     façana  E:  4.43 m, esquerra (t=0) a 260240.2, 4652891.5 (mitgera: toca una altra part o un altre edifici)
+     façana  N:  7.12 m, esquerra (t=0) a 260239.6, 4652895.8
+     façana  E: 12.34 m, esquerra (t=0) a 260232.6, 4652894.5
+     façana  E:  3.81 m, esquerra (t=0) a 260231.0, 4652906.8
+     façana  N:  4.22 m, esquerra (t=0) a 260230.8, 4652910.6 (mitgera: toca una altra part o un altre edifici)
+     façana  O:  7.04 m, esquerra (t=0) a 260226.8, 4652909.2
+     façana  O: 12.82 m, esquerra (t=0) a 260227.7, 4652902.3
+     façana  S:  9.66 m, esquerra (t=0) a 260230.7, 4652889.8
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0431703TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0431703TM6503S/ortofoto.png

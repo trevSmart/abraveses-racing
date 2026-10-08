@@ -1,0 +1,23 @@
+== 0431701TM6503S
+   ús 1_residential · 1 habitatges · 102 m² construïts · construïda 1995 · functional
+-- part1: 2 plantes · 87 m² · centre UTM 260236.6, 4652931.4
+     façana  S:  5.47 m, esquerra (t=0) a 260229.7, 4652925.0 (mitgera: toca una altra part o un altre edifici)
+     façana  E:  2.40 m, esquerra (t=0) a 260235.1, 4652926.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9918752,-5.8944155&heading=289&pitch=8&fov=100
+     façana SE:  8.74 m, esquerra (t=0) a 260235.9, 4652928.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9918612,-5.8944070&heading=337&pitch=8&fov=100
+     façana  E:  5.55 m, esquerra (t=0) a 260243.9, 4652931.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9919540,-5.8944473&heading=253&pitch=8&fov=100
+     façana  N: 10.35 m, esquerra (t=0) a 260242.3, 4652937.1
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9920322,-5.8944675&heading=162&pitch=8&fov=100
+     façana  O:  9.40 m, esquerra (t=0) a 260232.5, 4652934.0
+-- part2: 1 plantes · 26 m² · centre UTM 260231.8, 4652923.2
+     façana  E:  3.51 m, esquerra (t=0) a 260235.1, 4652922.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9918731,-5.8944142&heading=270&pitch=8&fov=100
+     façana  N:  5.47 m, esquerra (t=0) a 260235.1, 4652926.0 (mitgera: toca una altra part o un altre edifici)
+     façana  O:  5.58 m, esquerra (t=0) a 260229.7, 4652925.0
+     façana  S:  4.00 m, esquerra (t=0) a 260228.0, 4652919.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9918305,-5.8943886&heading=338&pitch=8&fov=100
+     façana SE:  3.62 m, esquerra (t=0) a 260231.8, 4652921.2 (mitgera: toca una altra part o un altre edifici)
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0431701TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0431701TM6503S/ortofoto.png
