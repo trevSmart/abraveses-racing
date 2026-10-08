@@ -24,6 +24,7 @@ from shapely.ops import unary_union
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.config import ensure_parent, load_config, utm_origin, wgs84_to_utm  # noqa: E402
+from village import concat_tagged, tag_house  # noqa: E402
 
 
 class DemSampler:
@@ -605,6 +606,10 @@ def _road_meshes(ground: Ground, meta: dict, roads: RoadPieces, tile_m: float = 
     return out
 
 
+# Identificador de casa (mode dev) del primer edifici de fora del poble de detall.
+OUTSIDE_HOUSE_ID0 = 100_000
+
+
 def _building_meshes(gdf: gpd.GeoDataFrame, cfg: dict, ground: Ground) -> list[trimesh.Trimesh]:
     if "building" not in gdf.columns:
         return []
@@ -623,6 +628,8 @@ def _building_meshes(gdf: gpd.GeoDataFrame, cfg: dict, ground: Ground) -> list[t
             if mesh:
                 seed = poly.centroid.x * 0.017 + poly.centroid.y * 0.023
                 _cartoon_building_colors(mesh, height, base_local, seed)
+                # Fora del poble de detall: identificadors a part dels de village.py (mode dev).
+                tag_house([mesh], OUTSIDE_HOUSE_ID0 + len(meshes))
                 meshes.append(mesh)
     return meshes
 
@@ -735,7 +742,7 @@ def build_world(use_blender: bool = False) -> Path:
     for name, mesh in village.meshes if village else []:
         scene.add_geometry(mesh, geom_name=name)
     if building_parts:
-        buildings = trimesh.util.concatenate(building_parts)
+        buildings = concat_tagged(building_parts)
         _sanitize_vertices(buildings)
         buildings.fix_normals()
         scene.add_geometry(buildings, geom_name="buildings")

@@ -1659,6 +1659,7 @@ async function loadWorld(): Promise<void> {
   const gltf = await loader.parseAsync(buffer, "");
   const world = gltf.scene;
   tintWorld(world);
+  prepareDevTint(world);
   worldRoot.add(world);
   world.updateMatrixWorld(true);
   freezeStatic(world);
@@ -1670,6 +1671,91 @@ function freezeStatic(root: THREE.Object3D): void {
   root.traverse((o) => {
     o.matrixAutoUpdate = false;
   });
+}
+
+// --- Mode dev (Maj+D): cada model de casa d'un color diferent i el camí d'un color fix ---
+
+/** Color del camí en mode dev; les cases eviten aquesta franja de to (vegeu houseDevMaterial). */
+const DEV_ROAD_COLOR = 0xffd400;
+const devBadge = document.getElementById("dev-badge");
+let devMode = false;
+/** Malles que canvien de material en mode dev, amb el material normal per tornar-hi. */
+const devTinted: { mesh: THREE.Mesh; normal: THREE.Material | THREE.Material[]; dev: THREE.Material }[] = [];
+
+/**
+ * Pinta cada vèrtex segons l'identificador de casa que hi posa el pipeline (atribut glTF `_HOUSE`,
+ * vegeu village.py): totes les peces d'una casa (parets, teulada, façana, finestres) surten del
+ * mateix color. `shade` enfosqueix teulades i detalls perquè es llegeixi la forma.
+ */
+function houseDevMaterial(shade: number): THREE.MeshStandardMaterial {
+  const mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color().setScalar(shade),
+    roughness: 0.85,
+    metalness: 0,
+    side: THREE.DoubleSide,
+  });
+  mat.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute float houseId;\nvarying float vHouseId;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvHouseId = houseId;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying float vHouseId;
+vec3 abrHouseColor(float id) {
+  id = floor(id + 0.5);
+  if (id < 0.5) {
+    return vec3(0.3); // no és cap casa
+  }
+  // Proporció àuria: identificadors consecutius (cases veïnes) queden amb tons ben separats.
+  // Se salta la franja groga (0,10–0,20), que és la del camí.
+  float h = fract(id * 0.61803399) * 0.9;
+  h += step(0.1, h) * 0.1;
+  float s = 0.55 + 0.4 * fract(id * 0.75487767);
+  float v = 0.65 + 0.35 * fract(id * 0.56984029);
+  vec3 rgb = v * mix(vec3(1.0), clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0), s);
+  return pow(rgb, vec3(2.2));
+}`,
+      )
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= abrHouseColor(vHouseId);");
+  };
+  return mat;
+}
+
+/** Prepara els materials del mode dev de les cases (les que porten identificador) i de la calçada. */
+function prepareDevTint(root: THREE.Object3D): void {
+  const road = new THREE.MeshStandardMaterial({ color: DEV_ROAD_COLOR, roughness: 0.9 });
+  const house = { building: houseDevMaterial(1), roof: houseDevMaterial(0.72), prop: houseDevMaterial(0.85) };
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh) {
+      return;
+    }
+    const kind = surfaceKind(mesh);
+    const houseIds = mesh.geometry.getAttribute("_house");
+    let dev: THREE.Material | null = null;
+    if (kind === "road") {
+      dev = road;
+    } else if (houseIds && (kind === "building" || kind === "roof" || kind === "prop")) {
+      // El GLTFLoader el deixa com a `_house`; amb un nom normal per al shader.
+      mesh.geometry.setAttribute("houseId", houseIds);
+      mesh.geometry.deleteAttribute("_house");
+      dev = house[kind];
+    }
+    if (dev) {
+      devTinted.push({ mesh, normal: mesh.material, dev });
+    }
+  });
+}
+
+function setDevMode(on: boolean): void {
+  devMode = on;
+  for (const t of devTinted) {
+    t.mesh.material = on ? t.dev : t.normal;
+  }
+  devBadge?.toggleAttribute("hidden", !on);
+  lastMinimapRender = -Infinity; // el minimapa també es pinta amb els colors del mode dev
 }
 
 // --- Minimapa: vista cenital orientada amb el kart, zoom segons la velocitat ---
@@ -2956,6 +3042,12 @@ function trackKey(e: KeyboardEvent, down: boolean): void {
     } else if (down && (fromKey === "-" || fromKey === "_")) {
       zoomBigMap(1.6);
     }
+    return;
+  }
+  // Maj+D: mode dev. No arriba a `keys`, perquè la D sola és girar a la dreta.
+  if (down && !e.repeat && e.shiftKey && (fromKey === "d" || fromCode === "d")) {
+    setDevMode(!devMode);
+    e.preventDefault();
     return;
   }
   for (const k of [fromKey, fromCode]) {
