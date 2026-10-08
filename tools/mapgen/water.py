@@ -28,11 +28,21 @@ FADE_M = (3.0, 5.0)
 # l'aigua passa sota el turó (sense trinxera) i es posen boques de formigó als extrems.
 TUNNEL_COVER_M = 2.0
 TUNNEL_MIN_M = 8.0
+# Al pas del túnel l'aigua és un filet (~3 cm) sobre un llit de còdols.
+TUNNEL_WATER_M = 0.03
 # Collar de la boca: gruix axial, volada lateral i lliure per damunt de la làmina.
 PORTAL_DEPTH_M = 0.45
 PORTAL_LIP_M = 0.35
 PORTAL_HEAD_M = 0.55
 PORTAL_RGB = (168, 166, 158)
+COBBLE_RGB = (
+    (118, 112, 102),
+    (138, 130, 118),
+    (98, 94, 88),
+    (152, 145, 132),
+    (108, 104, 96),
+    (128, 120, 108),
+)
 
 
 @dataclass
@@ -251,11 +261,12 @@ class Waterways:
         tun_in = tun[in_ch]
         col = self.depth[si_in] * self.water_frac[si_in]
         bed_open = np.asarray(ground.height(px, py, raised=True), dtype=np.float64)
-        # En túnel el terreny no s'excava: la làmina segueix el grau hidràulic (ref).
+        # En túnel: llit al grau hidràulic i només un filet d'aigua (~3 cm).
         z_min = float(ground.z_min)
-        bed_tun = ref[in_ch] - z_min - self.depth[si_in]
+        bed_tun = ref[in_ch] - z_min
         bed = np.where(tun_in >= 0.5, bed_tun, bed_open)
-        out[pi[in_ch]] = bed + col + 0.06
+        water_h = np.where(tun_in >= 0.5, TUNNEL_WATER_M, col + 0.06)
+        out[pi[in_ch]] = bed + water_h
         return out.reshape(shape)
 
     def water_distance(self, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
@@ -347,6 +358,68 @@ class Waterways:
         mesh.visual.vertex_colors = np.tile([*PORTAL_RGB, 255], (len(verts), 1)).astype(np.uint8)
         return mesh
 
+    @staticmethod
+    def _cobble_bed(
+        pts: np.ndarray,
+        tun: np.ndarray,
+        tangent: np.ndarray,
+        normal: np.ndarray,
+        half_w: float,
+        bed_y: np.ndarray,
+        seed: int = 0,
+    ) -> trimesh.Trimesh | None:
+        """Còdols irregulars escampats pel llit del túnel (alguns sobresurten del filet d'aigua)."""
+        idx = np.flatnonzero(tun)
+        if idx.size < 2:
+            return None
+        rng = np.random.default_rng(seed)
+        unit = trimesh.creation.icosphere(subdivisions=1, radius=1.0)
+        parts: list[trimesh.Trimesh] = []
+        # Densitat: ~4 còdols/m al llarg × 3 de banda ≈ llit pedregós.
+        along = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pts[idx], axis=0), axis=1))])
+        length = float(along[-1]) if along.size else 0.0
+        if length < 0.5:
+            return None
+        n_stations = max(int(length / 0.38), 2)
+        for s in np.linspace(0.0, length, n_stations):
+            j = int(np.searchsorted(along, s, side="right") - 1)
+            j = int(np.clip(j, 0, idx.size - 1))
+            i = int(idx[j])
+            t = tangent[i] / max(float(np.linalg.norm(tangent[i])), 1e-9)
+            n = normal[i] / max(float(np.linalg.norm(normal[i])), 1e-9)
+            # Desplaçament fi al llarg de l'eix entre mostres.
+            frac = 0.0 if j + 1 >= idx.size or along[j + 1] <= along[j] else (s - along[j]) / (along[j + 1] - along[j])
+            i2 = int(idx[min(j + 1, idx.size - 1)])
+            p = pts[i] * (1 - frac) + pts[i2] * frac
+            yb = float(bed_y[i] * (1 - frac) + bed_y[i2] * frac)
+            for _ in range(int(rng.integers(2, 5))):
+                across = float(rng.uniform(-half_w * 0.92, half_w * 0.92))
+                along_j = float(rng.uniform(-0.12, 0.12))
+                rx = float(rng.uniform(0.035, 0.11))
+                rz = float(rng.uniform(0.035, 0.11))
+                ry = float(rng.uniform(0.02, 0.055))  # una mica aplatats
+                center = p + n * across + t * along_j
+                rock = unit.copy()
+                rock.apply_scale([rx, ry, rz])
+                # Orientació aleatòria lleu.
+                rock.apply_transform(
+                    trimesh.transformations.rotation_matrix(
+                        float(rng.uniform(0, 2 * np.pi)), [0, 1, 0]
+                    )
+                )
+                rock.apply_translation([float(center[0]), yb + ry * 0.55, float(-center[1])])
+                rgb = COBBLE_RGB[int(rng.integers(0, len(COBBLE_RGB)))]
+                # Variació tonal per còdol.
+                jitter = int(rng.integers(-12, 13))
+                rgb = tuple(int(np.clip(c + jitter, 40, 200)) for c in rgb)
+                rock.visual.vertex_colors = np.tile([*rgb, 255], (len(rock.vertices), 1)).astype(np.uint8)
+                parts.append(rock)
+        if not parts:
+            return None
+        out = trimesh.util.concatenate(parts)
+        out.remove_unreferenced_vertices()
+        return out
+
     def mesh(
         self, ground, z_min: float, keep_off_road_m: float = 0.35
     ) -> tuple[trimesh.Trimesh | None, trimesh.Trimesh | None, trimesh.Trimesh | None]:
@@ -366,12 +439,15 @@ class Waterways:
             normal = np.column_stack([-tangent[:, 1], tangent[:, 0]])
             left = pts + normal * sec.water_half_m
             right = pts - normal * sec.water_half_m
-            water_h = sec.depth_m * sec.water_frac
+            water_h_open = sec.depth_m * sec.water_frac
+            water_h = np.where(tun, TUNNEL_WATER_M, water_h_open)
             bed_open = np.asarray(ground.height(pts[:, 0], pts[:, 1], raised=True), dtype=np.float64)
-            bed_tun = ref - z_min - sec.depth_m
+            bed_tun = ref - z_min
             bed = np.where(tun, bed_tun, bed_open)
-            level = bed + water_h + 0.06
-            depth_b = int(np.clip(water_h / 2.0, 0.08, 1.0) * 255)
+            level = bed + water_h + np.where(tun, 0.0, 0.06)
+            # Profunditat codificada al color: al túnel gairebé transparent/ràpida.
+            depth_b = np.clip(water_h / 2.0, 0.02, 1.0)
+            depth_b_u8 = (depth_b * 255).astype(np.uint8)
             # Fora del terreny no hi ha llit: la cinta quedaria penjant a la vora del mapa.
             inside = (np.abs(left) <= self.half).all(axis=1) & (np.abs(right) <= self.half).all(axis=1)
             # En túnel l'aigua continua sota el turó encara que el "camí" hi passi a sobre.
@@ -389,7 +465,16 @@ class Waterways:
             mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
             if mesh.face_normals[:, 1].mean() < 0:
                 mesh.invert()
-            mesh.visual.vertex_colors = self._vertex_colors(flow_x, flow_z, depth_b, n)
+            colors = np.empty((2 * n, 4), dtype=np.uint8)
+            for i in range(n):
+                enc = (
+                    int(np.clip(flow_x[i] * 0.5 + 0.5, 0.0, 1.0) * 255),
+                    int(np.clip(flow_z[i] * 0.5 + 0.5, 0.0, 1.0) * 255),
+                    int(depth_b_u8[i]),
+                )
+                colors[2 * i] = (*enc, 255)
+                colors[2 * i + 1] = (*enc, 0)
+            mesh.visual.vertex_colors = colors
             parts.append(mesh)
 
             vol_verts: list[list[float]] = []
@@ -400,7 +485,7 @@ class Waterways:
                 return [
                     int(np.clip(flow_x[ii] * 0.5 + 0.5, 0.0, 1.0) * 255),
                     int(np.clip(flow_z[ii] * 0.5 + 0.5, 0.0, 1.0) * 255),
-                    depth_b,
+                    int(depth_b_u8[ii]),
                     bank,
                 ]
 
@@ -409,6 +494,8 @@ class Waterways:
                 b: np.ndarray,
                 ya: float,
                 yb: float,
+                ha: float,
+                hb: float,
                 ia: int,
                 ib: int,
                 bank_a: int,
@@ -419,8 +506,8 @@ class Waterways:
                     [
                         [float(a[0]), ya, float(-a[1])],
                         [float(b[0]), yb, float(-b[1])],
-                        [float(b[0]), yb - water_h, float(-b[1])],
-                        [float(a[0]), ya - water_h, float(-a[1])],
+                        [float(b[0]), yb - hb, float(-b[1])],
+                        [float(a[0]), ya - ha, float(-a[1])],
                     ]
                 )
                 vol_faces.append([base, base + 1, base + 2])
@@ -429,14 +516,15 @@ class Waterways:
                     vol_colors.append(enc_flow(ii, bank))
 
             for i in seg:
-                push_quad(left[i], left[i + 1], float(level[i]), float(level[i + 1]), i, i + 1, 255, 255)
-                push_quad(right[i + 1], right[i], float(level[i + 1]), float(level[i]), i + 1, i, 0, 0)
+                ha, hb = float(water_h[i]), float(water_h[i + 1])
+                push_quad(left[i], left[i + 1], float(level[i]), float(level[i + 1]), ha, hb, i, i + 1, 255, 255)
+                push_quad(right[i + 1], right[i], float(level[i + 1]), float(level[i]), hb, ha, i + 1, i, 0, 0)
                 base = len(vol_verts)
                 lb = [
-                    [float(left[i, 0]), float(level[i] - water_h), float(-left[i, 1])],
-                    [float(right[i, 0]), float(level[i] - water_h), float(-right[i, 1])],
-                    [float(right[i + 1, 0]), float(level[i + 1] - water_h), float(-right[i + 1, 1])],
-                    [float(left[i + 1, 0]), float(level[i + 1] - water_h), float(-left[i + 1, 1])],
+                    [float(left[i, 0]), float(level[i] - ha), float(-left[i, 1])],
+                    [float(right[i, 0]), float(level[i] - ha), float(-right[i, 1])],
+                    [float(right[i + 1, 0]), float(level[i + 1] - hb), float(-right[i + 1, 1])],
+                    [float(left[i + 1, 0]), float(level[i + 1] - hb), float(-left[i + 1, 1])],
                 ]
                 vol_verts.extend(lb)
                 vol_faces.append([base, base + 1, base + 2])
@@ -468,10 +556,22 @@ class Waterways:
                         normal[mouth],
                         sec.water_half_m,
                         float(level[mouth]),
-                        water_h,
+                        float(water_h[mouth]),
                         outward,
                     )
                 )
+
+            cobbles = self._cobble_bed(
+                pts,
+                tun & ok,
+                tangent,
+                normal,
+                sec.water_half_m,
+                bed,
+                seed=int(abs(pts[0, 0]) * 10) % 10_000,
+            )
+            if cobbles is not None:
+                portal_parts.append(cobbles)
 
         def _merge(parts_list: list[trimesh.Trimesh]) -> trimesh.Trimesh | None:
             if not parts_list:

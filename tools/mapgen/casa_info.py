@@ -5,7 +5,12 @@ Street View des del carrer.
     python tools/mapgen/casa_info.py 0132102TM6503S            # per referència cadastral
     python tools/mapgen/casa_info.py --near 259920 4653015     # l'edifici més proper (UTM)
 
-Desa la foto i l'ortofoto a tmp/cases/<ref>/.
+Tot queda desat a data/cases/<ref>/ (l'expedient permanent de la casa):
+    expedient.txt          aquesta sortida
+    cadastre_facana.jpg    foto de façana del Cadastre (no se sobreescriu si el servei falla)
+    ortofoto.png           retall de l'ortofoto amb les parts
+    notes.md               plantilla per a les mesures i les observacions (no se sobreescriu)
+    streetview/            captures de Street View: només referència, fora del git
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.config import ROOT, load_config, utm_origin  # noqa: E402
 from village import COMPASS_DEG, _ccw, read_cadastre  # noqa: E402
 
+CASES_DIR = ROOT / "data" / "cases"
 FOTO_URL = "http://ovc.catastro.meh.es/OVCServWeb/OVCWcfLibres/OVCFotoFachada.svc/RecuperarFotoFachadaGet?ReferenciaCatastral={ref}"
 PANO_URL = "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint={lat:.7f},{lon:.7f}&heading={heading:.0f}&pitch=8&fov=100"
 
@@ -35,6 +41,11 @@ def main() -> None:
     ap.add_argument("ref", nargs="?")
     ap.add_argument("--near", nargs=2, type=float, metavar=("E", "N"))
     args = ap.parse_args()
+    log: list[str] = []
+
+    def say(text: str) -> None:
+        print(text)
+        log.append(text)
 
     from pyproj import Transformer
     from shapely.geometry import Point
@@ -54,10 +65,10 @@ def main() -> None:
 
     buildings = read_cadastre(cad, "Building")
     b = buildings[buildings["localId"] == ref]
-    print(f"== {ref}")
+    say(f"== {ref}")
     if len(b):
         r = b.iloc[0]
-        print(f"   ús {r.get('currentUse')} · {r.get('numberOfDwellings')} habitatges · {r.get('value')} m² construïts"
+        say(f"   ús {r.get('currentUse')} · {r.get('numberOfDwellings')} habitatges · {r.get('value')} m² construïts"
               f" · construïda {str(r.get('beginning'))[:4]} · {r.get('conditionOfConstruction')}")
 
     to_wgs = Transformer.from_crs(f"EPSG:{cfg['utm_epsg']}", "EPSG:4326", always_xy=True)
@@ -75,7 +86,7 @@ def main() -> None:
         g = max(getattr(g, "geoms", [g]), key=lambda q: q.area)
         key = str(row["localId"]).split("_")[-1]
         c = g.centroid
-        print(f"-- {key}: {row['numberOfFloorsAboveGround']} plantes · {g.area:.0f} m² · centre UTM {c.x:.1f}, {c.y:.1f}")
+        say(f"-- {key}: {row['numberOfFloorsAboveGround']} plantes · {g.area:.0f} m² · centre UTM {c.x:.1f}, {c.y:.1f}")
         ext = np.array(_ccw(g.simplify(0.15)).exterior.coords)[:-1]
         for i in range(len(ext)):
             a, bb = ext[i], ext[(i + 1) % len(ext)]
@@ -87,7 +98,7 @@ def main() -> None:
             line = f"     façana {_compass(nx, ny):>2}: {L:5.2f} m, esquerra (t=0) a {a[0]:.1f}, {a[1]:.1f}"
             probe = Point(m[0] + nx * 0.5, m[1] + ny * 0.5)
             if any(o.buffer(0.2).contains(probe) for o in parts.geometry if o.distance(probe) < 1):
-                print(line + " (mitgera: toca una altra part o un altre edifici)")
+                say(line + " (mitgera: toca una altra part o un altre edifici)")
                 continue
             if roads is not None:
                 # Punt de vista: el carrer més proper davant de la façana, mirant-la de cara.
@@ -96,22 +107,48 @@ def main() -> None:
                     lon, lat = to_wgs.transform(q.x, q.y)
                     heading = np.degrees(np.arctan2(-nx, -ny)) % 360
                     line += f"\n        Street View: {PANO_URL.format(lat=lat, lon=lon, heading=heading)}"
-            print(line)
+            say(line)
 
-    out = ROOT / "tmp" / "cases" / ref
-    out.mkdir(parents=True, exist_ok=True)
+    out = CASES_DIR / ref
+    (out / "streetview").mkdir(parents=True, exist_ok=True)
     try:
         res = requests.get(FOTO_URL.format(ref=ref), timeout=40)
         if res.ok and res.headers.get("content-type", "").startswith("image"):
             (out / "cadastre_facana.jpg").write_bytes(res.content)
-            print(f"Foto de façana del Cadastre → {out / 'cadastre_facana.jpg'}")
+            say(f"Foto de façana del Cadastre → {out / 'cadastre_facana.jpg'}")
         else:
-            print(f"Foto de façana del Cadastre: no disponible ({res.status_code})")
+            say(f"Foto de façana del Cadastre: no disponible ({res.status_code})")
     except requests.RequestException as e:
-        print(f"Foto de façana del Cadastre: error ({e}); torna-ho a provar")
+        say(f"Foto de façana del Cadastre: error ({e}); torna-ho a provar")
 
     _ortho_crop(cfg, rows, out / "ortofoto.png")
-    print(f"Ortofoto amb les parts → {out / 'ortofoto.png'}")
+    say(f"Ortofoto amb les parts → {out / 'ortofoto.png'}")
+    (out / "expedient.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
+    notes = out / "notes.md"
+    if not notes.exists():
+        notes.write_text(NOTES_TEMPLATE.format(ref=ref), encoding="utf-8")
+    print(f"Expedient → {out}")
+
+
+NOTES_TEMPLATE = """# {ref}
+
+Fitxa: `tools/mapgen/cases.yaml` · dades i enllaços de Street View: `expedient.txt`.
+
+## Fonts consultades
+
+- Foto de façana del Cadastre: `cadastre_facana.jpg` (data de la foto: …)
+- Street View (data del panell, adreça, enllaç i rumb de cada captura de `streetview/`):
+  - …
+
+## Façanes
+
+Per a cada façana vista des d'un carrer: orientació, llargada cadastral, materials, i cada
+obertura amb la seva `t`, mides i alçades, i d'on surt cada mesura.
+
+## Dubtes i decisions
+
+- …
+"""
 
 
 def _ortho_crop(cfg: dict, rows, path: Path, margin: float = 14.0) -> None:

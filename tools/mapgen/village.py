@@ -5,6 +5,7 @@
 - Arbres: copes detectades a la imatge (vegetació fosca i amb textura), mida i color reals.
 - Parcel·les: classificades com a pati, hort, arbrat, prat o terra segons la imatge.
 - Tàpies: a les vores de patis i horts sense edifici, només on l'ortofoto en mostra l'ombra (walls.py).
+  Les que tenen fitxa a walls.yaml es fan amb la llargada de la vora cadastral i l'alçada de la foto.
 """
 
 from __future__ import annotations
@@ -311,6 +312,7 @@ class WindowShape:
     mullion: bool = False  # travesser vertical al mig
     balcony: bool = False  # balconera: arriba gairebé al forjat i porta balcó
     roller: float | None = None  # fracció abaixada de la persiana enrotllable (fitxes de casa)
+    fill: tuple[int, int, int] | None = None  # obertura tapiada (maó, tauler): tapa el vidre
 
 
 # Formes per planta baixa i per pisos; cada casa en tria una de cada (amb repeticions = pes).
@@ -595,6 +597,8 @@ def _add_window(
     else:
         details.append(box(tc - hw - 0.15 / L, tc + hw + 0.15 / L, z1, z1 + 0.2, 0.05, SILL_STONE))  # llinda
     windows.append(box(tc - hw, tc + hw, z0, z1, 0.06, GLASS_COLOR))
+    if shape.fill is not None:
+        details.append(box(tc - hw + 0.02 / L, tc + hw - 0.02 / L, z0 + 0.02, z1 - 0.02, 0.07, shape.fill))
     if shape.mullion:
         details.append(box(tc - 0.035 / L, tc + 0.035 / L, z0, z1, 0.075, style.frame or FRAME_COLOR))
     if style.roller is not None:
@@ -738,10 +742,12 @@ def _openings_courtyard_facades(
     details: list,
     windows: list,
     taken: OpeningRegistry | None = None,
+    skip: set[int] = frozenset(),
 ) -> None:
-    """Finestres a façanes que no són la d'accés ni donen directament al carrer."""
+    """Finestres a façanes que no són la d'accés ni donen directament al carrer (ni les que
+    `skip`, que ja porten les obertures de la fitxa)."""
     for i in range(len(ext)):
-        if i == primary_i:
+        if i == primary_i or i in skip:
             continue
         a, b = ext[i], ext[(i + 1) % len(ext)]
         length = float(np.hypot(*(b - a)))
@@ -911,13 +917,31 @@ def _spec_openings(
                     )
                     details.append(rail)
             continue
-        shape = WindowShape(w, h, mullion=w >= 1.6, roller=op.get("roller"))
+        fill = _lin(op["fill"]) if op.get("fill") else None
+        shape = WindowShape(w, h, mullion=w >= 1.6 and fill is None, roller=None if fill else op.get("roller"), fill=fill)
         if floor > 0:
             z0 = level0 + floor * FLOOR_H + float(op.get("sill_m", UPPER_SILL_M))
         else:
             z0 = float(_wall_ground(ground, a, b, tc - hw, tc + hw).max()) + float(op.get("sill_m", GROUND_SILL_M))
         if _claim(taken, a, b, tc, w / 2 + 0.08, z0 - 0.1, z0 + h + 0.1):
             _add_window(a, b, nx, ny, L, tc, z0, shape, style, False, floor, details, windows)
+            if op.get("awning"):
+                _spec_awning(op["awning"], box, tc, hw, z0 + h, L, details)
+
+
+def _spec_awning(aw, box, tc: float, hw: float, z_top: float, length: float, details: list) -> None:
+    """Tendal que surt de dalt de la finestra. `stripe`, si hi és, alterna franges amb `color`."""
+    if not isinstance(aw, dict):
+        return
+    depth = float(aw.get("depth_m", 0.7))
+    color = _lin(aw.get("color", (160, 96, 64)))
+    stripe = _lin(aw["stripe"]) if aw.get("stripe") else None
+    n = 7 if stripe else 1
+    span = 2 * hw
+    for k in range(n):
+        t0 = tc - hw + span * k / n
+        t1 = tc - hw + span * (k + 1) / n
+        details.append(box(t0, t1, z_top - 0.22, z_top - 0.04, depth, stripe if stripe and k % 2 else color, 0.04))
 
 
 def _balustrade(p, q, base_z, height: float, rail, base_color, socle_h: float = 0.0,
@@ -1054,6 +1078,14 @@ def _spec_extras(
             _lin(fence.get("rail", (228, 222, 205))), _lin(fence.get("base", (170, 160, 140))),
             socle_h=0.3, post_every=3.5, gaps=gaps,
         )
+
+    for cp in spec.get("canopies", []):
+        # Teuladí: voladís de teula de `from` a `to`, a `height_m` sobre el terra (porta, tram de façana).
+        t0, t1, d = float(cp["from"]), float(cp["to"]), float(cp.get("depth_m", 0.6))
+        z = float(_wall_ground(ground, a, b, t0, t1).max()) + float(cp.get("height_m", 2.5))
+        color = _lin(cp.get("color", (176, 100, 74)))
+        details.append(_box_on_wall(*a, *b, t0, t1, z, z + 0.1, d, nx, ny, color))
+        details.append(_box_on_wall(*a, *b, t0, t1, z - 0.12, z, 0.25, nx, ny, _lin(cp.get("under", (120, 104, 90)))))
     return solid, details
 
 
@@ -1142,13 +1174,30 @@ def house_meshes(
             walls += solid
             details += extra
 
+    # Altres façanes fotografiades de la fitxa (cases que donen a més d'un carrer o a una plaça):
+    # cadascuna amb les seves obertures, balcons i extres.
+    spec_edges = {primary_i} if "openings" in spec else set()
+    for fs in spec.get("facades", []):
+        i = _facing_edge_index(ext, fs["facade"])
+        if i < 0 or i in spec_edges:
+            print(f"Village: façana {fs['facade']} de la fitxa sense mur propi (repetida o massa curta)")
+            continue
+        spec_edges.add(i)
+        a, b = ext[i], ext[(i + 1) % len(ext)]
+        length = float(np.hypot(*(b - a)))
+        nx, ny = (b[1] - a[1]) / length, -(b[0] - a[0]) / length
+        _spec_openings(fs.get("openings", []), a, b, nx, ny, length, ground, style, details, windows, taken, level0)
+        solid, extra = _spec_extras(fs, roof, a, b, nx, ny, length, ground, plinth, level0)
+        walls += solid
+        details += extra
+
     for i in range(len(ext)):
         a, b = ext[i], ext[(i + 1) % len(ext)]
         length = float(np.hypot(*(b - a)))
         if length < 2.4:
             continue
         nx, ny = (b[1] - a[1]) / length, -(b[0] - a[0]) / length  # normal exterior (anell antihorari)
-        if not facing_street(a[0], a[1], b[0], b[1], nx, ny) or (i == primary_i and "openings" in spec):
+        if not facing_street(a[0], a[1], b[0], b[1], nx, ny) or i in spec_edges:
             continue
         slots = _facade_window_slots(length)
         door_slot = slots // 2
@@ -1166,7 +1215,7 @@ def house_meshes(
                 )
 
     _openings_courtyard_facades(
-        rng, ext, primary_i, facing_street, floors, level0, ground, style, details, windows, taken
+        rng, ext, primary_i, facing_street, floors, level0, ground, style, details, windows, taken, spec_edges
     )
 
     if roof.hip:
@@ -1275,29 +1324,42 @@ def _tapia_block(rng, seg: float, e0: float, e1: float, za: float, zb: float, z_
     return orient(poly)
 
 
-def tapia_meshes(lines, ground) -> tuple[list, list]:
-    """Tàpies de totxo al llarg de les línies. Cada mur té la seva alçada, gruix, color i pendent;
-    alguns tenen albardilla, i n'hi ha amb cantonades esbotzades, forats al capdamunt i esglaons.
-    Torna (murs, albardilles); les albardilles són detall (sense col·lisió ni textura de totxo)."""
+def tapia_meshes(lines, ground, specs=None) -> tuple[list, list]:
+    """Tàpies al llarg de les línies. Sense fitxa, cada mur té alçada, gruix i color a l'atzar,
+    amb cantonades esbotzades. Amb fitxa (`specs[k]`), l'alçada, el color i el material són els
+    de la foto. Torna (murs, detalls); els detalls no tenen col·lisió ni textura de totxo.
+    El material queda a `metadata['wall_mat']`: brick, stone o block."""
     import trimesh
 
+    specs = list(specs) if specs is not None else [None] * len(lines)
     out, caps = [], []
     for k, line in enumerate(lines):
         if line.length < 1.0:
             continue
+        spec = specs[k] if k < len(specs) else None
         # Llavor estable segons la posició del mur: el mateix mur surt igual a cada generació.
         x0, y0 = line.coords[0]
         rng = np.random.default_rng([int(abs(x0) * 100), int(abs(y0) * 100), k])
-        color = TAPIA_COLORS[rng.integers(len(TAPIA_COLORS))]
-        height = rng.uniform(1.45, 2.35)
-        thick = float(rng.choice([0.24, 0.3, 0.3, 0.38]))
+        if spec:
+            color = tuple(int(c) for c in spec["color"])
+            height = float(spec["height_m"])
+            thick = float(spec.get("thick_m", 0.28))
+            slope = 0.0
+            cap = bool(spec.get("cap"))
+            cap_color = tuple(int(c) for c in spec["cap"]) if cap else TAPIA_CAP_COLORS[0]
+            broken_start = broken_end = False
+            mat = str(spec.get("material", "brick"))
+        else:
+            color = TAPIA_COLORS[rng.integers(len(TAPIA_COLORS))]
+            height = rng.uniform(1.45, 2.35)
+            thick = float(rng.choice([0.24, 0.3, 0.3, 0.38]))
+            slope = rng.uniform(-0.5, 0.5) / max(line.length, 4.0)
+            cap = rng.random() < 0.45
+            cap_color = TAPIA_CAP_COLORS[rng.integers(len(TAPIA_CAP_COLORS))]
+            broken_start = rng.random() < 0.35
+            broken_end = rng.random() < 0.35
+            mat = "brick"
         total = line.length
-        # Pendent suau al llarg de tot el mur: una punta fins a ~50 cm més alta que l'altra.
-        slope = rng.uniform(-0.5, 0.5) / max(total, 4.0)
-        cap = rng.random() < 0.45
-        cap_color = TAPIA_CAP_COLORS[rng.integers(len(TAPIA_CAP_COLORS))]
-        broken_start = rng.random() < 0.35
-        broken_end = rng.random() < 0.35
         pts = np.array(line.segmentize(TAPIA_BLOCK_M).coords)
         n = len(pts) - 1
         step = 0.0
@@ -1308,7 +1370,7 @@ def tapia_meshes(lines, ground) -> tuple[list, list]:
                 s += seg
                 continue
             # De tant en tant el mur fa un esglaó (un tram refet més alt o més baix).
-            if i and rng.random() < 0.15:
+            if not spec and i and rng.random() < 0.15:
                 step = float(np.clip(step + rng.choice([-1, 1]) * rng.uniform(0.15, 0.4), -0.5, 0.5))
             ga, gb = ground.height(np.array([a[0], b[0]]), np.array([a[1], b[1]]))
             # El capdamunt segueix el terreny (alçada sobre el punt més alt de cada punta) i el pendent.
@@ -1317,11 +1379,11 @@ def tapia_meshes(lines, ground) -> tuple[list, list]:
             zb = ref + height + step + slope * (s + seg - total / 2) + (gb - ref) * 0.5
             z_bot = min(ga, gb) - 0.2
             damage = {}
-            if i == 0 and broken_start and seg > 1.2:
+            if not spec and i == 0 and broken_start and seg > 1.2:
                 damage["start"] = (rng.uniform(0.4, min(1.4, seg * 0.45)), rng.uniform(0.3, 0.9))
-            if i == n - 1 and broken_end and seg > 1.2:
+            if not spec and i == n - 1 and broken_end and seg > 1.2:
                 damage["end"] = (rng.uniform(0.4, min(1.4, seg * 0.45)), rng.uniform(0.3, 0.9))
-            if not damage and seg > 2.5 and rng.random() < 0.12:
+            if not spec and not damage and seg > 2.5 and rng.random() < 0.12:
                 w = rng.uniform(0.7, min(1.8, seg * 0.4))
                 damage["dip"] = (rng.uniform(0.3, 0.7) * seg, w, rng.uniform(0.25, 0.6))
             # Les puntes s'allarguen per tancar les juntes en angle, però no dins d'un tros esbotzat.
@@ -1334,10 +1396,30 @@ def tapia_meshes(lines, ground) -> tuple[list, list]:
             # Perfil: x al llarg del mur, y = alçada; al món la direcció local (cos, sin) és (x, −z).
             m.apply_transform(trimesh.transformations.rotation_matrix(ang, [0, 1, 0]))
             m.apply_translation([a[0], 0, -a[1]])
-            # Cada bloc, un pèl diferent de to (tongades de totxo, sol, humitat).
-            rgba = _srgb_to_linear(color, rng.uniform(0.97, 1.03))
+            # Cada bloc, un pèl diferent de to (tongades de totxo, sol, humitat). La fitxa conserva el color.
+            rgba = _srgb_to_linear(color, 1.0 if spec else rng.uniform(0.97, 1.03))
             m.visual.vertex_colors = np.tile(rgba, (len(m.vertices), 1)).astype(np.uint8)
+            m.metadata["wall_mat"] = mat
             out.append(m)
+            if spec and spec.get("rail_m"):
+                # Reixa per damunt del mur: barrots i un travesser, sense col·lisió.
+                rh = float(spec["rail_m"])
+                rc = _srgb_to_linear(spec.get("rail", [36, 36, 38]))
+                nbar = max(2, int(seg / 0.18))
+                for j in range(nbar):
+                    u = (j + 0.5) / nbar
+                    p = a + (b - a) * u
+                    zt = za + (zb - za) * u
+                    bar = trimesh.creation.box(extents=[0.028, rh, 0.028])
+                    bar.apply_translation([float(p[0]), zt + rh / 2, -float(p[1])])
+                    bar.visual.vertex_colors = np.tile(rc, (len(bar.vertices), 1)).astype(np.uint8)
+                    caps.append(bar)
+                rail = trimesh.creation.box(extents=[seg, 0.025, 0.03])
+                rail.apply_transform(trimesh.transformations.rotation_matrix(ang, [0, 1, 0]))
+                mid = (a + b) / 2
+                rail.apply_translation([float(mid[0]), float((za + zb) / 2 + rh), -float(mid[1])])
+                rail.visual.vertex_colors = np.tile(rc, (len(rail.vertices), 1)).astype(np.uint8)
+                caps.append(rail)
             if cap and not damage:
                 # Albardilla: llosa una mica més ampla que el mur, seguint el capdamunt.
                 lip = Polygon([(-e0, za - 0.04), (seg + e1, zb - 0.04), (seg + e1, zb + 0.06), (-e0, za + 0.06)])
@@ -1729,8 +1811,33 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         n_lines = len(tapia_lines)
         tapia_lines = drop_lone_blocks(tapia_lines)
         print(f"Village: {n_lines - len(tapia_lines)} tàpies soltes d'un sol bloc eliminades")
+    # Fitxes de mur: llargada de la vora cadastral i alçada de la foto. Treuen la tàpia
+    # genèrica del mateix tram, també si l'ortofoto no n'hi havia detectat cap.
+    from walls import load_wall_specs, resolve_wall_specs
+
+    spec_pairs = resolve_wall_specs(load_wall_specs(Path(__file__).with_name("walls.yaml")), parcels, roads_u, ox, oy)
+    cut_specs: list[tuple] = []
+    for ln, spec in spec_pairs:
+        rest = ln.difference(buildings_u.buffer(0.2))
+        for g in getattr(rest, "geoms", [rest]):
+            if isinstance(g, LineString) and g.length > 0.8:
+                cut_specs.append((g, spec))
+    if cut_specs:
+        ban = unary_union([ln.buffer(1.1) for ln, _ in cut_specs])
+        kept = []
+        for ln in tapia_lines:
+            rest = ln.difference(ban)
+            kept += [g for g in getattr(rest, "geoms", [rest]) if isinstance(g, LineString) and g.length > 1.0]
+        print(f"Village: {len(cut_specs)} trams de tàpia amb fitxa ({sum(ln.length for ln, _ in cut_specs):.0f} m)")
+        tapia_lines = kept
     tapias, tapia_caps = tapia_meshes(tapia_lines, ground)
-    details += tapia_caps
+    spec_lines = [ln for ln, _ in cut_specs]
+    spec_meshes, spec_caps = tapia_meshes(spec_lines, ground, [s for _, s in cut_specs]) if spec_lines else ([], [])
+    details += tapia_caps + spec_caps
+    spec_brick = [m for m in spec_meshes if m.metadata.get("wall_mat") == "brick"]
+    spec_stone = [m for m in spec_meshes if m.metadata.get("wall_mat") == "stone"]
+    spec_block = [m for m in spec_meshes if m.metadata.get("wall_mat") == "block"]
+    tapias = [*tapias, *spec_brick]
 
     # Arbres de la imatge (fora d'edificis i carrers) i plantes d'hort on hi ha verd.
     crowns = detect_trees(cls)
@@ -1756,6 +1863,11 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         meshes.append((f"building_houses_{mat}" if mat else "building_houses", concat_tagged(ms)))
     if tapias:
         meshes.append(("building_tapias", concat_tagged(tapias)))
+    # El nom tria la textura: `tapia` és totxo, `stone` és pedra, i el bloc queda amb l'arrebossat.
+    if spec_stone:
+        meshes.append(("building_walls_stone", concat_tagged(spec_stone)))
+    if spec_block:
+        meshes.append(("building_walls_block", concat_tagged(spec_block)))
     if details:
         meshes.append(("prop_facades", concat_tagged(details)))
     if window_panes:

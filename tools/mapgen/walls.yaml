@@ -1,0 +1,46 @@
+# Tàpies amb fitxa. La llargada és la vora de la parcel·la del Cadastre (o el tram
+# `length_m` centrat a `near`, en UTM 30N). L'alçada és la mesurada a la foto.
+# `along: street` agafa les vores d'aquella parcel·la que donen a un carrer.
+# `material`: brick (totxo) | stone (pedra) | block (bloc de formigó, sense junta de totxo).
+
+"0132131-carrer":
+  parcel: "0132131TM6503S"
+  along: street
+  height_m: 1.20
+  thick_m: 0.28
+  material: block
+  color: [186, 178, 166]
+  photo: "cadastre_facana.jpg: mur de bloc al carrer, ~1,2 m (la porta de vianants en fa ~1,8)"
+
+"0132103-carrer":
+  parcel: "0132103TM6503S"
+  along: street
+  height_m: 1.05
+  thick_m: 0.35
+  material: stone
+  color: [168, 146, 118]
+  cap: [146, 124, 98]
+  rail_m: 0.60
+  rail: [32, 32, 34]
+  photo: "cadastre_facana.jpg: mur de pedra ~1,05 m i reixa fins a ~1,65 m"
+
+"0132102-oest":
+  parcel: "0132102TM6503S"
+  near: [259910.7, 4653010.3]
+  length_m: 6.0
+  height_m: 0.75
+  thick_m: 0.25
+  material: block
+  color: [206, 202, 194]
+  photo: "streetview 2024-09, 7463 ZA-P-2547, rumb 102: mur baix de formigó al sud del garatge"
+
+"0332504-carrer":
+  parcel: "0332504TM6503S"
+  along: street
+  height_m: 1.0
+  thick_m: 0.4
+  material: stone
+  color: [168, 150, 120]
+  rail_m: 0.85
+  rail: [44, 62, 50]
+  photo: "streetview 2024-09, 4 C. Santibáñez, rumb 205: mur de pedra ~1,0 m (la porta de vianants en fa ~1,9) i reixa verda fins a ~1,85 m"

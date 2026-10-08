@@ -16,7 +16,7 @@ import numpy as np
 import shapely
 from scipy import ndimage
 from shapely import affinity
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 from shapely.ops import substring, unary_union
 
 from village import FLOOR_H, Classification, Ortho, _rasterize
@@ -205,3 +205,90 @@ def detect_walls(lines: list[LineString], detector: WallDetector) -> list[LineSt
     before, after = sum(ln.length for ln in lines), sum(ln.length for ln in out)
     print(f"Tàpies: {after:.0f} m amb mur a l'ortofoto de {before:.0f} m de vores candidates")
     return out
+
+
+def load_wall_specs(path) -> dict:
+    """Fitxes de tàpia (`walls.yaml`); buit si no hi ha fitxer."""
+    import yaml
+
+    if not path.is_file():
+        return {}
+    with path.open(encoding="utf-8") as f:
+        return {str(k): v for k, v in (yaml.safe_load(f) or {}).items()}
+
+
+def _edges(geom) -> list[LineString]:
+    polys = list(getattr(geom, "geoms", [geom]))
+    out = []
+    for poly in polys:
+        if not hasattr(poly, "exterior"):
+            continue
+        coords = list(poly.exterior.coords)
+        for a, b in zip(coords[:-1], coords[1:]):
+            ln = LineString([a, b])
+            if ln.length >= 2.5:
+                out.append(ln)
+    return out
+
+
+def _inward(line: LineString, poly) -> np.ndarray:
+    """Normal (x, y) que entra a la parcel·la des del centre de la vora."""
+    a, b = np.array(line.coords[0]), np.array(line.coords[-1])
+    d = b - a
+    left = np.array([-d[1], d[0]]) / (np.hypot(*d) + 1e-9)
+    mid = (a + b) / 2
+    return left if poly.buffer(0.05).contains(Point(mid + left * 0.5)) else -left
+
+
+def _parcel_geom(parcels, ref: str):
+    rows = parcels[parcels["nationalCadastralReference"].astype(str) == ref]
+    if rows.empty:
+        print(f"Tàpies: la fitxa cita la parcel·la {ref}, que no és al Cadastre")
+        return None
+    return rows.geometry.unary_union
+
+
+def resolve_wall_specs(specs: dict, parcels, roads, ox: float, oy: float) -> list[tuple[LineString, dict]]:
+    """Línies locals de cada fitxa, amb la cara de fora sobre la vora cadastral.
+
+    `along: street` agafa les vores de la parcel·la que surten a un carrer. `near` (UTM) en
+    tria una, i `length_m` en retalla un tram centrat en el punt.
+    """
+    jobs = []
+    for key, spec in specs.items():
+        poly = _parcel_geom(parcels, str(spec.get("parcel", "")))
+        if poly is None:
+            continue
+        edges = _edges(poly)
+        chosen: list[LineString] = []
+        if spec.get("along") == "street":
+            for edge in edges:
+                a, b = np.array(edge.coords[0]), np.array(edge.coords[-1])
+                mid = (a + b) / 2
+                n = -_inward(edge, poly)  # cap a fora
+                if LineString([mid + n * 0.4, mid + n * 6.0]).intersects(roads):
+                    chosen.append(edge)
+            if not chosen:
+                print(f"Tàpies: {key} no té cap vora de carrer")
+        else:
+            e, n = spec["near"]
+            pt = Point(float(e) - ox, float(n) - oy)
+            edge = min(edges, key=lambda ln: ln.distance(pt), default=None)
+            if edge is None or edge.distance(pt) > 4.0:
+                print(f"Tàpies: {key} no encaixa amb cap vora (a menys de 4 m de near)")
+                continue
+            if spec.get("length_m"):
+                half = float(spec["length_m"]) / 2
+                at = edge.project(pt)
+                edge = substring(edge, max(0.0, at - half), min(edge.length, at + half))
+            chosen.append(edge)
+        for edge in chosen:
+            if edge.length < 0.8:
+                continue
+            n = _inward(edge, poly)
+            half = float(spec.get("thick_m", 0.28)) / 2
+            # La cara exterior queda sobre la línia del Cadastre; el gruix entra a la parcel·la.
+            jobs.append((affinity.translate(edge, xoff=n[0] * half, yoff=n[1] * half), spec))
+        if chosen:
+            print(f"Tàpies: fitxa {key}, {sum(e.length for e in chosen):.0f} m")
+    return jobs

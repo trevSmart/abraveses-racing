@@ -1,0 +1,18 @@
+== 0332504TM6503S
+   ús 1_residential · 1 habitatges · 285 m² construïts · construïda 1968 · functional
+-- part1: 1 plantes · 37 m² · centre UTM 260182.2, 4652972.8
+     façana NE:  4.72 m, esquerra (t=0) a 260185.7, 4652975.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9923251,-5.8952230&heading=203&pitch=8&fov=100
+     façana  O:  8.22 m, esquerra (t=0) a 260181.4, 4652977.5 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  4.46 m, esquerra (t=0) a 260178.8, 4652969.8
+     façana  E:  8.06 m, esquerra (t=0) a 260182.9, 4652968.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9922918,-5.8951048&heading=290&pitch=8&fov=100
+-- part2: 2 plantes · 124 m² · centre UTM 260194.2, 4652963.6
+     façana  E:  9.00 m, esquerra (t=0) a 260199.0, 4652957.0 (mitgera: toca una altra part o un altre edifici)
+     façana  N: 14.00 m, esquerra (t=0) a 260202.2, 4652965.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9922801,-5.8950635&heading=200&pitch=8&fov=100
+     façana  O:  8.90 m, esquerra (t=0) a 260189.0, 4652970.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9923254,-5.8952240&heading=108&pitch=8&fov=100
+     façana  S: 13.56 m, esquerra (t=0) a 260186.3, 4652961.7
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0332504TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0332504TM6503S/ortofoto.png

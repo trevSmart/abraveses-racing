@@ -12,7 +12,13 @@ from shapely.geometry import LineString
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from water import TUNNEL_COVER_M, Waterways, tunnel_mask, water_ref_profile  # noqa: E402
+from water import (  # noqa: E402
+    TUNNEL_COVER_M,
+    TUNNEL_WATER_M,
+    Waterways,
+    tunnel_mask,
+    water_ref_profile,
+)
 
 
 class TunnelDetectTest(unittest.TestCase):
@@ -81,6 +87,42 @@ class TunnelCarveTest(unittest.TestCase):
         crest = (xs >= 42) & (xs <= 58)
         self.assertTrue(np.allclose(delta[crest], 0.0, atol=1e-6), msg=f"crest delta={delta[crest]}")
         self.assertTrue(bool(np.any(delta[xs < 20] < -0.05)))
+
+    def test_tunnel_water_is_shallow_with_cobbles(self) -> None:
+        def dem(xs, ys):
+            xs = np.asarray(xs, dtype=np.float64)
+            return np.where((xs >= 40) & (xs <= 60), 106.0, 100.0)
+
+        class FakeGround:
+            z_min = 90.0
+
+            def height(self, xs, ys, raised=True):
+                return np.asarray(dem(xs, ys), dtype=np.float64) - self.z_min
+
+            def road_distance(self, xs, ys):
+                return np.full(np.asarray(xs).shape, 10.0)
+
+        line = LineString([(0, 0), (100, 0)])
+        gdf = gpd.GeoDataFrame({"kind": ["stream"], "geometry": [line]})
+        cfg = {
+            "waterways": {
+                "stream": {"bed_m": 1.6, "bank_m": 2.6, "depth_m": 1.0, "water_frac": 0.35},
+            }
+        }
+        water = Waterways(gdf, dem, origin=(0.0, 0.0), half=200.0, cfg=cfg)
+        surface, volume, props = water.mesh(FakeGround(), FakeGround.z_min)
+        self.assertIsNotNone(surface)
+        self.assertIsNotNone(props)
+        # Al crest (x≈50) la làmina ha de ser ~3 cm per damunt del grau (ref−z_min).
+        pts, ref, _, _, _, tun = next(L for L in water.lines if L[-1].any())
+        i = int(np.argmax(tun))
+        bed_y = float(ref[i] - FakeGround.z_min)
+        near = np.abs(surface.vertices[:, 0] - float(pts[i, 0])) < 1.0
+        self.assertTrue(bool(near.any()))
+        water_y = float(np.median(surface.vertices[near, 1]))
+        self.assertAlmostEqual(water_y - bed_y, TUNNEL_WATER_M, delta=0.02)
+        # Els còdols (més de 16 vèrtexs de bocas) formen part del prop del túnel.
+        self.assertGreater(len(props.vertices), 64)
 
 
 if __name__ == "__main__":
