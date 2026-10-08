@@ -41,9 +41,9 @@ function glslVec3(v: THREE.Vector3): string {
 /** Color del cel sense núvols en una direcció: compartit pel cel i per la boira. */
 function skyBaseGlsl(sunDir: THREE.Vector3): string {
   return /* glsl */ `
-const vec3 SKY_HORIZON = ${glslColor(0xd6e3ea)};
-const vec3 SKY_LOW = ${glslColor(0xa9c8e4)};
-const vec3 SKY_ZENITH = ${glslColor(0x4f88cf)};
+const vec3 SKY_HORIZON = ${glslColor(0xc8dae8)};
+const vec3 SKY_LOW = ${glslColor(0x7eb0e6)};
+const vec3 SKY_ZENITH = ${glslColor(0x2e6ec4)};
 const vec3 SKY_SUN_GLOW = ${glslColor(0xfff0d2)};
 const vec3 SKY_SUN_HAZE = ${glslColor(0xf3dcb8)};
 const vec3 SKY_SUN_DIR = ${glslVec3(sunDir)};

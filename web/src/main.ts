@@ -23,7 +23,7 @@ import {
 import { Autopilot } from "./autopilot";
 import { CraneFlocks } from "./birds";
 import { Sky, SUN_VISUAL_ELEVATION_DEG, sunDirection } from "./sky";
-import { R12, stepSpeed, stepSteer, yawRate } from "./vehicle";
+import { R12, stepSpeed, stepSteer, turnRadius, yawRate } from "./vehicle";
 import { applyWaterMaterial, setWaterEnvironment, waterTime } from "./water";
 
 type SpawnData = {
@@ -40,6 +40,19 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 // baixa pel BVH de cada malla), així un raig descarta de seguida els centenars de trossos que no toca.
 // Les malles estàtiques (matrixAutoUpdate = false) desen l'esfera en coordenades del món.
 const raycastSphere = new THREE.Sphere();
+
+/**
+ * El BVH reordena l'índex de la geometria in situ. El GLTFLoader fa compartir el mateix índex a
+ * les malles amb la mateixa topologia (els 256 trossos de terreny, per exemple): sense una còpia
+ * pròpia, construir el BVH d'un tros desquadra el dels altres i el raig travessa el terra.
+ */
+function computeOwnBoundsTree(geometry: THREE.BufferGeometry): void {
+  if (geometry.index) {
+    geometry.setIndex(geometry.index.clone());
+  }
+  geometry.computeBoundsTree();
+}
+
 THREE.Mesh.prototype.raycast = function (this: THREE.Mesh, raycaster: THREE.Raycaster, intersects: THREE.Intersection[]) {
   let sphere = this.userData.worldSphere as THREE.Sphere | undefined;
   if (!sphere) {
@@ -55,7 +68,7 @@ THREE.Mesh.prototype.raycast = function (this: THREE.Mesh, raycaster: THREE.Rayc
     return;
   }
   if (this.userData.lazyBvh && !this.geometry.boundsTree) {
-    this.geometry.computeBoundsTree();
+    computeOwnBoundsTree(this.geometry);
   }
   acceleratedRaycast.call(this, raycaster, intersects);
 };
@@ -106,7 +119,7 @@ const settings = loadSettings();
 
 const scene = new THREE.Scene();
 // Color de reserva: la cúpula del cel tapa el fons i la boira pren el color del cel (vegeu sky.ts).
-const SKY = 0xd6e3ea;
+const SKY = 0xc8dae8;
 scene.background = new THREE.Color(SKY);
 scene.fog = new THREE.Fog(SKY, 140, 560);
 // El sol que es veu al cel és més baix que la llum: així surt dins del pla de la càmera de
@@ -124,6 +137,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.info.autoReset = false;
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
 renderer.domElement.tabIndex = 0;
@@ -133,8 +147,9 @@ renderer.domElement.addEventListener("pointerdown", () => {
   renderer.domElement.focus();
 });
 
-scene.add(new THREE.AmbientLight(0xfff8ef, 0.52));
-scene.add(new THREE.HemisphereLight(0xd8ecff, 0x8fbc7a, 0.38));
+// Menys ambient pla: deixa que l'hemisferi doni color diferent segons la normal (cel vs terra) a l'ombra.
+scene.add(new THREE.AmbientLight(0xe8eef2, 0.34));
+scene.add(new THREE.HemisphereLight(0x88b8e8, 0x6a9468, 0.5));
 // Ombres només al voltant del cotxe: el mapa d'ombres el segueix (vegeu followSun), i així
 // amb 2048 px cobreix 100 m amb ~5 cm per texel en lloc de 240 m borrosos.
 const SUN_OFFSET = sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, 34).multiplyScalar(160);
@@ -150,8 +165,9 @@ sun.shadow.camera.left = -SHADOW_HALF_M;
 sun.shadow.camera.right = SHADOW_HALF_M;
 sun.shadow.camera.top = SHADOW_HALF_M;
 sun.shadow.camera.bottom = -SHADOW_HALF_M;
-sun.shadow.bias = -0.0005;
-sun.shadow.normalBias = 0.03;
+sun.shadow.bias = -0.00035;
+sun.shadow.normalBias = 0.025;
+sun.shadow.radius = 2.8;
 scene.add(sun);
 scene.add(sun.target);
 
@@ -186,6 +202,11 @@ const state = {
   accelPitch: 0,
   roll: 0,
   verticalVelocity: 0,
+  /**
+   * Derrapatge (rad): la marxa va cap a `heading + driftAngle`, el morro cap a `heading`.
+   * Positiu quan la cua surt girant a la dreta.
+   */
+  driftAngle: 0,
 };
 
 const GRAVITY = 38;
@@ -417,7 +438,7 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
     loadOrthoTexture(
       `/terrain.jpg?${assetCacheKey}`,
       (tex) => {
-        for (const mat of [ground, roof]) {
+        for (const mat of [ground, roof, worldMaterials.roadDirt]) {
           mat.map = tex;
           mat.needsUpdate = true;
         }
@@ -425,6 +446,7 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
       () => {
         ground.color.setHex(0x8fbf75);
         roof.color.setHex(0xb0644a);
+        worldMaterials.roadDirt.color.setHex(0xb09c80);
       },
     );
     if (orthoCenterM > 0 && orthoCenterM < terrainSizeM) {
@@ -448,8 +470,6 @@ const R12_PAINT = 0x74264f; // granat tirant a lila
 const R12_WHEEL_R = 0.3;
 const R12_FRONT_AXLE_Z = 1.32;
 const R12_REAR_AXLE_Z = R12_FRONT_AXLE_Z - R12.wheelbaseM;
-/** Angle màxim de les rodes davanteres: atan(batalla / radi de gir mínim). */
-const R12_MAX_WHEEL_ANGLE = Math.atan(R12.wheelbaseM / R12.minTurnRadius);
 
 /** Perfil lateral dibuixat en (z, y) i extrudit a l'amplada (eix X), centrat. El bisell arrodoneix
  *  els cantells sense engrandir el perfil (bevelOffset), perquè els passos de roda no toquin les rodes. */
@@ -487,9 +507,10 @@ function applyCarEnvironment(): void {
 function createWindowGlassMaterial(sunDir: THREE.Vector3): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({
     map: windowGlassMap(),
+    color: 0x4a5c68,
     vertexColors: true,
-    roughness: 0.07,
-    metalness: 0.28,
+    roughness: 0.48,
+    metalness: 0.08,
   });
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uWinSun = { value: sunDir.clone() };
@@ -510,15 +531,15 @@ function createWindowGlassMaterial(sunDir: THREE.Vector3): THREE.MeshStandardMat
       "#include <emissivemap_fragment>",
       `#include <emissivemap_fragment>
   vec3 viewDir = normalize(vViewPosition);
-  float fresnel = pow(1.0 - clamp(dot(normalize(normal), viewDir), 0.0, 1.0), 3.2);
+  float fresnel = pow(1.0 - clamp(dot(normalize(normal), viewDir), 0.0, 1.0), 5.0);
   vec3 refl = reflect(-viewDir, normalize(normal));
-  float sunHit = pow(max(dot(refl, normalize(uWinSun)), 0.0), 48.0);
-  float skyBand = smoothstep(0.02, 0.35, refl.y);
-  totalEmissiveRadiance += uWinSky * fresnel * (0.22 + 0.35 * skyBand);
-  totalEmissiveRadiance += vec3(1.0, 0.95, 0.82) * sunHit * 0.55;`,
+  float sunHit = pow(max(dot(refl, normalize(uWinSun)), 0.0), 96.0);
+  float skyBand = smoothstep(0.05, 0.4, refl.y);
+  totalEmissiveRadiance += uWinSky * fresnel * (0.06 + 0.1 * skyBand);
+  totalEmissiveRadiance += vec3(1.0, 0.96, 0.88) * sunHit * 0.14;`,
     );
   };
-  carEnvMaterials.push({ mat, intensity: 0.95 });
+  carEnvMaterials.push({ mat, intensity: 0.32 });
   return mat;
 }
 
@@ -737,8 +758,10 @@ function animateWheels(distance: number): void {
   for (const w of kartWheels.spin) {
     w.rotation.x += distance / R12_WHEEL_R;
   }
+  // Angle de les davanteres a topall: atan(batalla / radi de gir), més obert maniobrant.
+  const maxWheelAngle = Math.atan(R12.wheelbaseM / turnRadius(state.speed));
   for (const w of kartWheels.steer) {
-    w.rotation.y = -state.steer * R12_MAX_WHEEL_ANGLE;
+    w.rotation.y = -state.steer * maxWheelAngle;
   }
 }
 
@@ -859,6 +882,49 @@ function blockedByWall(
   raycaster.far = distance;
   const hits = raycaster.intersectObjects(wallMeshes, false);
   return hits.length > 0 && hits[0].distance < distance;
+}
+
+// Planta de la carrosseria sencera per xocar amb les parets, amb un pèl de marge.
+const BODY_HALF_L = R12.lengthM / 2 + 0.05;
+const BODY_HALF_W = R12.widthM / 2 + 0.05;
+const BODY_RAY_HEIGHT_M = 0.5;
+// Cantonades en ordre de recorregut: davant-dreta, davant-esquerra, darrere-esquerra, darrere-dreta.
+const BODY_CORNER_SIGNS: [number, number][] = [[1, 1], [1, -1], [-1, -1], [-1, 1]];
+const bodyCorners = BODY_CORNER_SIGNS.map(() => new THREE.Vector3());
+
+/**
+ * Alguna paret talla el perímetre de la carrosseria posada a (x, z) amb aquesta orientació?
+ * Es tira un raig per cada costat, seguint el contorn: si una cantonada ja és dins d'una casa,
+ * el costat que hi arriba des de fora en troba la cara exterior.
+ */
+function bodyHitsWall(x: number, y: number, z: number, heading: number): boolean {
+  if (wallMeshes.length === 0) {
+    return false;
+  }
+  const fx = Math.sin(heading);
+  const fz = Math.cos(heading);
+  const rx = Math.cos(heading);
+  const rz = -Math.sin(heading);
+  const ry = y + BODY_RAY_HEIGHT_M;
+  BODY_CORNER_SIGNS.forEach(([l, w], i) => {
+    bodyCorners[i].set(
+      x + fx * BODY_HALF_L * l + rx * BODY_HALF_W * w,
+      ry,
+      z + fz * BODY_HALF_L * l + rz * BODY_HALF_W * w,
+    );
+  });
+  for (let i = 0; i < bodyCorners.length; i++) {
+    const from = bodyCorners[i];
+    const to = bodyCorners[(i + 1) % bodyCorners.length];
+    rayDir.subVectors(to, from);
+    const length = rayDir.length();
+    raycaster.set(from, rayDir.divideScalar(length));
+    raycaster.far = length;
+    if (raycaster.intersectObjects(wallMeshes, false).length > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Hi ha algun edifici, mur o turó entre la càmera i el sol en aquesta direcció? */
@@ -1010,6 +1076,7 @@ function applySpawn(): void {
   state.verticalVelocity = 0;
   state.steer = 0;
   state.accelPitch = 0;
+  state.driftAngle = 0;
   autopilot?.reset();
   state.heading = THREE.MathUtils.degToRad(spawn.rotation_y_deg);
   kart.rotation.y = state.heading;
@@ -1029,8 +1096,11 @@ const worldMaterials = {
   green: new THREE.MeshStandardMaterial({ color: 0x62c872, roughness: 0.92 }),
   // Color per vèrtex: asfalt o terra segons l'ortofoto (vegeu _road_surface al pipeline).
   road: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }),
-  roadDirt: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.97 }),
+  // El camí de terra mostra la mateixa ortofoto que el terreny (la rep a sharedTerrainMaterials):
+  // un color pla feia una taca uniforme amb la vora tallada en sec contra la foto del voltant.
+  roadDirt: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.97 }),
 };
+worldMaterials.roadDirt.onBeforeCompile = injectOrthoShader;
 addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "triplanar", scaleM: 2.5, strength: 0.35, fade: [30, 120] });
 // Tàpies de totxo amb la junta de morter clar; la maçoneria de l'església, amb junta fosca.
 addWorldDetail(worldMaterials.tapia, { map: detailTextures.brick, mode: "triplanar", scaleM: 3.15, strength: 1, fade: [30, 120], mortar: new THREE.Color(0xe2dccd) });
@@ -1056,7 +1126,7 @@ function tintWorld(root: THREE.Object3D): void {
 
     if (kind === "building") {
       wallMeshes.push(mesh);
-      mesh.geometry.computeBoundsTree();
+      computeOwnBoundsTree(mesh.geometry);
       mesh.material = !mesh.geometry.attributes.color
         ? new THREE.MeshStandardMaterial({ color: 0xd9a088, roughness: 0.78 })
         : /tapia/.test(mesh.name.toLowerCase())
@@ -1166,11 +1236,48 @@ const CHUNKS_PER_SIDE = 16;
 const TREE_DRAW_DIST_M = 450;
 const PLANT_DRAW_DIST_M = 140;
 /** Zona de vegetació que es construeix la primera vegada que la càmera s'hi acosta. */
-type LazyChunk = { x: number; z: number; reach: number; build: () => THREE.Object3D; obj: THREE.Object3D | null };
+type LazyChunk = {
+  x: number;
+  z: number;
+  reach: number;
+  build: () => THREE.Object3D;
+  obj: THREE.Object3D | null;
+  /** performance.now() quan la zona ha aparegut (fade-in). */
+  fadeStart?: number;
+};
 const lazyChunks: LazyChunk[] = [];
 const vegetationRoot = new THREE.Group();
 /** Zones noves que es poden construir per comprovació (cada 250 ms): sense estrebades. */
 const CHUNK_BUILD_BUDGET = 3;
+/** Apareixen en ~0,5 s; als últims metres del radi es desvaneixen en lloc de desaparèixer de cop. */
+const CHUNK_FADE_IN_MS = 520;
+const CHUNK_EDGE_FADE_M = 42;
+
+function fadeMaterial(mat: THREE.Material): THREE.Material {
+  const m = mat.clone();
+  m.transparent = true;
+  m.opacity = 0;
+  return m;
+}
+
+function applyChunkFadeMaterials(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) {
+      return;
+    }
+    if (Array.isArray(mesh.material)) {
+      mesh.material = mesh.material.map(fadeMaterial);
+    } else {
+      mesh.material = fadeMaterial(mesh.material);
+    }
+  });
+}
+
+function smoothFade(t: number): number {
+  const x = THREE.MathUtils.clamp(t, 0, 1);
+  return x * x * (3 - 2 * x);
+}
 
 function chunkCell(v: number): number {
   const size = terrainSizeM / CHUNKS_PER_SIDE;
@@ -1213,20 +1320,50 @@ function cullByDistance(now: number, budget = CHUNK_BUILD_BUDGET, maxBuildDist =
     const near = d < c.reach;
     if (near && !c.obj && budget > 0 && d < maxBuildDist) {
       c.obj = c.build();
+      applyChunkFadeMaterials(c.obj);
+      c.fadeStart = now;
       vegetationRoot.add(c.obj);
       c.obj.updateMatrixWorld(true);
       freezeStatic(c.obj);
       budget--;
     }
     if (c.obj) {
-      c.obj.visible = near;
       // Molt lluny: s'allibera (buffers de la GPU inclosos) i es tornarà a construir si cal.
       // Així la memòria no creix fins a tenir totes les zones del mapa construïdes.
       if (d > c.reach * 1.6) {
         disposeChunk(c.obj);
         vegetationRoot.remove(c.obj);
         c.obj = null;
+        c.fadeStart = undefined;
       }
+    }
+  }
+}
+
+function updateVegetationFade(now: number): void {
+  const { x, z } = camera.position;
+  for (const c of lazyChunks) {
+    if (!c.obj) {
+      continue;
+    }
+    const d = Math.hypot(c.x - x, c.z - z);
+    const edge = THREE.MathUtils.clamp((c.reach - d) / CHUNK_EDGE_FADE_M, 0, 1);
+    const time =
+      c.fadeStart === undefined ? 1 : smoothFade((now - c.fadeStart) / CHUNK_FADE_IN_MS);
+    const alpha = time * smoothFade(edge);
+    c.obj.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) {
+        return;
+      }
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const mat of mats) {
+        mat.opacity = alpha;
+      }
+    });
+    c.obj.visible = alpha > 0.02;
+    if (alpha >= 0.999 && c.fadeStart !== undefined) {
+      c.fadeStart = undefined;
     }
   }
 }
@@ -1235,7 +1372,12 @@ function cullByDistance(now: number, budget = CHUNK_BUILD_BUDGET, maxBuildDist =
 function disposeChunk(obj: THREE.Object3D): void {
   obj.traverse((o) => {
     if ((o as THREE.InstancedMesh).isInstancedMesh) {
-      (o as THREE.InstancedMesh).dispose();
+      const mesh = o as THREE.InstancedMesh;
+      mesh.dispose();
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const mat of mats) {
+        mat.dispose();
+      }
     }
   });
 }
@@ -2218,6 +2360,7 @@ function respawnAt(pick: RespawnPick): void {
   state.steer = 0;
   state.verticalVelocity = 0;
   state.accelPitch = 0;
+  state.driftAngle = 0;
   state.heading = pick.heading;
   kart.rotation.y = pick.heading;
   const y = sampleRoadY(pick.x, pick.z) ?? kart.position.y - state.wheelOffset;
@@ -2330,16 +2473,26 @@ function moveCar(move: number, dt: number): number {
   }
   const travelSign = Math.sign(move);
   const pos = kart.position;
+  // Si la carrosseria ja és encastada (aparició, aterratge), només es vigila el centre perquè en pugui sortir.
+  const embedded = bodyHitsWall(pos.x, pos.y, pos.z, state.heading);
   const dir = new THREE.Vector3();
   for (const off of SLIDE_OFFSETS) {
+    // Derrapant, el cotxe avança cap on va la marxa però ocupa l'espai segons on mira el morro.
     const h = state.heading + off;
-    dir.set(Math.sin(h) * travelSign, 0, Math.cos(h) * travelSign);
+    const travel = h + state.driftAngle;
+    dir.set(Math.sin(travel) * travelSign, 0, Math.cos(travel) * travelSign);
     const dist = Math.abs(move) * Math.cos(off);
-    if (blockedByWall(pos, dir, WALL_CHECK_M + dist * 1.2)) {
-      continue;
-    }
     const nx = pos.x + dir.x * dist;
     const nz = pos.z + dir.z * dist;
+    // Fregant, el morro només gira una part de la desviació en aquest fotograma.
+    const nextHeading = state.heading + off * Math.min(1, 6 * dt);
+    if (
+      embedded
+        ? blockedByWall(pos, dir, WALL_CHECK_M + dist * 1.2)
+        : bodyHitsWall(nx, pos.y, nz, nextHeading)
+    ) {
+      continue;
+    }
     if (!canOccupy(nx, nz, h)) {
       continue;
     }
@@ -2347,13 +2500,16 @@ function moveCar(move: number, dt: number): number {
     pos.z = nz;
     if (off !== 0) {
       // Alinea el cotxe amb l'obstacle i frega una mica, en lloc d'aturar-lo en sec.
-      state.heading += off * Math.min(1, 6 * dt);
+      state.heading = nextHeading;
       kart.rotation.y = state.heading;
       state.speed *= Math.exp(-5 * Math.abs(Math.sin(off)) * dt);
+      // Fregar la paret mata el derrapatge.
+      state.driftAngle *= Math.exp(-8 * dt);
     }
     return dist;
   }
   state.speed *= 0.35;
+  state.driftAngle = 0;
   return 0;
 }
 
@@ -2365,15 +2521,25 @@ function unstick(direction: number): void {
     pos.z = sz;
   }
   // L'orientació lliure més propera a l'actual, en el sentit en què s'accelera.
+  // Primer, una orientació on hi càpiga la carrosseria sencera; si no n'hi ha, n'hi ha prou amb el centre.
   const dir = new THREE.Vector3();
-  for (let step = 1; step <= 12; step++) {
-    for (const sign of [1, -1]) {
-      const h = state.heading + sign * step * (Math.PI / 12);
-      dir.set(Math.sin(h) * direction, 0, Math.cos(h) * direction);
-      if (canOccupy(pos.x + dir.x * 1.5, pos.z + dir.z * 1.5, h) && !blockedByWall(pos, dir, 2)) {
-        state.heading = h;
-        kart.rotation.y = h;
-        return;
+  for (const wholeBody of [true, false]) {
+    for (let step = 1; step <= 12; step++) {
+      for (const sign of [1, -1]) {
+        const h = state.heading + sign * step * (Math.PI / 12);
+        dir.set(Math.sin(h) * direction, 0, Math.cos(h) * direction);
+        const nx = pos.x + dir.x * 1.5;
+        const nz = pos.z + dir.z * 1.5;
+        if (
+          canOccupy(nx, nz, h) &&
+          !blockedByWall(pos, dir, 2) &&
+          !(wholeBody && bodyHitsWall(nx, pos.y, nz, h))
+        ) {
+          state.heading = h;
+          state.driftAngle = 0;
+          kart.rotation.y = h;
+          return;
+        }
       }
     }
   }
@@ -2435,18 +2601,26 @@ let hudCoordsText = "";
 let hudCoordsClipboard = "";
 let hudCoordsCopiedUntil = 0;
 
+/** Rumb geogràfic 0–360° (0 = nord UTM/−Z, 90 = est/+X). El heading del joc 0 apunta al sud (+Z). */
+function geographicHeadingDeg(): number {
+  const deg = THREE.MathUtils.radToDeg(Math.atan2(Math.sin(state.heading), -Math.cos(state.heading)));
+  return ((deg % 360) + 360) % 360;
+}
+
 function formatHudCoords(): { display: string; clipboard: string } {
+  const heading = geographicHeadingDeg();
+  const headingLabel = `${heading.toFixed(0)}°`;
   if (worldOriginUtm) {
     const e = worldOriginUtm.x + kart.position.x;
     const n = worldOriginUtm.y - kart.position.z;
     const alt = kart.position.y;
-    const display = `E ${e.toFixed(1)} · N ${n.toFixed(1)} · ${alt.toFixed(1)} m`;
-    const clipboard = `${e.toFixed(1)}, ${n.toFixed(1)}, ${alt.toFixed(1)}`;
+    const display = `E ${e.toFixed(1)} · N ${n.toFixed(1)} · ${alt.toFixed(1)} m · ${headingLabel}`;
+    const clipboard = `${e.toFixed(1)}, ${n.toFixed(1)}, ${alt.toFixed(1)}, ${heading.toFixed(0)}`;
     return { display, clipboard };
   }
   const { x, y, z } = kart.position;
-  const display = `X ${x.toFixed(1)} · Z ${z.toFixed(1)} · Y ${y.toFixed(1)} m`;
-  const clipboard = `${x.toFixed(1)}, ${z.toFixed(1)}, ${y.toFixed(1)}`;
+  const display = `X ${x.toFixed(1)} · Z ${z.toFixed(1)} · Y ${y.toFixed(1)} m · ${headingLabel}`;
+  const clipboard = `${x.toFixed(1)}, ${z.toFixed(1)}, ${y.toFixed(1)}, ${heading.toFixed(0)}`;
   return { display, clipboard };
 }
 
@@ -2553,7 +2727,46 @@ const GRAVITY_ACCEL = 9.81;
 /** rad per (m/s²): negatiu = morro amunt en accelerar. */
 const ACCEL_PITCH_GAIN = 0.009;
 const MAX_ACCEL_PITCH = 0.065;
+/** Capcineig (rad per m/s d'impacte) quan el cotxe toca terra i rebota. */
+const LANDING_PITCH_GAIN = 0.006;
+const LANDING_PITCH_MAX = 0.06;
+/** Frec dels pneumàtics de costat (1/s per sin de l'angle de derrapatge). */
+const DRIFT_SCRUB = 1.2;
 let lastSlope = 0;
+
+/**
+ * Frenar fort amb el volant girat i prou velocitat fa perdre les rodes del darrere: el morro
+ * gira més que la marxa. En deixar-ho, les rodes tornen a agafar i la marxa s'alinea amb el morro.
+ * Retorna si ara mateix està derrapant.
+ */
+function updateDrift(throttle: number, brake: boolean, dt: number): boolean {
+  const v = state.speed;
+  const braking = brake || (throttle < 0 && v > 0.1);
+  const drifting =
+    !autopilotOn &&
+    state.verticalVelocity === 0 &&
+    braking &&
+    v > R12.driftMinSpeed &&
+    Math.abs(state.steer) > 0.3;
+  if (drifting) {
+    // Com més ràpid, més es descontrola la cua.
+    const grip = THREE.MathUtils.clamp((v - R12.driftMinSpeed) / 6, 0.4, 1);
+    const extra = R12.driftYawRate * state.steer * grip * dt;
+    const next = THREE.MathUtils.clamp(state.driftAngle + extra, -R12.maxDriftAngle, R12.maxDriftAngle);
+    // El morro gira; la marxa es manté on anava.
+    state.heading -= next - state.driftAngle;
+    state.driftAngle = next;
+  } else {
+    state.driftAngle *= Math.exp(-R12.driftRecovery * dt);
+    if (Math.abs(state.driftAngle) < 1e-3) {
+      state.driftAngle = 0;
+    }
+  }
+  if (state.driftAngle !== 0) {
+    state.speed *= Math.exp(-DRIFT_SCRUB * Math.abs(Math.sin(state.driftAngle)) * dt);
+  }
+  return drifting;
+}
 
 function applyTerrainForces(dt: number, brake: boolean): void {
   const v = state.speed;
@@ -2583,9 +2796,24 @@ function update(dt: number): void {
   const speedBefore = state.speed;
 
   // Física d'un R12 a escala real (vegeu vehicle.ts). Aturat no gira: cal maniobrar.
+  const headingBefore = state.heading;
+  const drifting = updateDrift(throttle, brake, dt);
+  const speedSliding = state.speed;
   state.speed = stepSpeed(state.speed, throttle, brake, dt);
-  state.steer = stepSteer(state.steer, steer, dt);
+  if (drifting) {
+    state.speed = speedSliding + (state.speed - speedSliding) * R12.driftBrakeFactor;
+  }
+  state.steer = stepSteer(state.steer, steer, state.speed, dt);
   state.heading -= yawRate(state.speed, state.steer) * dt;
+  // Girar arran d'una paret no pot ficar el morro ni la cua dins la casa.
+  const p = kart.position;
+  if (
+    state.heading !== headingBefore &&
+    bodyHitsWall(p.x, p.y, p.z, state.heading) &&
+    !bodyHitsWall(p.x, p.y, p.z, headingBefore)
+  ) {
+    state.heading = headingBefore;
+  }
   applyTerrainForces(dt, brake);
   const longAccel = (state.speed - speedBefore) / Math.max(dt, 1e-4);
   const targetAccelPitch = THREE.MathUtils.clamp(
@@ -2619,7 +2847,13 @@ function update(dt: number): void {
     const landY = floorY ?? kart.position.y;
     if (floorY !== null && kart.position.y <= landY && state.verticalVelocity <= 0) {
       kart.position.y = landY;
-      state.verticalVelocity = 0;
+      // Les molles tornen part del cop: un rebot petit (i un altre de més petit) abans d'assentar-se.
+      const impact = -state.verticalVelocity;
+      const bounces = impact > R12.minBounceSpeed;
+      state.verticalVelocity = bounces ? impact * R12.landingRestitution : 0;
+      if (bounces) {
+        state.accelPitch += Math.min(LANDING_PITCH_MAX, impact * LANDING_PITCH_GAIN);
+      }
     }
   } else if (floorY !== null) {
     kart.position.y = floorY;
@@ -2631,7 +2865,8 @@ function update(dt: number): void {
 
   const camTarget = kart.position.clone().add(new THREE.Vector3(0, CAM_LOOK_UP_M, 0));
   updateCameraOrbit(dt, throttle);
-  const camPos = kart.position.clone().add(cameraOffset(state.heading, camOffset));
+  // La càmera segueix la marxa, no el morro: derrapant es veu el cotxe creuat.
+  const camPos = kart.position.clone().add(cameraOffset(state.heading + state.driftAngle, camOffset));
   camera.position.lerp(camPos, 1 - Math.exp(-4 * dt));
   // Darrere d'un turó la càmera no pot quedar enterrada.
   const camGround = groundY(camera.position.x, camera.position.z);
@@ -2837,6 +3072,7 @@ function loop(now: number): void {
       update(dt);
     }
     cullByDistance(now);
+    updateVegetationFade(now);
     waterTime.value = now / 1000;
     sky.update(dt, camera, sunOccluded);
     craneFlocks.update(dt, camera);

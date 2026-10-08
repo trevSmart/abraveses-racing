@@ -17,12 +17,34 @@ export const R12 = {
   coastDecel: 0.35,
   /** Arrossegament aerodinàmic: decel = k·v². */
   dragK: 0.0005,
-  /** Radi de gir mínim a l'eix (~8 m de paret a paret). */
+  /** Radi de gir mínim a l'eix en marxa (~8 m de paret a paret). */
   minTurnRadius: 3.8,
+  /** Radi de gir maniobrant a poc a poc: més tancat per sortir-se'n a les cruïlles estretes. */
+  lowSpeedTurnRadius: 2.5,
   /** Límit d'adherència en corba (m/s²): per sobre, el cotxe subvira. */
   maxLateralAccel: 6.5,
+  /** Adherència a baixa velocitat: deixa prendre els girs de ciutat més tancats. */
+  lowSpeedLateralAccel: 8.5,
+  /** Entre aquestes velocitats (m/s, ~15 i ~45 km/h) es passa del gir de maniobra al de marxa. */
+  lowSpeedBlend: [4, 12] as const,
   /** Fracció del recorregut del volant per segon: de topall a topall en ~0,8 s. */
   steerRate: 2.5,
+  /** Volant a baixa velocitat: de topall a topall en ~0,4 s. */
+  lowSpeedSteerRate: 5,
+  /** Velocitat (m/s, ~40 km/h) a partir de la qual una frenada amb el volant girat fa derrapar. */
+  driftMinSpeed: 11,
+  /** Gir extra de la carrosseria (rad/s) amb el volant a topall mentre derrapa. */
+  driftYawRate: 1.8,
+  /** Angle màxim entre el morro i la direcció de la marxa (~40°). */
+  maxDriftAngle: 0.7,
+  /** Ritme (1/s) amb què les rodes tornen a agafar i la marxa s'alinea amb el morro. */
+  driftRecovery: 2.5,
+  /** Frenant de costat les rodes llisquen: fan aquesta fracció de la frenada normal. */
+  driftBrakeFactor: 0.55,
+  /** Fracció de la velocitat vertical que retorna en tocar terra després d'un salt. */
+  landingRestitution: 0.32,
+  /** Per sota d'aquesta velocitat d'impacte (m/s) el cotxe ja no rebota. */
+  minBounceSpeed: 3.5,
 } as const;
 
 export type VehicleInput = { throttle: number; steer: number; brake: boolean };
@@ -59,9 +81,25 @@ export function stepSpeed(v: number, throttle: number, brake: boolean, dt: numbe
   return Math.min(R12.maxSpeed, Math.max(-R12.maxReverse, next));
 }
 
-/** Volant amb inèrcia: s'acosta a l'entrada a `steerRate` per segon. */
-export function stepSteer(current: number, target: number, dt: number): number {
-  const maxStep = R12.steerRate * dt;
+/** 0 maniobrant a poc a poc, 1 en marxa; transició suau entre els dos extrems de `lowSpeedBlend`. */
+function cruiseFactor(v: number): number {
+  const [lo, hi] = R12.lowSpeedBlend;
+  const t = Math.min(1, Math.max(0, (Math.abs(v) - lo) / (hi - lo)));
+  return t * t * (3 - 2 * t);
+}
+
+function mix(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+/** Radi de gir a l'eix amb el volant a topall, segons la velocitat. */
+export function turnRadius(v: number): number {
+  return mix(R12.lowSpeedTurnRadius, R12.minTurnRadius, cruiseFactor(v));
+}
+
+/** Volant amb inèrcia: s'acosta a l'entrada més de pressa com més a poc a poc es va. */
+export function stepSteer(current: number, target: number, v: number, dt: number): number {
+  const maxStep = mix(R12.lowSpeedSteerRate, R12.steerRate, cruiseFactor(v)) * dt;
   return current + Math.min(maxStep, Math.max(-maxStep, target - current));
 }
 
@@ -70,7 +108,8 @@ export function stepSteer(current: number, target: number, dt: number): number {
  * Positiu = gira a la dreta (el heading del joc baixa).
  */
 export function yawRate(v: number, steer: number): number {
-  const rate = (v * steer) / R12.minTurnRadius;
-  const gripLimit = R12.maxLateralAccel / Math.max(Math.abs(v), 0.1);
+  const t = cruiseFactor(v);
+  const rate = (v * steer) / turnRadius(v);
+  const gripLimit = mix(R12.lowSpeedLateralAccel, R12.maxLateralAccel, t) / Math.max(Math.abs(v), 0.1);
   return Math.min(gripLimit, Math.max(-gripLimit, rate));
 }

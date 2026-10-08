@@ -1,7 +1,7 @@
 // Autopilot: segueix l'eix dels carrers de l'OSM (pure pursuit) i tria camí a cada cruïlla.
 // Condueix com un cotxe real: velocitats de poble i maniobra amb marxa enrere als carrerons.
 
-import { R12, type VehicleInput } from "./vehicle";
+import { turnRadius, type VehicleInput } from "./vehicle";
 
 export type DriveInput = VehicleInput;
 
@@ -121,10 +121,10 @@ export class Autopilot {
       return { throttle: 0, steer: 0, brake: true };
     }
 
-    // Pure pursuit: curvatura 2·sin(α)/L, convertida a volant amb el radi de gir mínim.
+    // Pure pursuit: curvatura 2·sin(α)/L, convertida a volant amb el radi de gir a aquesta velocitat.
     // Al joc, girar a la dreta (steer > 0) fa baixar el heading.
     const curvature = (2 * Math.sin(diff)) / lookahead;
-    const steer = clamp(-curvature * R12.minTurnRadius, -1, 1);
+    const steer = clamp(-curvature * turnRadius(speed), -1, 1);
 
     // Mira prou lluny per frenar a temps abans del revolt.
     const bend = this.bendAhead(path, 8 + v + (v * v) / (2 * PLAN_DECEL));
