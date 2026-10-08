@@ -1,0 +1,49 @@
+# Fitxes de casa fetes a partir de fotos de façana, per referència cadastral (edifici).
+# Les cases amb fitxa es fan amb aquestes dades en lloc de l'estil a l'atzar de village.py.
+#
+# Façana: `facade` és l'orientació de la façana fotografiada (N, NE, E…); el mur de la planta
+# que hi mira més és el que porta `openings`. `t` = fracció de l'amplada d'aquest mur mirant-lo
+# des de fora (0 = cantonada esquerra, 1 = dreta); pot sortir de 0..1 (tanca, porxo).
+# Alçades en metres sobre el terra davant de cada element. Colors sRGB de la foto, corregits
+# d'exposició (el blanc de la tanca de referència).
+
+002000300TM55D:
+  photo: "Google Street View, set. 2024, des de la ZA-P-2547 mirant al sud (només referència)"
+  # part3 és el porxo de davant (es fa amb `terrace`); part1 és un annex sense plantes.
+  parts: [part2]
+  footprint: rect  # façana plana: el rectangle mínim, sense els graons de la planta cadastral
+  floors: 1
+  eave_m: 4.1  # planta baixa aixecada (graons a la porta): la paret fa ~3,6 m vista des del jardí
+  facade: N
+  wall: [212, 174, 111]  # arrebossat groc palla
+  plinth: [176, 150, 108]
+  roof: {type: hip, pitch_deg: 22, overhang_m: 0.8, fascia: [223, 204, 156]}
+  windows:
+    frame: [120, 84, 62]
+    roller: [140, 100, 78]  # persianes enrotllables marrons
+  openings:
+    - {kind: window, t: 0.17, w: 2.4, h: 1.6, sill_m: 1.37, roller: 0.88}
+    - {kind: window, t: 0.44, w: 2.0, h: 1.6, sill_m: 1.37, roller: 0.88}
+    - {kind: door, t: 0.655, w: 1.1, h: 2.5, bottom_m: 0.38, color: [128, 86, 60], sidelight: left, lamp: true}
+    - {kind: window, t: 0.83, w: 2.4, h: 1.6, sill_m: 1.37, roller: 0.6}
+  chimneys:
+    - {t: 0.14, depth_m: 4.4, size_m: 0.5, above_m: 1.1, color: [178, 166, 150], cap: [118, 114, 106]}
+    - {t: 0.175, depth_m: 4.4, size_m: 0.5, above_m: 1.1, color: [178, 166, 150], cap: [118, 114, 106]}
+  # Porxo enrajolat davant de la meitat dreta, amb barana de balustres i escales a la porta.
+  terrace:
+    from: 0.47
+    to: 0.97
+    depth_m: 2.2
+    height_m: 0.36
+    floor: [176, 104, 80]
+    steps: [0.56, 0.7]
+    rail: [228, 222, 205]
+  # Tanca de balustres blancs sobre sòcol de pedra, amb pilars i gerros.
+  fence:
+    offset_m: 3.6
+    from: -0.12
+    to: 1.18
+    height_m: 1.0
+    gate: [0.56, 0.67]
+    rail: [228, 222, 205]
+    base: [170, 160, 140]

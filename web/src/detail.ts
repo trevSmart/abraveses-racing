@@ -28,7 +28,24 @@ export type DetailOptions = {
   /** Color de la junta (només triplanar): on el canal G de la textura és 1, el color del material
    * es substitueix per aquest, en lloc de multiplicar-lo. Per a juntes més clares que la peça. */
   mortar?: THREE.Color;
+  /** Trenca la repetició (només triplanar): cada zona de pocs metres mostra la textura desplaçada
+   * d'una altra manera. Per a textures sense estructura (arrebossat); trencaria filades i juntes. */
+  antiTile?: boolean;
 };
+
+// Tècnica de variació de textura d'I. Quilez: una versió molt ampliada i borrosa (mipmap fix) de
+// la mateixa textura fa d'índex suau; cada esglaó de l'índex desplaça la textura una quantitat
+// pseudoaleatòria i entre esglaons es fon amb el següent. Les derivades es passen a mà perquè el
+// salt de desplaçament no faci triar un mipmap equivocat (línies a les vores de les zones).
+const ANTI_TILE_FN = `
+vec2 detVaried(vec2 uv, vec2 dx, vec2 dy) {
+  float l = textureLod(uDetMap, uv * 0.13 + 0.37, 3.0).r * 16.0;
+  float i = floor(l);
+  float f = l - i;
+  vec2 a = textureGrad(uDetMap, uv + sin(vec2(3.0, 7.0) * i), dx, dy).rg;
+  vec2 b = textureGrad(uDetMap, uv + sin(vec2(3.0, 7.0) * (i + 1.0)), dx, dy).rg;
+  return mix(a, b, smoothstep(0.2, 0.8, f - 0.1 * (a.r - b.r)));
+}`;
 
 const SAMPLE: Record<DetailMode, string> = {
   top: `
@@ -48,6 +65,20 @@ const SAMPLE: Record<DetailMode, string> = {
     float det = texture2D(uDetMap, ridgeUv / vec2(uDetScale, uDetScale * 0.875)).r;`,
 };
 
+/** Triplanar amb antirepetició. Les parets són quasi sempre d'un sol pla, així que només es
+ * mostregen els plans amb pes (les derivades venen de fora de la branca, és segur). */
+const TRIPLANAR_VARIED = `
+    vec3 detW = pow(abs(normalize(vDetNormal)), vec3(4.0));
+    detW /= (detW.x + detW.y + detW.z + 1e-4);
+    vec3 detP = vDetWorld / uDetScale;
+    vec3 detDx = detWorldDx / uDetScale;
+    vec3 detDy = detWorldDy / uDetScale;
+    vec2 detRG = vec2(0.0);
+    if (detW.x > 0.01) detRG += detVaried(detP.zy, detDx.zy, detDy.zy) * detW.x;
+    if (detW.y > 0.01) detRG += detVaried(detP.xz, detDx.xz, detDy.xz) * detW.y;
+    if (detW.z > 0.01) detRG += detVaried(detP.xy, detDx.xy, detDy.xy) * detW.z;
+    float det = detRG.r;`;
+
 /** Afegeix el detall al material, encadenant qualsevol `onBeforeCompile` que ja tingués. */
 export function addWorldDetail(material: THREE.Material, opts: DetailOptions): void {
   const previous = material.onBeforeCompile;
@@ -65,6 +96,7 @@ export function addWorldDetail(material: THREE.Material, opts: DetailOptions): v
     });
     const mortar = opts.mortar !== undefined && opts.mode === "triplanar";
     const ridge = opts.mode === "ridge";
+    const antiTile = opts.antiTile === true && opts.mode === "triplanar";
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
@@ -92,16 +124,18 @@ uniform float uDetScale;
 uniform float uDetStrength;
 uniform vec2 uDetFade;
 uniform float uDetSecond;
-uniform vec3 uDetMortar;`,
+uniform vec3 uDetMortar;
+${antiTile ? ANTI_TILE_FN : ""}`,
       )
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
   float detFade = 1.0 - smoothstep(uDetFade.x, uDetFade.y, distance(vDetWorld, cameraPosition));
+  ${antiTile ? "vec3 detWorldDx = dFdx(vDetWorld);\n  vec3 detWorldDy = dFdy(vDetWorld);" : ""}
   // Més enllà del fade no hi ha detall: sense mostres de textura. A la vora, el detall ja és ~0 i
   // un mipmap imprecís als quads partits no es nota.
   if (detFade > 0.0) {
-    ${SAMPLE[opts.mode]}
+    ${antiTile ? TRIPLANAR_VARIED : SAMPLE[opts.mode]}
     diffuseColor.rgb *= mix(1.0, det * 2.0, uDetStrength * detFade);
     ${mortar ? "diffuseColor.rgb = mix(diffuseColor.rgb, uDetMortar * mix(1.0, det * 2.0, 0.5), detRG.g * detFade);" : ""}
   }`,
@@ -109,5 +143,5 @@ uniform vec3 uDetMortar;`,
   };
   // Cada combinació de codi ha de tenir el seu programa; els valors van per uniforms. La clau
   // anterior es calcula ara, abans de substituir onBeforeCompile (la clau per defecte n'és el codi).
-  material.customProgramCacheKey = () => `${previousKey}|detail:${opts.mode}${opts.mortar ? ":mortar" : ""}`;
+  material.customProgramCacheKey = () => `${previousKey}|detail:${opts.mode}${opts.mortar ? ":mortar" : ""}${opts.antiTile ? ":anti" : ""}`;
 }

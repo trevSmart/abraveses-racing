@@ -1101,7 +1101,8 @@ const worldMaterials = {
   roadDirt: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.97 }),
 };
 worldMaterials.roadDirt.onBeforeCompile = injectOrthoShader;
-addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "triplanar", scaleM: 2.5, strength: 0.35, fade: [30, 120] });
+// Arrebossat amb antirepetició: les façanes són llises i grans i el patró de 2,5 m es veia repetit.
+addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "triplanar", scaleM: 2.5, strength: 0.35, fade: [30, 120], antiTile: true });
 // Tàpies de totxo amb la junta de morter clar; la maçoneria de l'església, amb junta fosca.
 addWorldDetail(worldMaterials.tapia, { map: detailTextures.brick, mode: "triplanar", scaleM: 3.15, strength: 1, fade: [30, 120], mortar: new THREE.Color(0xe2dccd) });
 addWorldDetail(worldMaterials.stone, { map: detailTextures.stone, mode: "triplanar", scaleM: 3, strength: 1, fade: [30, 120] });

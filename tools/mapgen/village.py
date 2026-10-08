@@ -4,7 +4,7 @@
 - Coberts que no surten al Cadastre: teules rosades o vermelles detectades a la imatge.
 - Arbres: copes detectades a la imatge (vegetació fosca i amb textura), mida i color reals.
 - Parcel·les: classificades com a pati, hort, arbrat, prat o terra segons la imatge.
-- Tàpies: murs al voltant de patis i horts, on no hi ha edifici.
+- Tàpies: a les vores de patis i horts sense edifici, només on l'ortofoto en mostra l'ombra (walls.py).
 """
 
 from __future__ import annotations
@@ -309,6 +309,7 @@ class WindowShape:
     h: float
     mullion: bool = False  # travesser vertical al mig
     balcony: bool = False  # balconera: arriba gairebé al forjat i porta balcó
+    roller: float | None = None  # fracció abaixada de la persiana enrotllable (fitxes de casa)
 
 
 # Formes per planta baixa i per pisos; cada casa en tria una de cada (amb repeticions = pes).
@@ -329,6 +330,8 @@ UPPER_SHAPES = [
     WindowShape(0.9, 2.0),  # balconera sense balcó, amb barana de ferro arran de façana
 ]
 ATTIC_SHAPE = WindowShape(0.6, 0.55)
+# Persiana enrotllable: fracció abaixada si la fitxa no la diu per a la finestra.
+ROLLER_DOWN = 0.7
 
 
 @dataclass(frozen=True)
@@ -341,6 +344,7 @@ class WindowStyle:
     shutters: tuple[int, int, int] | None
     bars: bool  # reixa a la planta baixa
     attic: bool  # l'últim pis (si n'hi ha 3 o més) amb finestretes de golfes
+    roller: tuple[int, int, int] | None = None  # persianes enrotllables (només fitxes de casa)
 
     @classmethod
     def pick(cls, rng: np.random.Generator, floors: int) -> "WindowStyle":
@@ -372,7 +376,8 @@ def _ccw(poly: Polygon) -> Polygon:
 
 @dataclass
 class RoofFrame:
-    """Teulada a dues aigües sobre el rectangle mínim: carener al llarg de l'eix llarg."""
+    """Teulada sobre el rectangle mínim: carener al llarg de l'eix llarg. A dues aigües, o a
+    quatre (`hip`) amb els aiguavessos dels caps a 45° en planta."""
 
     cx: float
     cy: float
@@ -381,9 +386,11 @@ class RoofFrame:
     half_w: float
     eave: float
     slope: float  # tan(pendent)
+    half_l: float = 0.0
+    hip: bool = False
 
     @classmethod
-    def for_polygon(cls, poly: Polygon, eave: float) -> "RoofFrame":
+    def for_polygon(cls, poly: Polygon, eave: float, pitch_deg: float | None = None, hip: bool = False) -> "RoofFrame":
         rect = poly.minimum_rotated_rectangle
         xs, ys = rect.exterior.coords.xy
         e1 = np.array([xs[1] - xs[0], ys[1] - ys[0]])
@@ -393,16 +400,81 @@ class RoofFrame:
         n = short_e / max(width, 1e-6)
         c = rect.centroid
         # Teules àrabs: ~22°; naus grans una mica més planes.
-        pitch = np.radians(22 if width < 12 else 17)
-        return cls(c.x, c.y, float(n[0]), float(n[1]), width / 2, eave, float(np.tan(pitch)))
+        pitch = np.radians(pitch_deg if pitch_deg is not None else 22 if width < 12 else 17)
+        half_l = float(np.linalg.norm(long_e)) / 2
+        return cls(c.x, c.y, float(n[0]), float(n[1]), width / 2, eave, float(np.tan(pitch)), half_l, hip)
 
     def z(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
-        d = np.abs((np.asarray(x) - self.cx) * self.nx + (np.asarray(y) - self.cy) * self.ny)
-        return self.eave + self.slope * (self.half_w - d)
+        dx, dy = np.asarray(x) - self.cx, np.asarray(y) - self.cy
+        d = self.half_w - np.abs(dx * self.nx + dy * self.ny)
+        if self.hip:
+            d = np.minimum(d, self.half_l - np.abs(-dx * self.ny + dy * self.nx))
+        return self.eave + self.slope * d
 
     def ridge(self, length: float = 500.0) -> LineString:
         ux, uy = -self.ny, self.nx
         return LineString([(self.cx - ux * length, self.cy - uy * length), (self.cx + ux * length, self.cy + uy * length)])
+
+
+def _ridge_rgba(ux: float, uy: float) -> list[int]:
+    """Direcció de les fileres de teules (local x, y) codificada al color de vèrtex: el joc hi
+    alinea la textura. glTF desa els colors en lineal, sense conversió."""
+    return [int(round((ux * 0.5 + 0.5) * 255)), int(round((-uy * 0.5 + 0.5) * 255)), 0, 255]
+
+
+def _hip_roof_meshes(roof: RoofFrame, overhang: float) -> list:
+    """Teulada a quatre aigües amb voladís: un pla per vessant, cadascun amb les fileres de
+    teules paral·leles al seu ràfec."""
+    ux, uy = -roof.ny, roof.nx
+    hl, hw, o = roof.half_l, roof.half_w, overhang
+    r = max(0.0, hl - hw)  # mig carener
+    sides = [
+        ([(-hl - o, hw + o), (hl + o, hw + o), (r, 0.0), (-r, 0.0)], (ux, uy)),
+        ([(hl + o, -hw - o), (-hl - o, -hw - o), (-r, 0.0), (r, 0.0)], (ux, uy)),
+        ([(hl + o, hw + o), (hl + o, -hw - o), (r, 0.0)], (roof.nx, roof.ny)),
+        ([(-hl - o, -hw - o), (-hl - o, hw + o), (-r, 0.0)], (roof.nx, roof.ny)),
+    ]
+    out = []
+    for uv, (rx, ry) in sides:
+        uv = [p for k, p in enumerate(uv) if k == 0 or np.hypot(p[0] - uv[k - 1][0], p[1] - uv[k - 1][1]) > 1e-6]
+        xy = np.array([(roof.cx + ux * u + roof.nx * v, roof.cy + uy * u + roof.ny * v) for u, v in uv])
+        verts = np.column_stack([xy[:, 0], roof.z(xy[:, 0], xy[:, 1]), -xy[:, 1]])
+        faces = np.array([[0, k, k + 1] for k in range(1, len(verts) - 1)])
+        m = _vc(verts, faces, (0, 0, 0))
+        if m.face_normals[:, 1].mean() < 0:
+            m.invert()
+        m.visual.vertex_colors = np.tile(_ridge_rgba(rx, ry), (len(verts), 1)).astype(np.uint8)
+        out.append(m)
+    return out
+
+
+def _eave_trim(roof: RoofFrame, overhang: float, color, band: float = 0.2) -> list:
+    """Ràfec encaixonat de la teulada a quatre aigües: frontis vertical a la vora del voladís i
+    plafó horitzontal per sota fins a la paret."""
+    import trimesh
+
+    ux, uy = -roof.ny, roof.nx
+    hl, hw, o = roof.half_l, roof.half_w, overhang
+
+    def rect(e: float) -> Polygon:
+        return Polygon([(roof.cx + ux * u + roof.nx * v, roof.cy + uy * u + roof.ny * v)
+                        for u, v in [(-hl - e, -hw - e), (hl + e, -hw - e), (hl + e, hw + e), (-hl - e, hw + e)]])
+
+    z_edge = roof.eave - roof.slope * o
+    outer = _ccw(rect(o))
+    corners = np.array(outer.exterior.coords)[:-1]
+    out = []
+    for i in range(4):
+        a, b = corners[i], corners[(i + 1) % 4]
+        L = float(np.hypot(*(b - a)))
+        nx, ny = (b[1] - a[1]) / L, -(b[0] - a[0]) / L
+        out.append(_box_on_wall(*a, *b, 0.0, 1.0, z_edge - band, z_edge + 0.03, 0.0, nx, ny, color, -0.05))
+    v2, f = trimesh.creation.triangulate_polygon(outer.difference(rect(-0.02)))
+    soffit = _vc(np.column_stack([v2[:, 0], np.full(len(v2), z_edge - band), -v2[:, 1]]), f, color)
+    if soffit.face_normals[:, 1].mean() > 0:
+        soffit.invert()
+    out.append(soffit)
+    return out
 
 
 def _vc(mesh_vertices: np.ndarray, faces: np.ndarray, color: tuple[int, int, int]):
@@ -515,6 +587,9 @@ def _add_window(
     windows.append(box(tc - hw, tc + hw, z0, z1, 0.06, GLASS_COLOR))
     if shape.mullion:
         details.append(box(tc - 0.035 / L, tc + 0.035 / L, z0, z1, 0.075, style.frame or FRAME_COLOR))
+    if style.roller is not None:
+        down = shape.roller if shape.roller is not None else ROLLER_DOWN
+        details.append(box(tc - hw, tc + hw, z1 - shape.h * down, z1, 0.08, style.roller))
     if shutters:
         leaf = shape.w / 2 / L
         edge = hw + 0.08 / L
@@ -678,9 +753,9 @@ def _openings_courtyard_facades(
                 )
 
 
-def _box_on_wall(ax, ay, bx, by, t0, t1, z0, z1, depth, nx, ny, color, d0=0.0):
+def _box_on_wall(ax, ay, bx, by, t0, t1, z0, z1, depth, nx, ny, color, d0=0.0, back=False):
     """Caixa plana enganxada a la façana entre les fraccions t0..t1 de l'aresta i alçades z0..z1;
-    sobresurt del mur de `d0` a `depth`."""
+    sobresurt del mur de `d0` a `depth`. `back`: també la cara de `d0` (caixes soltes)."""
     import trimesh
 
     p0 = np.array([ax + (bx - ax) * t0, ay + (by - ay) * t0])
@@ -694,25 +769,235 @@ def _box_on_wall(ax, ay, bx, by, t0, t1, z0, z1, depth, nx, ny, color, d0=0.0):
     trimesh.repair.fix_normals(m)
     # La cara que mira al mur no es veu mai: fora (orienta primer amb la caixa tancada).
     keep = np.ones(len(faces), dtype=bool)
-    keep[4:6] = False
+    keep[4:6] = back
     m.update_faces(keep)
     return m
 
 
+# --- Cases amb fitxa (cases.yaml) ---------------------------------------------------------
+
+COMPASS_DEG = {"N": 0, "NE": 45, "E": 90, "SE": 135, "S": 180, "SO": 225, "SW": 225, "O": 270, "W": 270, "NO": 315, "NW": 315}
+CHIMNEY_MOUTH = (40, 38, 36)
+
+
+def load_house_specs(path: Path) -> dict[str, dict]:
+    """Fitxes de casa per referència cadastral; buit si no hi ha fitxer."""
+    import yaml
+
+    if not path.is_file():
+        return {}
+    with path.open(encoding="utf-8") as f:
+        return {str(k): v for k, v in (yaml.safe_load(f) or {}).items()}
+
+
+def _lin(c) -> tuple[int, int, int]:
+    """Color sRGB de la fitxa → lineal (vèrtexs del glTF)."""
+    r, g, b, _ = _srgb_to_linear(c)
+    return r, g, b
+
+
+def _facing_edge_index(ext: np.ndarray, compass: str) -> int:
+    """Aresta (de 1,5 m o més) amb la normal exterior més a prop de la direcció `compass`."""
+    az = np.radians(COMPASS_DEG[compass.upper()])
+    want = np.array([np.sin(az), np.cos(az)])
+    best_i, best = -1, -2.0
+    for i in range(len(ext)):
+        a, b = ext[i], ext[(i + 1) % len(ext)]
+        length = float(np.hypot(*(b - a)))
+        if length < 1.5:
+            continue
+        score = float(np.dot([(b[1] - a[1]) / length, -(b[0] - a[0]) / length], want))
+        if score > best:
+            best_i, best = i, score
+    return best_i
+
+
+def _spec_style(spec: dict) -> WindowStyle:
+    """Estil de les finestres de les altres façanes, a joc amb les de la foto."""
+    win = spec.get("windows", {})
+    frame = _lin(win["frame"]) if "frame" in win else FRAME_COLOR
+    roller = _lin(win["roller"]) if "roller" in win else None
+    return WindowStyle(
+        ground=WindowShape(1.4, 1.3, mullion=True),
+        upper=WindowShape(1.2, 1.3, mullion=True),
+        frame=frame,
+        shutters=None,
+        bars=False,
+        attic=False,
+        roller=roller,
+    )
+
+
+def _spec_openings(
+    openings: list[dict], a, b, nx, ny, length: float, ground, style: WindowStyle,
+    details: list, windows: list, taken: OpeningRegistry | None,
+) -> None:
+    """Portes i finestres de la façana fotografiada, on les diu la fitxa."""
+    L = max(length, 1e-6)
+    frame = style.frame or FRAME_COLOR
+
+    def box(t0, t1, zb, zt, depth, color, d0=0.0):
+        return _box_on_wall(*a, *b, t0, t1, zb, zt, depth, nx, ny, color, d0)
+
+    for op in openings:
+        tc, w, h = float(op["t"]), float(op["w"]), float(op["h"])
+        hw = w / 2 / L
+        if op["kind"] == "door":
+            z0 = float(_wall_ground(ground, a, b, tc - hw, tc + hw).min()) + float(op.get("bottom_m", 0.0))
+            t0, t1 = tc - hw, tc + hw
+            side = op.get("sidelight")
+            if side:
+                sw = 0.4 / L
+                f = 0.06 / L
+                g0, g1 = (t0 - f - sw, t0 - f) if side == "left" else (t1 + f, t1 + f + sw)
+                windows.append(box(g0, g1, z0 + 0.1, z0 + h - 0.05, 0.05, GLASS_COLOR))
+                m0, m1 = (g1, t0) if side == "left" else (t1, g0)
+                details.append(box(m0, m1, z0, z0 + h, 0.045, frame))  # muntant entre porta i vidre
+                t0, t1 = min(t0, g0), max(t1, g1)
+            _claim(taken, a, b, (t0 + t1) / 2, (t1 - t0) * L / 2 + 0.1, z0, z0 + h)
+            details.append(box(t0 - 0.08 / L, t1 + 0.08 / L, z0, z0 + h + 0.08, 0.03, frame))
+            details.append(box(tc - hw, tc + hw, z0, z0 + h, 0.06, _lin(op.get("color", DOOR_COLOR))))
+            if op.get("lamp"):
+                details.append(box(tc - 0.09 / L, tc + 0.09 / L, z0 + h + 0.2, z0 + h + 0.48, 0.24, IRON_COLOR, 0.04))
+            continue
+        shape = WindowShape(w, h, mullion=w >= 1.6, roller=op.get("roller"))
+        z0 = float(_wall_ground(ground, a, b, tc - hw, tc + hw).max()) + float(op.get("sill_m", GROUND_SILL_M))
+        if _claim(taken, a, b, tc, w / 2 + 0.08, z0 - 0.1, z0 + h + 0.1):
+            _add_window(a, b, nx, ny, L, tc, z0, shape, style, False, int(op.get("floor", 0)), details, windows)
+
+
+def _balustrade(p, q, base_z, height: float, rail, base_color, socle_h: float = 0.0,
+                post_every: float = 3.5, gaps=(), urns: bool = True) -> list:
+    """Barana de balustres de `p` a `q` (local) sobre `base_z(xs, ys)`: sòcol opcional, pilars
+    amb gerro cada `post_every` i als extrems; `gaps` són trams (fraccions 0..1) oberts."""
+    p, q = np.asarray(p, float), np.asarray(q, float)
+    L = float(np.hypot(*(q - p)))
+    if L < 0.3:
+        return []
+    nx, ny = -(q[1] - p[1]) / L, (q[0] - p[0]) / L
+    spans, s0 = [], 0.0
+    for g0, g1 in sorted(gaps):
+        if g0 > s0:
+            spans.append((s0, g0))
+        s0 = max(s0, g1)
+    if s0 < 1.0:
+        spans.append((s0, 1.0))
+
+    def box(t0, t1, z0, z1, w, color):
+        return _box_on_wall(*p, *q, t0, t1, z0, z1, w / 2, nx, ny, color, -w / 2, back=True)
+
+    out = []
+    post = 0.3 / L
+    for a0, a1 in spans:
+        n_seg = max(1, int(round((a1 - a0) * L / post_every)))
+        ts = np.linspace(a0, a1, n_seg + 1)
+        zs = base_z(p[0] + (q[0] - p[0]) * ts, p[1] + (q[1] - p[1]) * ts)
+        for k in range(n_seg):
+            t0, t1 = ts[k], ts[k + 1]
+            zb, zlo = float(max(zs[k], zs[k + 1])), float(min(zs[k], zs[k + 1])) - 0.15
+            if socle_h > 0:
+                out.append(box(t0, t1, zlo, zb + socle_h, 0.32, base_color))
+            z_bal = zb + socle_h
+            out.append(box(t0, t1, z_bal, z_bal + 0.07, 0.2, rail))
+            out.append(box(t0, t1, zb + height - 0.1, zb + height, 0.24, rail))
+            nb = max(1, int((t1 - t0) * L / 0.2))
+            for j in range(1, nb):
+                t = t0 + (t1 - t0) * j / nb
+                out.append(box(t - 0.045 / L, t + 0.045 / L, z_bal + 0.07, zb + height - 0.1, 0.09, rail))
+        for k, t in enumerate(ts):
+            z = float(zs[k])
+            t0, t1 = max(0.0, t - post / 2), min(1.0, t + post / 2)
+            out.append(box(t0, t1, z - 0.15, z + height + 0.1, 0.32, rail))
+            if urns:
+                out.append(box(t0 + 0.04 / L, t1 - 0.04 / L, z + height + 0.1, z + height + 0.38, 0.26, rail))
+    return out
+
+
+def _spec_extras(spec: dict, roof: RoofFrame, a, b, nx, ny, length: float, ground, plinth) -> tuple[list, list]:
+    """Xemeneies, porxo i tanca de la fitxa, situats respecte de la façana fotografiada.
+    Torna (sòlids, detalls)."""
+    L = max(length, 1e-6)
+    u = (b - a) / L
+    n = np.array([nx, ny])
+
+    def at(t: float, d: float) -> np.ndarray:
+        return a + (b - a) * t + n * d
+
+    solid, details = [], []
+    for c in spec.get("chimneys", []):
+        s = float(c.get("size_m", 0.5))
+        p = at(float(c["t"]), -float(c["depth_m"]))
+        zr = float(roof.z(p[0], p[1]))
+        top = zr + float(c.get("above_m", 1.0))
+        p0, p1 = p - u * s / 2, p + u * s / 2
+
+        def cbox(z0, z1, half, color):
+            q0, q1 = p - u * half, p + u * half
+            return _box_on_wall(*q0, *q1, 0.0, 1.0, z0, z1, half, nx, ny, color, -half, back=True)
+
+        solid.append(_box_on_wall(*p0, *p1, 0.0, 1.0, zr - 0.6, top, s / 2, nx, ny, _lin(c.get("color", (178, 166, 150))), -s / 2, back=True))
+        details.append(cbox(top, top + 0.16, s / 2 - 0.06, CHIMNEY_MOUTH))
+        details.append(cbox(top + 0.16, top + 0.26, s / 2 + 0.07, _lin(c.get("cap", (118, 114, 106)))))
+
+    ter = spec.get("terrace")
+    if ter:
+        t0, t1, d = float(ter["from"]), float(ter["to"]), float(ter["depth_m"])
+        corners = np.array([at(t0, 0), at(t1, 0), at(t1, d), at(t0, d)])
+        g = ground.height(corners[:, 0], corners[:, 1])
+        top = float(g.max()) + float(ter.get("height_m", 0.35))
+        floor = _lin(ter.get("floor", (176, 104, 80)))
+        rail = _lin(ter.get("rail", (228, 222, 205)))
+        solid.append(_box_on_wall(*a, *b, t0, t1, float(g.min()) - 0.2, top - 0.04, d, nx, ny, plinth))
+        details.append(_box_on_wall(*a, *b, t0 - 0.03 / L, t1 + 0.03 / L, top - 0.04, top, d + 0.03, nx, ny, floor))
+        gaps = []
+        if "steps" in ter:
+            s0, s1 = (float(x) for x in ter["steps"])
+            rise = top - float(g.min())
+            n_steps = max(1, int(round(rise / 0.18)))
+            for k in range(1, n_steps):
+                details.append(_box_on_wall(*a, *b, s0, s1, float(g.min()) - 0.2, top - rise * k / n_steps, d + 0.32 * k, nx, ny, floor, d))
+            gaps.append(((s0 - t0) / (t1 - t0), (s1 - t0) / (t1 - t0)))
+
+        def flat(xs, ys):
+            return np.full(len(np.atleast_1d(xs)), top)
+
+        solid += _balustrade(at(t0, d - 0.12), at(t1, d - 0.12), flat, 0.85, rail, rail, post_every=2.5, gaps=gaps)
+        for t in (t0, t1):
+            solid += _balustrade(at(t, 0.2), at(t, d - 0.12), flat, 0.85, rail, rail, post_every=2.5, urns=False)
+
+    fence = spec.get("fence")
+    if fence:
+        f0, f1, off = float(fence["from"]), float(fence["to"]), float(fence["offset_m"])
+        gaps = []
+        if "gate" in fence:
+            g0, g1 = (float(x) for x in fence["gate"])
+            gaps.append(((g0 - f0) / (f1 - f0), (g1 - f0) / (f1 - f0)))
+        solid += _balustrade(
+            at(f0, off), at(f1, off), lambda xs, ys: ground.height(xs, ys), float(fence.get("height_m", 1.0)),
+            _lin(fence.get("rail", (228, 222, 205))), _lin(fence.get("base", (170, 160, 140))),
+            socle_h=0.3, post_every=3.5, gaps=gaps,
+        )
+    return solid, details
+
+
 def house_meshes(
     poly: Polygon, floors: int, ground, wall_color, facing_street, roads_u=None, seed: int = 0,
-    taken: OpeningRegistry | None = None,
+    taken: OpeningRegistry | None = None, spec: dict | None = None,
 ) -> tuple[list, list, list, list]:
     """Retorna (parets, teulada, detalls de façana) per a una part d'edifici.
-    `facing_street(ax, ay, bx, by, nx, ny)` diu si una aresta dóna al carrer."""
+    `facing_street(ax, ay, bx, by, nx, ny)` diu si una aresta dóna al carrer.
+    `spec`: fitxa de cases.yaml (teulada, obertures de la façana de la foto, extres)."""
     import trimesh
 
+    spec = spec or {}
+    roof_spec = spec.get("roof", {})
     poly = _ccw(poly.simplify(0.15))
     ext = np.array(poly.exterior.coords)[:-1]
     g = ground.height(ext[:, 0], ext[:, 1])
     base = float(g.min()) - 0.25
-    eave = float(g.max()) + 0.3 + floors * FLOOR_H
-    roof = RoofFrame.for_polygon(poly, eave)
+    eave = float(g.max()) + float(spec.get("eave_m", 0.3 + floors * FLOOR_H))
+    roof = RoofFrame.for_polygon(poly, eave, roof_spec.get("pitch_deg"), roof_spec.get("type") == "hip")
+    plinth = _lin(spec["plinth"]) if "plinth" in spec else PLINTH_COLOR
 
     # Afegim a l'anell els punts on el carener talla les arestes, perquè el capçal de les
     # parets segueixi exactament la teulada (triangle del frontó).
@@ -736,23 +1021,33 @@ def house_meshes(
         (ax, ay), (bx, by) = ring[i], ring[j]
         seg = max(1e-6, float(np.hypot(bx - ax, by - ay)))
         outward = np.array([(by - ay) / seg, 0.0, (bx - ax) / seg])  # (nx, 0, −ny) amb n = (dy, −dx)
-        walls.append(_quad(_w(ax, ay, base), _w(bx, by, base), _w(bx, by, plinth_top), _w(ax, ay, plinth_top), PLINTH_COLOR, outward))
+        walls.append(_quad(_w(ax, ay, base), _w(bx, by, base), _w(bx, by, plinth_top), _w(ax, ay, plinth_top), plinth, outward))
         walls.append(_quad(_w(ax, ay, plinth_top), _w(bx, by, plinth_top), _w(bx, by, tops[j]), _w(ax, ay, tops[i]), wall_color, outward))
 
     # Porta i finestra mínimes a la façana d'accés; més obertures a les altres façanes al carrer.
     # Els pisos es compten des del ràfec cap avall (planta baixa a g.max() + 0,3), perquè les
     # finestres de dalt quedin sempre per sota la teulada encara que la casa sigui en pendent.
     level0 = eave - floors * FLOOR_H
-    style = WindowStyle.pick(rng, floors)
-    primary_i = _primary_street_edge_index(ext, facing_street, roads_u)
+    style = _spec_style(spec) if spec else WindowStyle.pick(rng, floors)
+    if "facade" in spec:
+        primary_i = _facing_edge_index(ext, spec["facade"])
+    else:
+        primary_i = _primary_street_edge_index(ext, facing_street, roads_u)
     primary_door: tuple[float, float] | None = None
     if primary_i >= 0:
         a, b = ext[primary_i], ext[(primary_i + 1) % len(ext)]
         length = float(np.hypot(*(b - a)))
         nx, ny = (b[1] - a[1]) / length, -(b[0] - a[0]) / length
-        primary_door = _facade_door_window(
-            a, b, nx, ny, length, floors, level0, ground, style, details, windows, taken
-        )
+        if "openings" in spec:
+            _spec_openings(spec["openings"], a, b, nx, ny, length, ground, style, details, windows, taken)
+        else:
+            primary_door = _facade_door_window(
+                a, b, nx, ny, length, floors, level0, ground, style, details, windows, taken
+            )
+        if spec:
+            solid, extra = _spec_extras(spec, roof, a, b, nx, ny, length, ground, plinth)
+            walls += solid
+            details += extra
 
     for i in range(len(ext)):
         a, b = ext[i], ext[(i + 1) % len(ext)]
@@ -760,7 +1055,7 @@ def house_meshes(
         if length < 2.4:
             continue
         nx, ny = (b[1] - a[1]) / length, -(b[0] - a[0]) / length  # normal exterior (anell antihorari)
-        if not facing_street(a[0], a[1], b[0], b[1], nx, ny):
+        if not facing_street(a[0], a[1], b[0], b[1], nx, ny) or (i == primary_i and "openings" in spec):
             continue
         slots = _facade_window_slots(length)
         door_slot = slots // 2
@@ -781,6 +1076,11 @@ def house_meshes(
         rng, ext, primary_i, facing_street, floors, level0, ground, style, details, windows, taken
     )
 
+    if roof.hip:
+        overhang = float(roof_spec.get("overhang_m", 0.3))
+        fascia = _lin(roof_spec["fascia"]) if "fascia" in roof_spec else FRAME_COLOR
+        return walls, _hip_roof_meshes(roof, overhang), details + _eave_trim(roof, overhang, fascia), windows
+
     # Teulada: voladís de 0,3 m, partida pel carener; cada meitat és un pla.
     from shapely.ops import split
 
@@ -796,11 +1096,8 @@ def house_meshes(
         m = trimesh.Trimesh(vertices=verts, faces=f, process=False)
         if m.face_normals[:, 1].mean() < 0:
             m.invert()
-        # Direcció del carener al món (x, z) codificada al color de vèrtex: el joc hi alinea les
-        # fileres de teules. glTF desa els colors en lineal, sense conversió.
-        ux, uy = -roof.ny, roof.nx
-        ridge_rgb = [int(round((ux * 0.5 + 0.5) * 255)), int(round((-uy * 0.5 + 0.5) * 255)), 0, 255]
-        m.visual.vertex_colors = np.tile(ridge_rgb, (len(m.vertices), 1)).astype(np.uint8)
+        # Fileres de teules al llarg del carener.
+        m.visual.vertex_colors = np.tile(_ridge_rgba(-roof.ny, roof.nx), (len(m.vertices), 1)).astype(np.uint8)
         roof_meshes.append(m)
     return walls, roof_meshes, details, windows
 
@@ -1185,8 +1482,34 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         # Els models propis surten de la planta cadastral (pòrtics, galeries): arbres i tàpies
         # han d'evitar tot el que ocupen, no només la planta. Una envolupant per edifici.
         buildings_u = unary_union([buildings_u, *[h.buffer(0.5) for h in landmark_hulls]])
+    # Cases amb fitxa (cases.yaml): primer, perquè les seves obertures tinguin preferència.
+    specs = load_house_specs(Path(__file__).with_name("cases.yaml"))
+    spec_hulls = []
+    for ref, spec in specs.items():
+        rows = parts[parts["building"] == ref]
+        if spec.get("parts"):
+            rows = rows[rows["localId"].astype(str).str.split("_").str[-1].isin(spec["parts"])]
+        if not len(rows):
+            print(f"Village: fitxa {ref} sense parts al Cadastre (o fora de la zona)")
+            continue
+        footprint = unary_union(list(rows.geometry))
+        footprint = max(getattr(footprint, "geoms", [footprint]), key=lambda g: g.area)
+        if spec.get("footprint") == "rect":
+            footprint = footprint.minimum_rotated_rectangle
+        n_floors = int(spec.get("floors", max(_floors(f) for f in rows["numberOfFloorsAboveGround"])))
+        color = _lin(spec["wall"]) if "wall" in spec else WALL_PALETTE[0]
+        w, r, d, win = house_meshes(
+            footprint, n_floors, ground, color, facing_street, roads_u, zlib.crc32(ref.encode()), taken, spec
+        )
+        spec_hulls.append(_occupied(w))
+        walls += w
+        roofs += r
+        details += d
+        window_panes += win
+    if specs:
+        print(f"Village: {len(spec_hulls)} cases amb fitxa")
     for _, row in parts.iterrows():
-        if row["building"] in {church_ref, hermitage_ref}:
+        if row["building"] in {church_ref, hermitage_ref} or row["building"] in specs:
             continue
         color = WALL_PALETTE[sum(ord(c) for c in row["building"]) % len(WALL_PALETTE)]
         # Llavor per edifici (totes les parts amb el mateix estil de finestra); la suma de
@@ -1210,6 +1533,10 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         roofs += r
         details += d
         window_panes += win
+
+    if spec_hulls:
+        # Porxos, tanques i jardins de davant de les cases amb fitxa: sense arbres ni tàpies.
+        buildings_u = unary_union([buildings_u, *spec_hulls])
 
     # Parcel·les: tipus segons la imatge; tàpies al voltant de patis, jardins i horts.
     parcel_info, walled, hort_polys = [], [], []
@@ -1239,6 +1566,11 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         if not unwalled.is_empty:
             lines = lines.difference(unwalled.buffer(0.3))
         tapia_lines = [ln for ln in getattr(lines, "geoms", [lines]) if isinstance(ln, LineString)]
+        # No totes les vores entre cases tenen tàpia: només es posa on l'ortofoto en mostra l'ombra.
+        from walls import WallDetector, detect_walls
+
+        heights = [f * FLOOR_H + 1.5 for f in parts["numberOfFloorsAboveGround"]] + [FLOOR_H + 1.5] * len(extra)
+        tapia_lines = detect_walls(tapia_lines, WallDetector(ortho, cls, part_polys + extra, heights))
         n_lines = len(tapia_lines)
         tapia_lines = drop_lone_blocks(tapia_lines)
         print(f"Village: {n_lines - len(tapia_lines)} tàpies soltes d'un sol bloc eliminades")

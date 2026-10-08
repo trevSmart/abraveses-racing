@@ -6,8 +6,8 @@ export const R12 = {
   wheelbaseM: 2.44,
   /** ~130 km/h. */
   maxSpeed: 36,
-  /** m/s² a baixa velocitat; amb la caiguda quadràtica cap a la punta, 0–100 km/h ≈ 9 s. */
-  engineAccel: 4,
+  /** m/s² a baixa velocitat; amb la caiguda quadràtica cap a la punta, 0–100 km/h ≈ 7,4 s. */
+  engineAccel: 5,
   reverseAccel: 1.5,
   /** ~16 km/h. */
   maxReverse: 4.5,
