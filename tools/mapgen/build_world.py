@@ -160,8 +160,10 @@ def _build_heightmap(cfg: dict, dem: DemSampler) -> dict:
         "elevation_min_m": z_min,
         "elevation_max_m": z_max,
         "elevation_range_m": z_range,
-        # Zona central amb textura d'alta resolució (terrain_center.jpg); 0 = no n'hi ha.
+        # Retall nítid (terrain_center.jpg). El desplaçament és en metres locals (est, nord)
+        # respecte del centre del quadrat; 0 = el retall és al centre.
         "ortho_center_m": float(cfg.get("ortho_center_m", 0)),
+        "ortho_center_offset_m": [float(v) for v in (cfg.get("ortho_center_offset_m") or [0.0, 0.0])],
     }
     meta_path = ensure_parent(cfg["paths"]["world_meta_json"])
     with meta_path.open("w", encoding="utf-8") as f:
@@ -194,15 +196,102 @@ def _terrain_mesh(ground: Ground, meta: dict, res: int) -> trimesh.Trimesh:
     return mesh
 
 
-def _terrain_tiles(ground: Ground, meta: dict, res: int, tiles: int) -> list[tuple[str, trimesh.Trimesh]]:
+# To de reserva del talús quan l'ortofoto només veu mur, teula o asfalt (sRGB).
+SHOULDER_FALLBACK_SRGB = (176, 156, 128)
+
+
+def groundish_mask(rgb: np.ndarray) -> np.ndarray:
+    """Píxels de sòl, formigó clar o herba. Fora queden les teules, els murs rosats i l'asfalt:
+    són el que la foto estira sobre el talús del carrer."""
+    rgb = rgb.astype(np.float32)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    mx = rgb.max(axis=2)
+    chroma = mx - rgb.min(axis=2)
+    value = rgb.mean(axis=2)
+    sat = chroma / (mx + 1e-3)
+    hue = np.where(r >= mx, 60.0 * (g - b) / np.maximum(chroma, 1e-3), 99.0)
+    exg = (2 * g - r - b) / (r + g + b + 1e-3)
+    soil = (hue > 18.0) & (hue < 70.0) & (chroma > 10.0) & (value > 70.0) & (value < 210.0)
+    concrete = (sat < 0.16) & (value >= 145.0) & (value < 220.0)
+    grass = (exg > 0.04) & (value > 65.0) & (value < 190.0)
+    return soil | concrete | grass
+
+
+def shoulder_tone(rgb: np.ndarray, window: int = 5) -> np.ndarray:
+    """To de terra (sRGB) per píxel: mitjana dels píxels de sòl de la finestra."""
+    keep = groundish_mask(rgb).astype(np.float32)
+    acc = np.stack(
+        [ndimage.uniform_filter(rgb[..., i].astype(np.float32) * keep, size=window) for i in range(3)],
+        axis=-1,
+    )
+    weight = ndimage.uniform_filter(keep, size=window)
+    fallback = np.array(SHOULDER_FALLBACK_SRGB, dtype=np.float32)
+    tone = np.where(weight[..., None] > 0.02, acc / np.maximum(weight[..., None], 1e-3), fallback)
+    return np.clip(np.rint(tone), 0, 255).astype(np.uint8)
+
+
+def bank_factor(offroad_t: np.ndarray, paved_dist: np.ndarray, reach_m: float = 2.3) -> np.ndarray:
+    """1 al peu del talús d'un carrer asfaltat, 0 al capdamunt i a qualsevol altre lloc.
+    El talús d'un camí de terra queda a 0: allà la foto sí que hi va."""
+    near = paved_dist <= reach_m
+    return np.where(near, 1.0 - np.clip(offroad_t, 0.0, 1.0), 0.0).astype(np.float32)
+
+
+def _poly_distance(polys: list[Polygon], xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
+    dist = np.full(xs.size, np.inf)
+    if not polys:
+        return dist.reshape(xs.shape)
+    tree = shapely.STRtree(polys)
+    pts = shapely.points(np.asarray(xs, dtype=np.float64).ravel(), np.asarray(ys, dtype=np.float64).ravel())
+    idx, d = tree.query_nearest(pts, return_distance=True, all_matches=False)
+    dist[idx[0]] = d
+    return dist.reshape(xs.shape)
+
+
+def _shoulder_tone_linear(tone: np.ndarray, size_m: float, xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
+    """To de terra en lineal (0–1), el mateix espai que l'ortofoto un cop al shader."""
+    n = tone.shape[1]
+    col = (xs + size_m / 2.0) / size_m * n
+    row = (size_m / 2.0 - ys) / size_m * n
+    c = np.clip(np.rint(col).astype(int), 0, n - 1)
+    r = np.clip(np.rint(row).astype(int), 0, tone.shape[0] - 1)
+    srgb = tone[r, c].astype(np.float32)
+    return (np.clip(srgb, 0.0, 255.0) / 255.0) ** 2.2
+
+
+def _terrain_tiles(
+    ground: Ground,
+    meta: dict,
+    res: int,
+    tiles: int,
+    paved_polys: list[Polygon] | None = None,
+    ortho=None,
+) -> list[tuple[str, trimesh.Trimesh]]:
     """Terreny partit en tiles×tiles trossos perquè el joc en pugui descartar els que queden
-    fora de càmera. Les normals es calculen sobre la malla sencera: sense costures de llum."""
+    fora de càmera. Les normals es calculen sobre la malla sencera: sense costures de llum.
+
+    Cada vèrtex porta `bank` (1 al peu del talús asfaltat, 0 al capdamunt) i `tone` (to de
+    terra). Al pendent el joc deixa la foto i pinta aquest to amb el gra del terra; cap al
+    camp es fon amb l'ortofoto, sense un tall sec."""
     full = _terrain_mesh(ground, meta, res)
     _sanitize_vertices(full)
     normals = full.vertex_normals
     verts = full.vertices
+    xs, ys = verts[:, 0], -verts[:, 2]
+    road_d = ground.road_distance(xs, ys).ravel()
+    offroad_t = np.clip((road_d - ground.margin_m) / ground.ramp_m, 0.0, 1.0)
+    paved_d = _poly_distance(paved_polys or [], xs, ys).ravel()
+    reach_m = ground.margin_m + ground.ramp_m + 0.3
+    size_m = float(meta["size_m"])
+    tone = None
+    if ortho is not None:
+        cell_m = 3.0
+        n = max(8, int(round(size_m / cell_m)))
+        small = np.asarray(Image.fromarray(ortho.rgb).resize((n, n), Image.BOX))
+        tone = shoulder_tone(small, window=max(3, int(round(12.0 / cell_m)) | 1))
     cells = res - 1
     bounds = np.linspace(0, cells, tiles + 1).round().astype(int)
+    bank = bank_factor(offroad_t, paved_d, reach_m)
     out = []
     for tj in range(tiles):
         for ti in range(tiles):
@@ -217,9 +306,20 @@ def _terrain_tiles(ground: Ground, meta: dict, res: int, tiles: int) -> list[tup
             b, c = a + 1, a + w
             d = c + 1
             faces = np.concatenate([np.column_stack([a, b, c]), np.column_stack([b, d, c])])
-            tile = trimesh.Trimesh(vertices=verts[idx], faces=faces, process=False)
+            tv = verts[idx]
+            tile = trimesh.Trimesh(vertices=tv, faces=faces, process=False)
+            tile.vertex_normals = normals[idx]
+            if tone is not None:
+                colors = _shoulder_tone_linear(tone, size_m, tv[:, 0], -tv[:, 2])
+            else:
+                fallback = np.array(SHOULDER_FALLBACK_SRGB, dtype=np.float32) / 255.0
+                colors = np.tile(fallback**2.2, (len(tv), 1))
+            # El glTF exigeix el prefix _; el joc els reanomena a `bank` i `tone`.
+            tile.vertex_attributes["bank"] = np.asarray(bank[idx], dtype=np.float32)
+            tile.vertex_attributes["tone"] = np.asarray(colors, dtype=np.float32)
             tile.vertex_normals = normals[idx]
             out.append((f"terrain_{ti}_{tj}", tile))
+    print(f"Talussos: {(bank > 0.2).sum()} vèrtexs de carrer asfaltat sense foto projectada")
     return out
 
 
@@ -692,6 +792,9 @@ def _build_village(cfg: dict, ground: Ground, ortho, ox: float, oy: float):
             f,
         )
     print(f"Village → {path}")
+    from house_cards import write_house_cards
+
+    write_house_cards(cfg, set(village.houses.values()))
     return village
 
 
@@ -722,7 +825,10 @@ def build_world(use_blender: bool = False) -> Path:
 
     mesh_res = int(cfg.get("terrain_mesh_resolution", cfg["terrain_resolution"]))
     # Les UV del terreny les calcula el joc (projecció planar de l'ortofoto).
-    terrain_tiles = _terrain_tiles(ground, meta, mesh_res, int(cfg.get("terrain_tiles", 8)))
+    paved_polys = [p for p, s in zip(roads.polys, roads.surfaces) if s == "paved"]
+    terrain_tiles = _terrain_tiles(
+        ground, meta, mesh_res, int(cfg.get("terrain_tiles", 8)), paved_polys, ortho
+    )
 
     _write_streets(cfg, gdf, ox, oy, half)
     village = _build_village(cfg, ground, ortho, ox, oy)
@@ -771,8 +877,9 @@ def build_world(use_blender: bool = False) -> Path:
     total_verts = sum(
         len(g.vertices) for g in scene.geometry.values() if hasattr(g, "vertices")
     )
+    n_terrain = sum(1 for name, _mesh in terrain_tiles if name.startswith("terrain_"))
     print(
-        f"Exported {out_glb} ({total_verts} verts, terrain {mesh_res}² en {len(terrain_tiles)} trossos, "
+        f"Exported {out_glb} ({total_verts} verts, terrain {mesh_res}² en {n_terrain} trossos, "
         f"{len(road_parts)} road tiles, greens, buildings)"
     )
 

@@ -1,0 +1,27 @@
+== 0432809TM6503S
+   ús 1_residential · 1 habitatges · 241 m² construïts · construïda 1968 · functional
+-- part1: 2 plantes · 78 m² · centre UTM 260218.1, 4653051.3
+     façana NE:  5.64 m, esquerra (t=0) a 260223.0, 4653050.4 (mitgera: toca una altra part o un altre edifici)
+     façana NE:  2.90 m, esquerra (t=0) a 260219.0, 4653055.1
+     façana NO:  5.55 m, esquerra (t=0) a 260217.7, 4653057.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9930509,-5.8950456&heading=153&pitch=8&fov=100
+     façana  O: 11.20 m, esquerra (t=0) a 260212.7, 4653055.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9929428,-5.8949672&heading=68&pitch=8&fov=100
+     façana SE:  7.96 m, esquerra (t=0) a 260216.9, 4653044.8 (mitgera: toca una altra part o un altre edifici)
+     façana NE:  2.27 m, esquerra (t=0) a 260224.0, 4653048.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928320,-5.8946425&heading=243&pitch=8&fov=100
+-- part2: 1 plantes · 17 m² · centre UTM 260224.2, 4653053.4
+     façana SE:  5.70 m, esquerra (t=0) a 260223.0, 4653050.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928306,-5.8946473&heading=321&pitch=8&fov=100
+     façana NE:  2.54 m, esquerra (t=0) a 260227.4, 4653054.0
+     façana NO:  5.16 m, esquerra (t=0) a 260225.8, 4653056.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9930026,-5.8950116&heading=153&pitch=8&fov=100
+     façana SO:  3.64 m, esquerra (t=0) a 260221.2, 4653053.6 (mitgera: toca una altra part o un altre edifici)
+-- part3: 1 plantes · 68 m² · centre UTM 260230.7, 4653071.6
+     façana  E:  9.53 m, esquerra (t=0) a 260236.1, 4653067.8
+     façana  N:  3.14 m, esquerra (t=0) a 260232.9, 4653076.8
+     façana  N:  2.80 m, esquerra (t=0) a 260229.7, 4653076.4
+     façana  O:  8.24 m, esquerra (t=0) a 260227.1, 4653075.5
+     façana  S:  9.72 m, esquerra (t=0) a 260226.4, 4653067.3
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432809TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432809TM6503S/ortofoto.png

@@ -1,11 +1,15 @@
 {
   "utm_epsg": 25830,
-  "origin_utm_x": 260205.84805883048,
-  "origin_utm_y": 4653053.943667801,
-  "size_m": 1820.0,
-  "resolution": 256,
-  "elevation_min_m": 712.537672477252,
-  "elevation_max_m": 766.3376748674465,
-  "elevation_range_m": 53.800002390194436,
-  "ortho_center_m": 700.0
+  "origin_utm_x": 260205.82274120074,
+  "origin_utm_y": 4653513.969870996,
+  "size_m": 2740.0,
+  "resolution": 384,
+  "elevation_min_m": 710.0532836914061,
+  "elevation_max_m": 766.374059294895,
+  "elevation_range_m": 56.32077560348887,
+  "ortho_center_m": 700.0,
+  "ortho_center_offset_m": [
+    0.0,
+    -460.0
+  ]
 }

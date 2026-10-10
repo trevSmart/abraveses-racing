@@ -1404,6 +1404,25 @@ def _spec_extras(
                 gz = float(_wall_ground(ground, a, b, t, t).min())
                 details.append(_box_on_wall(*a, *b, t - ps / 2 / L, t + ps / 2 / L, gz - 0.1, z, d - 0.05, nx, ny, pc, d - 0.05 - ps))
             details.append(_box_on_wall(*a, *b, t0, t1, z - 0.15, z, d - 0.03, nx, ny, pc, d - 0.03 - ps))
+
+    for st in spec.get("stairs", []):
+        # Escala exterior: graons de `from` a `to` que pugen fins al forjat `floor`, sortint `depth_m`.
+        t0, t1 = float(st["from"]), float(st["to"])
+        depth = float(st.get("depth_m", 3.0))
+        z_top = level0 + int(st.get("floor", 1)) * FLOOR_H
+        gz = float(_wall_ground(ground, a, b, t0, t1).min())
+        rise = max(z_top - gz, 0.4)
+        n = max(4, int(round(rise / 0.17)))
+        color = _lin(st.get("color", (228, 226, 220)))
+        rail = _lin(st.get("rail", (206, 210, 214)))
+        for k in range(n):
+            z1 = gz + rise * (k + 1) / n
+            d0 = depth * k / n
+            d1 = depth * (k + 1) / n
+            solid.append(_box_on_wall(*a, *b, t0, t1, gz - 0.05, z1, d1, nx, ny, color, d0))
+        rw = 0.05 / L
+        for ts in (t0, max(t0, t1 - rw)):
+            details.append(_box_on_wall(*a, *b, ts, ts + rw, gz, z_top + 0.95, depth, nx, ny, rail, 0.02))
     return solid, details
 
 
@@ -2403,6 +2422,27 @@ def detect_extra_roofs(
     return out
 
 
+def drop_modeled_extras(extra: list, specs: dict, ox: float, oy: float) -> list:
+    """Treu els coberts detectats que ja modela un `extra_parts`.
+
+    El contorn de la fitxa és UTM. Si cobreix la meitat o més de la taca de l'ortofoto, aquella
+    taca no es construeix: si no, el volum a mida i el genèric sortirien tots dos."""
+    outlines = []
+    for spec in specs.values():
+        for ep in spec.get("extra_parts") or []:
+            outline = ep.get("outline")
+            if not outline or len(outline) < 3:
+                continue
+            outlines.append(Polygon([(float(e) - ox, float(n) - oy) for e, n in outline]))
+    if not outlines:
+        return extra
+    covered = unary_union(outlines).buffer(0.6)
+    kept = [r for r in extra if r.intersection(covered).area < 0.5 * r.area]
+    if len(kept) < len(extra):
+        print(f"Village: {len(extra) - len(kept)} coberts detectats substituïts per un extra_parts")
+    return kept
+
+
 # --- Orquestració ----------------------------------------------------------------------------
 
 
@@ -2702,6 +2742,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
             roofs += r
             details += d
             window_panes += win
+    extra = drop_modeled_extras(extra, specs, ox, oy)
     for k, rect in enumerate(extra):
         w, r, d, win = house_meshes(
             rect,

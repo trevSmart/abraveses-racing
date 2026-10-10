@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // L'editor analitza l'arrel del repo. El codi del joc és el paquet web/.
+  "workspaces": {
+    ".": {
+      "entry": [],
+      "project": []
+    },
+    "web": {}
+  }
+}

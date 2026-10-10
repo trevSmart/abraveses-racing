@@ -8,9 +8,9 @@ casa, vegeu la skill `casa-a-mida` (`.claude/skills/casa-a-mida/SKILL.md`).
 
 | model | cases | % |
 |---|---:|---:|
-| **Genèric** (sense fitxa) | 90 | 48.9 % |
+| **Genèric** (sense fitxa) | 40 | 21.7 % |
 | **Propi bàsic** (fitxa sense anàlisi detallada, o model per script) | 2 | 1.1 % |
-| **Propi refinat** (anàlisi detallada feta) | 92 | 50.0 % |
+| **Propi refinat** (anàlisi detallada feta) | 142 | 77.2 % |
 | Total al joc | 184 | 100 % |
 
 L'evolució és a `data/cases/historial.csv` (una fila per dia).
@@ -20,21 +20,21 @@ L'evolució és a `data/cases/historial.csv` (una fila per dia).
 | | cases | % |
 |---|---:|---:|
 | **Total al joc** | 184 | 100 % |
-| Amb model propi (fitxa o script) | 94 | 51.1 % |
-| — amb anàlisi detallada feta | 92 | 50.0 % |
+| Amb model propi (fitxa o script) | 144 | 78.3 % |
+| — amb anàlisi detallada feta | 142 | 77.2 % |
 | — amb fitxa, pendents d'anàlisi detallada | 0 | 0.0 % |
 | — model propi per script (església, ermita) | 2 | 1.1 % |
 | Amb expedient però sense fitxa | 0 | 0.0 % |
-| Genèriques, sense res | 90 | 48.9 % |
-| **Pendents d'anàlisi detallada** (tot el que no és `detall` ni `propi`) | 90 | 48.9 % |
+| Genèriques, sense res | 40 | 21.7 % |
+| **Pendents d'anàlisi detallada** (tot el que no és `detall` ni `propi`) | 40 | 21.7 % |
 
 ### Per ús (Cadastre)
 
 | ús | total | detall | fitxa | propi | expedient | genèrica |
 |---|---:|---:|---:|---:|---:|---:|
-| habitatge | 152 | 81 | 0 | 0 | 0 | 71 |
-| industrial | 20 | 9 | 0 | 0 | 0 | 11 |
-| servei públic | 6 | 1 | 0 | 2 | 0 | 3 |
+| habitatge | 152 | 127 | 0 | 0 | 0 | 25 |
+| industrial | 20 | 11 | 0 | 0 | 0 | 9 |
+| servei públic | 6 | 3 | 0 | 2 | 0 | 1 |
 | agrari | 5 | 0 | 0 | 0 | 0 | 5 |
 | comerç | 1 | 1 | 0 | 0 | 0 | 0 |
 
@@ -43,16 +43,16 @@ L'evolució és a `data/cases/historial.csv` (una fila per dia).
 | carrer (OSM) | total | detall | fitxa | propi | expedient | genèrica |
 |---|---:|---:|---:|---:|---:|---:|
 | Calle el Cristo | 45 | 45 | 0 | 0 | 0 | 0 |
-| Calle Santiago | 45 | 0 | 0 | 0 | 0 | 45 |
+| Calle Santiago | 45 | 30 | 0 | 0 | 0 | 15 |
 | (fora de carrer) | 24 | 3 | 0 | 1 | 0 | 20 |
 | Calle Santibáñez | 18 | 18 | 0 | 0 | 0 | 0 |
-| Calle Calzada | 17 | 3 | 0 | 0 | 0 | 14 |
-| Calle Viriato | 13 | 3 | 0 | 0 | 0 | 10 |
+| Calle Calzada | 17 | 13 | 0 | 0 | 0 | 4 |
+| Calle Viriato | 13 | 13 | 0 | 0 | 0 | 0 |
 | Calle Taburete | 10 | 10 | 0 | 0 | 0 | 0 |
 | Calle de la Iglesia | 8 | 7 | 0 | 1 | 0 | 0 |
 | Calle La Rinconada | 4 | 3 | 0 | 0 | 0 | 1 |
 
-## Anàlisi detallada feta (92)
+## Anàlisi detallada feta (142)
 
 | referència | carrer (OSM) | ús | any | m² | parts | Street View | satèl·lit | joc | revisió | falta |
 |---|---|---|---:|---:|---:|---:|:---:|---:|---|---|
@@ -62,9 +62,49 @@ L'evolució és a `data/cases/historial.csv` (una fila per dia).
 | `0232101TM6503S` | Calle Calzada | habitatge | 1900 | 202 | 3 | 2 | no | 0 | 2026-10-09 | satèl·lit, captures del joc |
 | `0232102TM6503S` | Calle Calzada | habitatge | 1900 | 234 | 3 | 0 | no | 1 | 2026-10-09 | Street View (0), satèl·lit |
 | `0232106TM6503S` | Calle Calzada | habitatge | 1900 | 345 | 3 | 0 | no | 0 | 2026-10-09 | Street View (0), satèl·lit, captures del joc |
+| `0232109TM6503S` | Calle Calzada | habitatge | 1986 | 190 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0232110TM6503S` | Calle Calzada | habitatge | 2014 | 433 | 3 | 3 | sí | 1 | 2026-10-10 | — |
+| `0232111TM6503S` | Calle Calzada | habitatge | 1900 | 208 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0233401TM6503S` | Calle Calzada | habitatge | 1980 | 250 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0233402TM6503S` | Calle Calzada | habitatge | 1900 | 204 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0233403TM6503S` | Calle Calzada | habitatge | 1900 | 148 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0233404TM6503S` | Calle Calzada | habitatge | 1900 | 294 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0233405TM6503S` | Calle Calzada | habitatge | 1900 | 257 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0233701TM6503S` | Calle Calzada | habitatge | 1975 | 381 | 4 | 2 | sí | 1 | 2026-10-10 | — |
+| `0233702TM6503S` | Calle Calzada | habitatge | 1900 | 55 | 1 | 2 | sí | 1 | 2026-10-10 | — |
 | `0232104TM6503S` | Calle La Rinconada | habitatge | 1998 | 304 | 1 | 0 | no | 1 | 2026-10-09 | Street View (0), satèl·lit |
 | `0232107TM6503S` | Calle La Rinconada | industrial | 1900 | 505 | 3 | 5 | sí | 1 | 2026-10-09 | — |
 | `0232303TM6503S` | Calle La Rinconada | habitatge | 2014 | 124 | 1 | 4 | sí | 2 | 2026-10-09 | — |
+| `0333207TM6503S` | Calle Santiago | habitatge | 2003 | 310 | 3 | 3 | sí | 1 | 2026-10-10 | — |
+| `0333208TM6503S` | Calle Santiago | habitatge | 1900 | 263 | 2 | 3 | sí | 1 | 2026-10-10 | — |
+| `0333212TM6503S` | Calle Santiago | habitatge | 1900 | 27 | 1 | 3 | sí | 1 | 2026-10-10 | — |
+| `0333214TM6503S` | Calle Santiago | habitatge | 1900 | 210 | 2 | 3 | sí | 1 | 2026-10-10 | — |
+| `0333216TM6503S` | Calle Santiago | habitatge | 1900 | 192 | 4 | 3 | sí | 1 | 2026-10-10 | — |
+| `0333217TM6503S` | Calle Santiago | habitatge | 2000 | 96 | 1 | 4 | sí | 1 | 2026-10-10 | — |
+| `0333218TM6503S` | Calle Santiago | habitatge | 1942 | 76 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333219TM6503S` | Calle Santiago | habitatge | 1942 | 62 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333221TM6503S` | Calle Santiago | habitatge | 1900 | 252 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333223TM6503S` | Calle Santiago | habitatge | 1900 | 212 | 4 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333224TM6503S` | Calle Santiago | habitatge | 1900 | 339 | 4 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333603TM6503S` | Calle Santiago | habitatge | 1990 | 104 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333605TM6503S` | Calle Santiago | habitatge | 1900 | 331 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333606TM6503S` | Calle Santiago | habitatge | 1900 | 182 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0333607TM6503S` | Calle Santiago | habitatge | 1900 | 187 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0334208TM6503S` | Calle Santiago | habitatge | 1976 | 264 | 3 | 3 | sí | 1 | 2026-10-10 | — |
+| `0334209TM6503S` | Calle Santiago | servei públic | 2007 | 218 | 1 | 4 | sí | 1 | 2026-10-10 | — |
+| `0334210TM6503S` | Calle Santiago | servei públic | 1965 | 122 | 1 | 3 | sí | 1 | 2026-10-10 | — |
+| `0334211TM6503S` | Calle Santiago | industrial | 1965 | 148 | 1 | 3 | sí | 1 | 2026-10-10 | — |
+| `0334603TM6503S` | Calle Santiago | habitatge | 1981 | 248 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432383TM6503S` | Calle Santiago | habitatge | 2010 | 35 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432801TM6503S` | Calle Santiago | habitatge | 1944 | 25 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432802TM6503S` | Calle Santiago | habitatge | 2010 | 23 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432803TM6503S` | Calle Santiago | habitatge | 1900 | 293 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432804TM6503S` | Calle Santiago | habitatge | 1900 | 206 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432805TM6503S` | Calle Santiago | habitatge | 1942 | 271 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432806TM6503S` | Calle Santiago | habitatge | 1900 | 118 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432807TM6503S` | Calle Santiago | industrial | 1970 | 20 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432809TM6503S` | Calle Santiago | habitatge | 1968 | 241 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `49130A50107682` | Calle Santiago | habitatge | 2009 | 46 | 2 | 2 | sí | 1 | 2026-10-10 | — |
 | `0032901TM6503S` | Calle Santibáñez | habitatge | 1985 | 364 | 3 | 5 | sí | 1 | 2026-10-09 | — |
 | `0032941TM6503S` | Calle Santibáñez | habitatge | 1994 | 439 | 2 | 5 | sí | 3 | 2026-10-09 | — |
 | `0132102TM6503S` | Calle Santibáñez | habitatge | 1965 | 211 | 2 | 5 | sí | 2 | 2026-10-09 | — |
@@ -94,8 +134,18 @@ L'evolució és a `data/cases/historial.csv` (una fila per dia).
 | `0432833TM6503S` | Calle Taburete | habitatge | 1900 | 124 | 3 | 0 | no | 0 | 2026-10-09 | Street View (0), satèl·lit, captures del joc |
 | `0432839TM6503S` | Calle Taburete | industrial | 1995 | 81 | 1 | 2 | sí | 1 | 2026-10-09 | — |
 | `0332004TM6503S` | Calle Viriato | habitatge | 1900 | 71 | 2 | 3 | sí | 1 | 2026-10-09 | — |
+| `0332007TM6503S` | Calle Viriato | habitatge | 1900 | 169 | 2 | 2 | sí | 2 | 2026-10-10 | — |
 | `0332703TM6503S` | Calle Viriato | habitatge | 1900 | 183 | 3 | 1 | no | 0 | 2026-10-09 | Street View (1), satèl·lit, captures del joc |
+| `0333608TM6503S` | Calle Viriato | habitatge | 1900 | 457 | 3 | 3 | sí | 1 | 2026-10-10 | — |
 | `0333609TM6503S` | Calle Viriato | habitatge | 1900 | 162 | 2 | 0 | no | 0 | 2026-10-09 | Street View (0), satèl·lit, captures del joc |
+| `0432811TM6503S` | Calle Viriato | habitatge | 1966 | 201 | 2 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432812TM6503S` | Calle Viriato | habitatge | 1965 | 37 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432813TM6503S` | Calle Viriato | habitatge | 1977 | 303 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432814TM6503S` | Calle Viriato | habitatge | 1984 | 409 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432815TM6503S` | Calle Viriato | habitatge | 1900 | 270 | 5 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432816TM6503S` | Calle Viriato | habitatge | 1900 | 21 | 1 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432817TM6503S` | Calle Viriato | habitatge | 1900 | 488 | 3 | 2 | sí | 1 | 2026-10-10 | — |
+| `0432818TM6503S` | Calle Viriato | habitatge | 1998 | 180 | 1 | 2 | sí | 1 | 2026-10-10 | — |
 | `0232103TM6503S` | Calle de la Iglesia | habitatge | 1900 | 19 | 1 | 0 | no | 1 | 2026-10-09 | Street View (0), satèl·lit |
 | `0232302TM6503S` | Calle de la Iglesia | habitatge | 1963 | 188 | 2 | 7 | sí | 2 | 2026-10-08 | — |
 | `0332704TM6503S` | Calle de la Iglesia | habitatge | 1900 | 230 | 3 | 6 | sí | 1 | 2026-10-09 | — |
@@ -164,7 +214,7 @@ Cap.
 
 Cap.
 
-## Genèriques (pendents) (90)
+## Genèriques (pendents) (40)
 
 | referència | carrer (OSM) | ús | any | m² | parts |
 |---|---|---|---:|---:|---:|
@@ -188,17 +238,7 @@ Cap.
 | `49130A80105178` | (fora de carrer) | agrari | 1990 | 1776 | 2 |
 | `49130A80105179` | (fora de carrer) | agrari | 1975 | 240 | 2 |
 | `49130A80105295` | (fora de carrer) | industrial | 1985 | 140 | 1 |
-| `0232109TM6503S` | Calle Calzada | habitatge | 1986 | 190 | 2 |
-| `0232110TM6503S` | Calle Calzada | habitatge | 2014 | 433 | 3 |
-| `0232111TM6503S` | Calle Calzada | habitatge | 1900 | 208 | 2 |
 | `0233149TM6503S` | Calle Calzada | habitatge | 2021 | 165 | 3 |
-| `0233401TM6503S` | Calle Calzada | habitatge | 1980 | 250 | 2 |
-| `0233402TM6503S` | Calle Calzada | habitatge | 1900 | 204 | 2 |
-| `0233403TM6503S` | Calle Calzada | habitatge | 1900 | 148 | 2 |
-| `0233404TM6503S` | Calle Calzada | habitatge | 1900 | 294 | 3 |
-| `0233405TM6503S` | Calle Calzada | habitatge | 1900 | 257 | 2 |
-| `0233701TM6503S` | Calle Calzada | habitatge | 1975 | 381 | 4 |
-| `0233702TM6503S` | Calle Calzada | habitatge | 1900 | 55 | 1 |
 | `0333801TM6503S` | Calle Calzada | habitatge | 1993 | 308 | 4 |
 | `0334601TM6503S` | Calle Calzada | habitatge | 1980 | 555 | 4 |
 | `0334602TM6503S` | Calle Calzada | habitatge | 1900 | 58 | 1 |
@@ -207,25 +247,10 @@ Cap.
 | `0333204TM6503S` | Calle Santiago | habitatge | 1982 | 440 | 3 |
 | `0333205TM6503S` | Calle Santiago | habitatge | 1900 | 300 | 3 |
 | `0333206TM6503S` | Calle Santiago | habitatge | 1900 | 192 | 1 |
-| `0333207TM6503S` | Calle Santiago | habitatge | 2003 | 310 | 3 |
-| `0333208TM6503S` | Calle Santiago | habitatge | 1900 | 263 | 2 |
 | `0333209TM6503S` | Calle Santiago | habitatge | 1900 | 413 | 4 |
 | `0333210TM6503S` | Calle Santiago | habitatge | 1900 | 128 | 1 |
 | `0333211TM6503S` | Calle Santiago | habitatge | 1987 | 490 | 2 |
-| `0333212TM6503S` | Calle Santiago | habitatge | 1900 | 27 | 1 |
-| `0333214TM6503S` | Calle Santiago | habitatge | 1900 | 210 | 2 |
-| `0333216TM6503S` | Calle Santiago | habitatge | 1900 | 192 | 4 |
-| `0333217TM6503S` | Calle Santiago | habitatge | 2000 | 96 | 1 |
-| `0333218TM6503S` | Calle Santiago | habitatge | 1942 | 76 | 1 |
-| `0333219TM6503S` | Calle Santiago | habitatge | 1942 | 62 | 1 |
-| `0333221TM6503S` | Calle Santiago | habitatge | 1900 | 252 | 3 |
-| `0333223TM6503S` | Calle Santiago | habitatge | 1900 | 212 | 4 |
-| `0333224TM6503S` | Calle Santiago | habitatge | 1900 | 339 | 4 |
 | `0333225TM6503S` | Calle Santiago | habitatge | 2008 | 174 | 1 |
-| `0333603TM6503S` | Calle Santiago | habitatge | 1990 | 104 | 1 |
-| `0333605TM6503S` | Calle Santiago | habitatge | 1900 | 331 | 2 |
-| `0333606TM6503S` | Calle Santiago | habitatge | 1900 | 182 | 1 |
-| `0333607TM6503S` | Calle Santiago | habitatge | 1900 | 187 | 2 |
 | `0334201TM6503N` | Calle Santiago | habitatge | 1985 | 851 | 1 |
 | `0334202TM6503S` | Calle Santiago | industrial | 1900 | 204 | 1 |
 | `0334203TM6503S` | Calle Santiago | industrial | 1900 | 184 | 2 |
@@ -233,28 +258,3 @@ Cap.
 | `0334205TM6503S` | Calle Santiago | habitatge | 1900 | 318 | 4 |
 | `0334206TM6503S` | Calle Santiago | habitatge | 1900 | 236 | 2 |
 | `0334207TM6503S` | Calle Santiago | habitatge | 1978 | 255 | 3 |
-| `0334208TM6503S` | Calle Santiago | habitatge | 1976 | 264 | 3 |
-| `0334209TM6503S` | Calle Santiago | servei públic | 2007 | 218 | 1 |
-| `0334210TM6503S` | Calle Santiago | servei públic | 1965 | 122 | 1 |
-| `0334211TM6503S` | Calle Santiago | industrial | 1965 | 148 | 1 |
-| `0334603TM6503S` | Calle Santiago | habitatge | 1981 | 248 | 3 |
-| `0432383TM6503S` | Calle Santiago | habitatge | 2010 | 35 | 1 |
-| `0432801TM6503S` | Calle Santiago | habitatge | 1944 | 25 | 1 |
-| `0432802TM6503S` | Calle Santiago | habitatge | 2010 | 23 | 1 |
-| `0432803TM6503S` | Calle Santiago | habitatge | 1900 | 293 | 2 |
-| `0432804TM6503S` | Calle Santiago | habitatge | 1900 | 206 | 3 |
-| `0432805TM6503S` | Calle Santiago | habitatge | 1942 | 271 | 3 |
-| `0432806TM6503S` | Calle Santiago | habitatge | 1900 | 118 | 1 |
-| `0432807TM6503S` | Calle Santiago | industrial | 1970 | 20 | 1 |
-| `0432809TM6503S` | Calle Santiago | habitatge | 1968 | 241 | 3 |
-| `49130A50107682` | Calle Santiago | habitatge | 2009 | 46 | 2 |
-| `0332007TM6503S` | Calle Viriato | habitatge | 1900 | 169 | 2 |
-| `0333608TM6503S` | Calle Viriato | habitatge | 1900 | 457 | 3 |
-| `0432811TM6503S` | Calle Viriato | habitatge | 1966 | 201 | 2 |
-| `0432812TM6503S` | Calle Viriato | habitatge | 1965 | 37 | 1 |
-| `0432813TM6503S` | Calle Viriato | habitatge | 1977 | 303 | 3 |
-| `0432814TM6503S` | Calle Viriato | habitatge | 1984 | 409 | 3 |
-| `0432815TM6503S` | Calle Viriato | habitatge | 1900 | 270 | 5 |
-| `0432816TM6503S` | Calle Viriato | habitatge | 1900 | 21 | 1 |
-| `0432817TM6503S` | Calle Viriato | habitatge | 1900 | 488 | 3 |
-| `0432818TM6503S` | Calle Viriato | habitatge | 1998 | 180 | 1 |

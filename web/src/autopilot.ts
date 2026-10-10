@@ -18,7 +18,7 @@ const REVERSE_ANGLE = 1.75;
 const REVERSE_DONE_ANGLE = 0.6;
 const REVERSE_MAX_S = 3.5;
 /** Desacceleració que fa servir per planificar la frenada abans dels revolts (m/s²). */
-const PLAN_DECEL = 8;
+const PLAN_DECEL = 13;
 const PLAN_AHEAD_M = 45;
 const NODE_REACHED_M = 2.5;
 const OFF_ROUTE_M = 10;

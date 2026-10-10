@@ -261,6 +261,9 @@ Cap foto ni mesura no ha de quedar només a `tmp/`, a la conversa o en una carpe
   `to`, a `height_m` sobre el terra. No tenen col·lisió. Amb `posts: true` són un porxo de
   cotxe: pals a la vora de fora (`post_color`, `post_m`) i `from`/`to` poden sortir de la façana
   (p. ex. `from: -0.9` s'allarga més enllà de la cantonada de t = 0).
+- `stairs` és una escala exterior enganxada a la façana: graons de `from` a `to` que pugen fins al
+  forjat `floor` i surten `depth_m`. `rail` és el passamà dels dos costats. No té col·lisió pròpia
+  més enllà dels graons (sòlids).
 - `fence` és una barana lligada a una façana. El mur de la parcel·la (llargada i alçada
   pròpies, sovint d'una altra parcel·la) va a `walls.yaml`, no a la fitxa de la casa.
 - `wings: true` fa la teulada d'una planta en L per ales, amb aiguafons al racó, en lloc d'una
@@ -282,7 +285,8 @@ Cap foto ni mesura no ha de quedar només a `tmp/`, a la conversa o en una carpe
   no toquen la part unida. Amb `floor_color`, és un terra enrajolat i no porta textura de teula.
 - `extra_parts`: una nau o un cobert que es veu a les fotos però no és cap `BuildingPart`. El
   contorn és en UTM (de les vores de la parcel·la i l'ortofoto) i porta la mateixa fitxa que una
-  part. Fes-lo servir amb `extra_roofs: false` perquè no surti dues vegades.
+  part. El contorn també treu el cobert detectat a l'ortofoto que hi cau a sobre, encara que
+  sigui fora de la parcel·la. Amb `extra_roofs: false` es treuen, a més, les altres taques del pati.
 - `extra_roofs: false`: l'ortofoto de vegades veu un cobert al pati (ombres de la tàpia, arbres).
   Si a les fotos no n'hi ha cap, es treuen els coberts detectats dins de la parcel·la i els que
   toquen les parts de la casa (a menys de 0,5 m), encara que siguin fora de la parcel·la: la
@@ -500,6 +504,53 @@ Taburete, la Iglesia i Santibáñez):
   mur de l'arc i portal de la casa de 2016).
 
 La C. Santibáñez ja té model propi a totes les cases. Les genèriques que queden són a `ESTAT.md`.
+
+Refinades el 2026-10-10 (Calle Viriato, les 10 que quedaven genèriques):
+
+- `0332007TM6503S` (salmó, sòcol de pedra; garatge de planxa al sud), `0333608TM6503S`
+  (blanca de la placeta, balcó i pedra), `0432811TM6503S` (beix de la C. Santiago),
+  `0432812TM6503S` (cantonada, portal groc), `0432813TM6503S` (maó retirat, tanca de bloc),
+  `0432814TM6503S` (blanca amb galeria i tendals), `0432815TM6503S` (salmó i garatge),
+  `0432816TM6503S` (cobert entre arbres), `0432817TM6503S` (crema amb balcó) i
+  `0432818TM6503S` (maó de 1998, portal marró).
+- Tàpia: `0432813-tanca`.
+
+Refinades el 2026-10-10 (C. Calzada, un tram seguit):
+
+- `0232109TM6503S` (maó groc, portal verd), `0232110TM6503S` (crema de 2014, porxo i balcó),
+  `0232111TM6503S` (emblanquinada, gelosia), `0233401TM6503S` (nau de maó i portal blau),
+  `0233402TM6503S` (mur blanc amb sòcol rosa i frontó), `0233403TM6503S` (garatge beix),
+  `0233404TM6503S` (ocre llarga, reixes), `0233405TM6503S` (tova i pedra),
+  `0233701TM6503S` (baixos grocs, escala exterior) i `0233702TM6503S` (cobert ocre, portal blau).
+- Tàpies: `0232110-carrer`, `0233402-carrer` i `0233401-carrer`.
+- L'escala de `0233701` fa servir l'element nou `stairs` de la fitxa.
+
+Refinades el 2026-10-10 (C. Santiago, el tram sud):
+
+- `0333607TM6503S` (mur blanc, sòcol vermellós i portal blau), `0333606TM6503S` (groga,
+  sòcol de pedra i balcó), `0432809TM6503S` (blanca amb balcó corregut), `0333605TM6503S`
+  (grisa, persianes marrons), `0432807TM6503S` (cobert blanc, sòcol groc),
+  `0333603TM6503S` (garatge ocre), `0432806TM6503S` (blanca, emmarcats grocs i teuladí),
+  `0432805TM6503S` (el 10: reixa al carrer i garatge de xapa), `0432383TM6503S` (portal
+  de xapa entre murs) i `0432804TM6503S` (portals blaus).
+- Tàpia: `0432805-carrer`.
+
+Refinades el 2026-10-10 (C. Santiago, el tram de la placeta cap a la C. Calzada):
+
+- `0432803TM6503S` (mur blanc del revolt), `0432802TM6503S` (garatge beix), `0432801TM6503S`
+  (garatge blanc amb frontó), `0333224TM6503S` (pati beix amb balcó), `49130A50107682`
+  (nau beix del pati), `0333223TM6503S` (tova del pati), `0333221TM6503S` (maó i porta
+  fosca), `0333219TM6503S` (cantonada crema, sòcol de pedra), `0333218TM6503S` (porta
+  blanca amb graons) i `0334603TM6503S` (galeria i portal verd; el rètol diu C. Calzada).
+
+Refinades el 2026-10-10 (C. Santiago, de la casa de maó cap a La Mullidora i el 56):
+
+- `0333217TM6503S` (maó vist, sòcol de pedra), `0333216TM6503S` (blanca amb porticons
+  marrons), `0334211TM6503S` (cantonada de pedra), `0334210TM6503S` (La Mullidora, el
+  mateix carreu), `0334209TM6503S` (bloc groc i franja blanca), `0333214TM6503S`
+  (blanca, sòcol gris i portal de xapa), `0333212TM6503S` (mur amb portal verd),
+  `0334208TM6503S` (balcó i tendal al 46), `0333208TM6503S` (crema amb tanca de
+  maó i reixa) i `0333207TM6503S` (galeria al pati i cos ocre al carrer).
 
 ## Atribucions
 

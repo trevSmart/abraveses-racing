@@ -14,3 +14,9 @@
 
 ## Dubtes
 - La fondària del porxo (2,2 m) és una estimació de biaix.
+
+## Cobert fora del Cadastre
+
+Nau d'uns 29 × 7 m (centre UTM 260396.6, 4652759.9). L'ortofoto la mostra com a teula
+`(210, 165, 160)` al llarg de la parcel·la, gairebé sense solapar les parts. No es veu des del
+carrer: paret `[188, 168, 150]` i ràfec 3,2 m són estimats, i les quatre façanes van cegues.

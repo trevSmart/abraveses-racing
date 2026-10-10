@@ -110,13 +110,46 @@
         font: 800 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em;
       }
       #house-tooltip {
-        position: fixed; z-index: 12; pointer-events: auto; cursor: pointer;
-        color: #1a1400; background: #ffd400; padding: 4px 8px; border-radius: 4px;
-        font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
-        white-space: nowrap; transform: translate(-50%, -50%); user-select: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,.35);
+        position: fixed; z-index: 12; width: 292px; pointer-events: auto; cursor: pointer;
+        color: #f3f1ea; background: rgba(22, 26, 30, .58);
+        border: 2px solid rgba(255, 212, 0, .9); border-radius: 12px;
+        overflow: hidden; user-select: none; box-shadow: 0 14px 36px rgba(0,0,0,.35);
+        font: 13px/1.35 system-ui, sans-serif;
+        opacity: 0; transition: opacity .18s ease;
+        -webkit-backdrop-filter: blur(16px) saturate(1.2);
+        backdrop-filter: blur(16px) saturate(1.2);
       }
-      #house-tooltip.copied { background: #9ae6b0; }
+      #house-tooltip.visible { opacity: 1; }
+      #house-tooltip[hidden] { display: none; }
+      @media (prefers-reduced-motion: reduce) {
+        #house-tooltip { transition: none; }
+      }
+      #house-tooltip .photo {
+        position: relative; height: 176px; background: transparent;
+        display: flex; align-items: center; justify-content: center;
+      }
+      #house-tooltip .photo img {
+        position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: transparent;
+      }
+      #house-tooltip .missing { color: rgba(243,241,234,.55); font-size: 13px; padding: 0 16px; text-align: center; }
+      #house-tooltip .credit {
+        position: absolute; left: 8px; bottom: 6px; z-index: 1;
+        font-size: 10px; color: rgba(255,255,255,.88); background: rgba(0,0,0,.5);
+        padding: 1px 6px; border-radius: 999px;
+      }
+      #house-tooltip .body { padding: 10px 12px 12px; }
+      #house-tooltip .street { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+      #house-tooltip .street:empty { display: none; }
+      #house-tooltip dl {
+        display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; margin: 0;
+      }
+      #house-tooltip dt { color: rgba(243,241,234,.55); }
+      #house-tooltip dd { margin: 0; text-align: right; }
+      #house-tooltip .ref {
+        margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.12);
+        font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: #ffd400;
+      }
+      #house-tooltip.copied .ref { color: #9ae6b0; }
       #loading {
         position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
         background: #111; color: #ccc; z-index: 20; font-size: 18px;
@@ -131,7 +164,18 @@
     <div id="speedometer" aria-live="off">0 km/h</div>
     <div id="autopilot-badge" hidden>AUTOPILOT · I per sortir</div>
     <div id="dev-badge" hidden>DEV · Maj+D per sortir</div>
-    <div id="house-tooltip" hidden></div>
+    <div id="house-tooltip" hidden title="Clic per copiar la referència">
+      <div class="photo">
+        <img alt="" />
+        <p class="missing" hidden>Sense foto de façana</p>
+        <span class="credit" hidden>Foto © Catastro</span>
+      </div>
+      <div class="body">
+        <p class="street"></p>
+        <dl></dl>
+        <p class="ref"></p>
+      </div>
+    </div>
     <div id="bigmap" hidden>
       <canvas id="bigmap-canvas"></canvas>
       <div id="bigmap-hint"></div>
@@ -153,6 +197,10 @@
           <input type="checkbox" id="opt-motion-blur" />
           Desenfoc de moviment
         </label>
+        <label class="option">
+          <input type="checkbox" id="opt-air-particles" checked />
+          Partícules de l'aire
+        </label>
         <div class="shortcuts" aria-label="Controls del joc">
           <h3>Controls</h3>
           <kbd>W</kbd> accelerar · <kbd>S</kbd> frenar / enrere · <kbd>A</kbd>/<kbd>D</kbd> girar · <kbd>Espai</kbd> salt ·
@@ -163,7 +211,7 @@
         <button id="options-close" type="button" aria-label="Tancar les opcions">×</button>
       </div>
     </div>
-    <div id="credit" hidden>Ortofoto PNOA cedida per © Instituto Geográfico Nacional (CC BY 4.0) · Mapes © OpenStreetMap · Edificis i parcel·les © Dirección General del Catastro</div>
+    <div id="credit" hidden>Ortofoto PNOA © Instituto Geográfico Nacional (CC BY 4.0) · marges © Esri, Maxar · Mapes © OpenStreetMap · Edificis i parcel·les © Dirección General del Catastro</div>
     <div id="hud" hidden aria-live="polite" title="Clic per copiar les coordenades i l'orientació"><span id="hud-coords">—</span></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

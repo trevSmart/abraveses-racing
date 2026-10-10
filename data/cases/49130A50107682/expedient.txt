@@ -1,0 +1,14 @@
+== 49130A50107682
+   ús 1_residential · 0 habitatges · 46 m² construïts · construïda 2009 · functional
+-- part1: 1 plantes · 32 m² · centre UTM 260249.1, 4653130.3
+     façana  S:  7.57 m, esquerra (t=0) a 260245.9, 4653127.4
+     façana  E:  4.21 m, esquerra (t=0) a 260253.3, 4653129.0
+     façana  N:  7.80 m, esquerra (t=0) a 260252.5, 4653133.1
+     façana  O:  4.20 m, esquerra (t=0) a 260244.8, 4653131.5 (mitgera: toca una altra part o un altre edifici)
+-- part2: 1 plantes · 29 m² · centre UTM 260249.1, 4653119.7
+     façana  S:  3.64 m, esquerra (t=0) a 260248.3, 4653115.5
+     façana  E:  7.79 m, esquerra (t=0) a 260251.8, 4653116.4
+     façana  N:  3.64 m, esquerra (t=0) a 260249.9, 4653123.9
+     façana  O:  7.79 m, esquerra (t=0) a 260246.4, 4653123.0 (mitgera: toca una altra part o un altre edifici)
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/49130A50107682/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/49130A50107682/ortofoto.png

@@ -209,6 +209,21 @@
   footprint: rect
   windows:
     frame: [236, 232, 220]
+  # Nau llarga al sud de la parcel·la, fora de les parts. Mur de bloc cec al carrer (Street View
+  # set. 2024, 7742 ZA-P-2547). L'alçada és estimada: no es veu cap obertura.
+  extra_parts:
+    - outline: [[259965.6, 4653026.9], [259939.9, 4653019.3], [259942.0, 4653012.5], [259967.6, 4653020.1]]
+      floors: 1
+      eave_m: 2.6
+      facade: N
+      wall_material: block
+      wall: [176, 172, 164]
+      roof: {type: gable, ridge: along, pitch_deg: 12, overhang_m: 0.25, fascia: [150, 108, 96]}
+      openings: []
+      facades:
+        - {facade: S, openings: []}
+        - {facade: O, openings: []}
+        - {facade: E, openings: []}
   parts:
     part4:
       floors: 1
@@ -2062,6 +2077,20 @@
 0530104TM6503S:
   review: {level: full, date: "2026-10-09"}
   photo: "Foto de façana del Cadastre (nau de bloc «miniplant», al costat de 0530103)"
+  # Caseta vermellosa a l'ortofoto, a uns 4 m de la nau. Alçada i color de paret estimats; cap
+  # façana vista de prop, així que no s'hi inventen obertures.
+  extra_parts:
+    - outline: [[260378.4, 4652852.0], [260378.4, 4652856.9], [260375.6, 4652856.9], [260375.6, 4652852.0]]
+      floors: 1
+      eave_m: 2.2
+      facade: E
+      wall: [176, 154, 140]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.12, fascia: [140, 96, 88]}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
   parts:
     part1:
       floors: 1
@@ -2451,6 +2480,20 @@
 0530506TM6502N:
   review: {level: full, date: "2026-10-09"}
   photo: "Foto de façana del Cadastre (pedra al pis, bloc groc a baix, balcó i porxo)"
+  # Nau llarga de teula a l'ortofoto, al llarg de la parcel·la i fora de les parts. Les façanes
+  # no es veuen des del carrer: mur cec, alçada estimada.
+  extra_parts:
+    - outline: [[260394.7, 4652745.2], [260404.9, 4652772.5], [260398.7, 4652774.8], [260388.5, 4652747.5]]
+      floors: 1
+      eave_m: 3.2
+      facade: E
+      wall: [188, 168, 150]
+      roof: {type: gable, ridge: along, pitch_deg: 12, overhang_m: 0.2, fascia: [150, 96, 84]}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
   parts:
     part4:
       floors: 2
@@ -3206,3 +3249,1827 @@
       wall: [200, 188, 168]
       roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
       openings: []
+
+# --- Calle Viriato, les 10 genèriques (anàlisi detallada, 2026-10-10) ------------------------
+
+# Casa salmó de dues plantes. La façana del carrer del nord (foto del Cadastre) porta el sòcol de
+# pedra, la porta blanca amb graons i la xemeneia. Al sud, part2 és el garatge de planxa crema
+# que es veu des de la ZA-P-2547 (set. 2024).
+0332007TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre; Street View set. 2024, 4 ZA-P-2547, rumb 0 (el garatge del sud; només referència)"
+  extra_roofs: false
+  windows: {frame: [236, 226, 208], frame_w: 0.12, roller: [228, 226, 220]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.1
+      facade: N
+      wall: [220, 164, 152]
+      cladding: {material: stone, color: [196, 176, 148], height_m: 1.05}
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.35, fascia: [150, 90, 78]}
+      openings:
+        - {kind: window, t: 0.28, w: 1.05, h: 1.15, sill_m: 1.05, roller: 0.55}
+        - {kind: door, t: 0.50, w: 0.9, h: 2.15, bottom_m: 0.15, color: [236, 236, 232], steps: 2, step_color: [150, 140, 128]}
+        - {kind: window, t: 0.70, w: 1.05, h: 1.15, sill_m: 1.05, roller: 0.7}
+        - {kind: window, t: 0.88, w: 0.7, h: 0.85, sill_m: 1.2, roller: 0.85}
+        - {kind: window, floor: 1, t: 0.30, w: 1.0, h: 1.05, sill_m: 0.95, roller: 0.35}
+        - {kind: window, floor: 1, t: 0.74, w: 0.95, h: 1.0, sill_m: 1.0, roller: 0.45}
+      chimneys:
+        - {t: 0.86, depth_m: 2.2, size_m: 0.55, above_m: 1.15, color: [210, 206, 198], cap: [60, 60, 62]}
+      facades:
+        - {facade: S, nth: 2, openings: []}
+    part2:
+      floors: 1
+      eave_m: 3.3
+      facade: S
+      wall: [214, 206, 188]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.25}
+      openings:
+        - {kind: garage, t: 0.5, w: 3.3, h: 2.55, color: [214, 200, 160], frame: [120, 48, 48], leaves: 2}
+
+# Cantonada blanca de la placeta: sòcol de pedra, emmarcats ocre, balcó i porta de reixa.
+# part2 és el cos de dues plantes (planta en L); part3 el cos baix del darrere; part1 un cobert.
+0333608TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Santiago, rumb 240 (només referència)"
+  extra_roofs: false
+  windows: {frame: [214, 176, 96], frame_w: 0.12, roller: [236, 232, 220]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.0
+      facade: S
+      wall: [236, 234, 228]
+      cladding: {material: stone, color: [176, 164, 140], height_m: 1.0}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [214, 176, 96], wings: true}
+      # La S més alineada (nth 1, 10,85 m) és l'ala enretirada. La del carrer és la de 8,36 m.
+      openings: []
+      facades:
+        - facade: S
+          nth: 2
+          openings:
+            - {kind: window, t: 0.22, w: 0.95, h: 1.1, sill_m: 0.95, roller: 0.15}
+            - {kind: door, t: 0.50, w: 0.95, h: 2.15, color: [236, 236, 232]}
+            - {kind: window, t: 0.76, w: 0.95, h: 1.05, sill_m: 1.0, roller: 0.2}
+            - {kind: window, floor: 1, t: 0.20, w: 0.9, h: 1.15, sill_m: 0.15}
+            - {kind: window, floor: 1, t: 0.50, w: 1.05, h: 1.2, sill_m: 0.15}
+            - {kind: window, floor: 1, t: 0.78, w: 0.9, h: 1.1, sill_m: 0.2, roller: 0.35}
+          balconies:
+            - {floor: 1, from: 0.36, to: 0.66, depth_m: 0.85, slab: [214, 176, 110], rail: [40, 40, 42]}
+        - facade: O
+          nth: 2
+          openings:
+            - {kind: window, t: 0.45, w: 0.7, h: 1.0, sill_m: 1.15}
+            - {kind: window, floor: 1, t: 0.45, w: 0.7, h: 0.95, sill_m: 0.9}
+        - {facade: E, openings: []}
+    part3:
+      floors: 1
+      eave_m: 3.4
+      facade: N
+      wall: [232, 230, 224]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.25, wings: true}
+      openings: []
+      facades:
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: O
+      wall: [220, 214, 200]
+      roof: {type: shed, toward: O, pitch_deg: 10, overhang_m: 0.15}
+      openings: []
+
+# Beix de la C. Santiago (1966): sòcol ocre pintat, porta de vidre i tres finestres al pis.
+0432811TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Santiago, rumb 0 (només referència)"
+  extra_roofs: false
+  windows: {frame: [236, 232, 224], roller: [232, 230, 226]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.0
+      facade: NE
+      wall: [214, 190, 148]
+      plinth: [196, 148, 86]
+      plinth_h: 1.15
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.3, fascia: [90, 90, 92]}
+      openings:
+        - {kind: door, t: 0.28, w: 0.95, h: 2.15, color: [168, 172, 176]}
+        - {kind: window, t: 0.72, w: 1.15, h: 1.2, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.22, w: 1.05, h: 1.1, sill_m: 0.85, roller: 0.25}
+        - {kind: window, floor: 1, t: 0.50, w: 1.05, h: 1.1, sill_m: 0.85, roller: 0.2}
+        - {kind: window, floor: 1, t: 0.78, w: 1.05, h: 1.1, sill_m: 0.85, roller: 0.35}
+      facades:
+        - facade: SO
+          openings:
+            - {kind: window, floor: 1, t: 0.82, w: 0.8, h: 0.85, sill_m: 1.15}
+    part2:
+      floors: 1
+      eave_m: 3.1
+      facade: S
+      wall: [210, 186, 146]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.2}
+      openings: []
+
+# Cantonada de Viriato amb Santiago. Al Cadastre, portal groc i coberta de xapa; al Street View
+# del 2024 el retorn de Santiago és un mur arrebossat cec. El portal es deixa a la façana S.
+0432812TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (portal groc) i Street View set. 2024, 1 C. Santiago, rumb 40 (retorn cec; només referència)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 4.2
+      facade: S
+      wall: [206, 202, 194]
+      roof: {type: shed, toward: S, pitch_deg: 6, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.48, w: 2.5, h: 2.55, color: [214, 186, 48], frame: [80, 80, 82], leaves: 2}
+        - {kind: window, t: 0.48, w: 0.7, h: 0.55, sill_m: 3.15}
+      facades:
+        - {facade: SO, openings: []}
+
+# Casa de maó d'una planta, retirada, amb teula i xemeneia. El pati té un mur de bloc i malla.
+0432813TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (des del pati; el carrer no la veu de cara)"
+  extra_roofs: false
+  wall_material: brick
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.1
+      facade: S
+      wall: [176, 96, 70]
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.4, fascia: [150, 70, 56]}
+      openings: []
+      chimneys:
+        - {t: 0.22, depth_m: 1.5, size_m: 0.55, above_m: 1.3, color: [186, 170, 150], cap: [70, 70, 72]}
+      facades:
+        - facade: S
+          nth: 2
+          openings:
+            - {kind: window, t: 0.35, w: 1.1, h: 1.0, sill_m: 1.15}
+        - {facade: O, openings: []}
+        - {facade: N, openings: []}
+    part3:
+      floors: 1
+      eave_m: 3.3
+      facade: S
+      wall: [168, 92, 68]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.3}
+      openings: []
+      facades:
+        - {facade: O, openings: []}
+        - {facade: E, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [170, 96, 72]
+      roof: {type: shed, toward: E, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa blanca retirada: galeria vidrada al pis amb tendal de ratlles, i nau baixa al nord.
+# part1 és una franja de 0,7 m del Cadastre (no és un cos): es deixa com a muret.
+0432814TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (des del pati; escala exterior no modelada)"
+  extra_roofs: false
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.2
+      facade: E
+      wall: [236, 232, 226]
+      plinth: [196, 184, 160]
+      plinth_h: 0.4
+      roof: {type: hip, pitch_deg: 12, overhang_m: 0.45, fascia: [230, 226, 216]}
+      windows: {frame: [210, 206, 198]}
+      openings:
+        - {kind: window, floor: 1, t: 0.18, w: 2.0, h: 1.55, sill_m: 0.15, awning: {depth_m: 0.55, color: [236, 230, 210], stripe: [186, 150, 90]}}
+        - {kind: window, floor: 1, t: 0.42, w: 2.0, h: 1.55, sill_m: 0.15, awning: {depth_m: 0.55, color: [236, 230, 210], stripe: [186, 150, 90]}}
+        - {kind: window, floor: 1, t: 0.66, w: 2.0, h: 1.55, sill_m: 0.15, awning: {depth_m: 0.55, color: [236, 230, 210], stripe: [186, 150, 90]}}
+        - {kind: window, floor: 1, t: 0.88, w: 1.6, h: 1.55, sill_m: 0.15, awning: {depth_m: 0.55, color: [236, 230, 210], stripe: [186, 150, 90]}}
+      chimneys:
+        - {t: 0.92, depth_m: 1.2, size_m: 0.5, above_m: 1.0, color: [236, 232, 226], cap: [40, 40, 42]}
+      facades:
+        - {facade: S, openings: []}
+        - {facade: N, openings: []}
+    part3:
+      floors: 1
+      eave_m: 2.7
+      facade: S
+      wall: [200, 196, 186]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.45, w: 1.6, h: 2.1, color: [150, 156, 160], frame: [120, 124, 128], leaves: 1}
+    part1:
+      floors: 1
+      eave_m: 1.2
+      facade: O
+      wall: [210, 204, 190]
+      roof: {type: none}
+      openings: []
+
+# Casa salmó de la placeta: dues finestres a cada planta al tester oest, garatge marró (part1)
+# i cobert de xapa a l'est (part3).
+0432815TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Santiago, rumb 80 (només referència)"
+  extra_roofs: false
+  windows: {frame: [186, 120, 116], frame_w: 0.1, roller: [80, 84, 90]}
+  parts:
+    part4:
+      floors: 2
+      eave_m: 6.0
+      facade: O
+      wall: [214, 142, 132]
+      plinth: [176, 96, 108]
+      plinth_h: 1.15
+      roof: {type: gable, ridge: along, pitch_deg: 24, overhang_m: 0.3, fascia: [150, 86, 78]}
+      openings:
+        - {kind: window, t: 0.32, w: 0.85, h: 0.85, sill_m: 1.15}
+        - {kind: window, t: 0.68, w: 0.9, h: 1.05, sill_m: 0.95, roller: 0.4}
+        - {kind: window, floor: 1, t: 0.32, w: 0.9, h: 1.0, sill_m: 0.95, roller: 0.15}
+        - {kind: window, floor: 1, t: 0.68, w: 0.9, h: 1.0, sill_m: 0.95, roller: 0.2}
+      facades:
+        - {facade: N, openings: []}
+        - {facade: E, openings: []}
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: O
+      wall: [214, 142, 132]
+      plinth: [176, 96, 108]
+      plinth_h: 1.0
+      roof: {type: shed, toward: O, pitch_deg: 12, overhang_m: 0.25}
+      openings:
+        - {kind: garage, t: 0.55, w: 2.3, h: 2.35, color: [112, 74, 56], frame: [90, 60, 48], leaves: 2}
+    part3:
+      floors: 1
+      eave_m: 2.9
+      facade: O
+      wall: [176, 184, 188]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: N
+      wall: [206, 140, 130]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.15, wings: true}
+      openings: []
+    part5:
+      floors: 1
+      eave_m: 2.7
+      facade: N
+      wall: [200, 188, 176]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Cobert petit entre arbres, al fons de la finca. El carrer no el veu; la foto del Cadastre tampoc.
+0432816TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (només arbres) i ortofoto; sense Street View"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [168, 148, 120]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.2}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+        - {facade: E, openings: []}
+        - {facade: O, openings: []}
+
+# Casa crema de dues plantes (part2, al carrer del sud): sòcol de pedra, balcó de ferro i porta
+# d'alumini. part1 és el cos del darrere, també de dues plantes; part3 un annex baix.
+0432817TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (crema, balcó negre, sòcol de pedra)"
+  extra_roofs: false
+  windows: {frame: [176, 136, 84], frame_w: 0.12, roller: [72, 64, 70]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.0
+      facade: S
+      wall: [228, 208, 172]
+      cladding: {material: stone, color: [176, 164, 140], height_m: 1.0}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [160, 110, 70]}
+      openings:
+        - {kind: window, t: 0.22, w: 1.15, h: 1.15, sill_m: 0.95}
+        - {kind: door, t: 0.52, w: 1.0, h: 2.2, color: [196, 200, 202]}
+        - {kind: window, t: 0.82, w: 1.15, h: 1.15, sill_m: 0.95}
+        - {kind: window, floor: 1, t: 0.22, w: 1.05, h: 1.15, sill_m: 0.35}
+        - {kind: window, floor: 1, t: 0.52, w: 1.1, h: 1.2, sill_m: 0.3}
+        - {kind: window, floor: 1, t: 0.82, w: 1.05, h: 1.15, sill_m: 0.35}
+      balconies:
+        - {floor: 1, from: 0.38, to: 0.68, depth_m: 0.9, slab: [186, 146, 90], rail: [28, 28, 30]}
+      chimneys:
+        - {t: 0.92, depth_m: 1.6, size_m: 0.45, above_m: 0.9, color: [50, 50, 52]}
+    part1:
+      floors: 2
+      eave_m: 5.8
+      facade: S
+      wall: [224, 204, 170]
+      cladding: {material: stone, color: [176, 164, 140], height_m: 0.9}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3, wings: true}
+      openings:
+        - {kind: window, t: 0.3, w: 0.9, h: 1.05, sill_m: 1.05}
+        - {kind: door, t: 0.55, w: 0.9, h: 2.1, color: [120, 96, 72]}
+        - {kind: window, t: 0.8, w: 0.9, h: 1.05, sill_m: 1.05}
+        - {kind: window, floor: 1, t: 0.3, w: 0.85, h: 1.0, sill_m: 0.95}
+        - {kind: window, floor: 1, t: 0.6, w: 0.85, h: 1.0, sill_m: 0.95}
+      facades:
+        - {facade: S, nth: 2, openings: []}
+        - {facade: S, nth: 3, openings: []}
+        - {facade: O, openings: []}
+    part3:
+      floors: 1
+      eave_m: 3.0
+      facade: E
+      wall: [210, 196, 170]
+      roof: {type: shed, toward: E, pitch_deg: 8, overhang_m: 0.15, wings: true}
+      openings: []
+
+# Maó de 1998 a la cantonada de la placeta: portal marró a la façana S i balcó curt a la SO.
+0432818TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Santiago, rumbs 80 i 120 (només referència)"
+  extra_roofs: false
+  wall_material: brick
+  windows: {frame: [90, 70, 58], roller: [70, 55, 48]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.2
+      facade: S
+      wall: [186, 102, 72]
+      plinth: [196, 176, 146]
+      plinth_h: 0.4
+      roof: {type: hip, pitch_deg: 16, overhang_m: 0.4, fascia: [236, 232, 224]}
+      openings:
+        - {kind: garage, t: 0.32, w: 2.5, h: 2.3, color: [120, 78, 56], frame: [90, 70, 54], leaves: 1}
+        - {kind: window, floor: 1, t: 0.30, w: 0.85, h: 0.75, sill_m: 1.05, roller: 0.9}
+      facades:
+        - facade: SO
+          openings:
+            - {kind: window, floor: 1, t: 0.28, w: 0.6, h: 1.05, sill_m: 0.7, roller: 0.85}
+            - {kind: window, floor: 1, t: 0.62, w: 0.7, h: 1.15, sill_m: 0.45}
+          balconies:
+            - {floor: 1, from: 0.48, to: 0.78, depth_m: 0.75, slab: [236, 232, 224], rail: [36, 36, 38]}
+        - {facade: N, openings: []}
+
+# Maó groc de la C. Calzada (1986): portal verd a la dreta mirant la façana N, porta blanca al centre.
+0232109TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, ZA-P-2547, rumb 180 (només referència)"
+  extra_roofs: false
+  wall_material: brick
+  windows: {frame: [236, 232, 224], roller: [228, 226, 218]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.0
+      facade: N
+      wall: [214, 186, 132]
+      roof: {type: gable, ridge: along, pitch_deg: 12, overhang_m: 0.28, fascia: [96, 96, 98]}
+      openings:
+        - {kind: window, t: 0.12, w: 0.95, h: 1.05, sill_m: 1.0, roller: 0.85}
+        - {kind: window, t: 0.28, w: 0.95, h: 1.05, sill_m: 1.0, roller: 0.7}
+        - {kind: door, t: 0.43, w: 0.9, h: 2.1, color: [236, 236, 232], steps: 1, step_color: [176, 172, 164]}
+        - {kind: window, t: 0.58, w: 0.95, h: 1.05, sill_m: 1.0, roller: 0.9}
+        - {kind: garage, t: 0.82, w: 3.2, h: 2.45, color: [72, 142, 64], frame: [56, 110, 50], leaves: 2}
+        - {kind: window, floor: 1, t: 0.12, w: 1.0, h: 1.05, sill_m: 0.8, roller: 0.3}
+        - {kind: window, floor: 1, t: 0.28, w: 1.0, h: 1.05, sill_m: 0.8, roller: 0.15}
+        - {kind: window, floor: 1, t: 0.43, w: 1.0, h: 1.05, sill_m: 0.8, roller: 0.2}
+        - {kind: window, floor: 1, t: 0.62, w: 0.85, h: 0.7, sill_m: 1.15, roller: 0.35}
+      facades:
+        - {facade: O, openings: []}
+        - {facade: E, openings: []}
+    part1:
+      floors: 1
+      eave_m: 1.1
+      facade: S
+      wall: [200, 176, 128]
+      roof: {type: none}
+      openings: []
+
+# Casa nova de 2014: arrebossat crema, emmarcats de maó, porxo i balcó fosc. El portal de fusta és a la tanca.
+0232110TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, ZA-P-2547, rumbs 200–280 (només referència)"
+  extra_roofs: false
+  windows: {frame: [156, 84, 64], frame_w: 0.1, roller: [110, 72, 52]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.3
+      facade: N
+      wall: [236, 228, 214]
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.45, fascia: [48, 40, 36]}
+      # La N més alineada (nth 1) és un tram de 2,5 m de mitgera. La del carrer és la de 8,6 m.
+      openings: []
+      facades:
+        - facade: N
+          nth: 2
+          canopies:
+            - {from: 0.05, to: 0.72, height_m: 2.7, depth_m: 1.15, color: [168, 78, 58], posts: true, post_color: [48, 40, 36], post_m: 0.22}
+          openings:
+            - {kind: window, t: 0.22, w: 0.85, h: 1.15, sill_m: 0.9, roller: 0.35}
+            - {kind: window, t: 0.48, w: 0.85, h: 1.15, sill_m: 0.9, roller: 0.2}
+            - {kind: window, floor: 1, t: 0.22, w: 0.8, h: 1.2, sill_m: 0.35, roller: 0.15}
+            - {kind: window, floor: 1, t: 0.48, w: 0.8, h: 1.2, sill_m: 0.35, roller: 0.1}
+        - facade: E
+          openings:
+            - {kind: window, t: 0.32, w: 0.85, h: 1.1, sill_m: 0.95, roller: 0.4}
+            - {kind: window, t: 0.68, w: 0.85, h: 1.1, sill_m: 0.95, roller: 0.25}
+            - {kind: window, floor: 1, t: 0.32, w: 0.8, h: 1.35, sill_m: 0.25, roller: 0.2}
+            - {kind: window, floor: 1, t: 0.68, w: 0.8, h: 1.35, sill_m: 0.25, roller: 0.15}
+          balconies:
+            - {floor: 1, from: 0.12, to: 0.88, depth_m: 1.05, slab: [42, 40, 38], rail: [28, 28, 30]}
+        - {facade: O, openings: []}
+    part3:
+      floors: 1
+      eave_m: 3.1
+      facade: E
+      wall: [232, 224, 210]
+      roof: {type: shed, toward: E, pitch_deg: 8, overhang_m: 0.15}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: S
+      wall: [210, 150, 120]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.2}
+      openings: []
+
+# Casa vella emblanquinada (1900): porta de fusta, finestra amb gelosia i ràfec de teula.
+0232111TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (el tram de Street View del 2024 no la veu de cara)"
+  extra_roofs: false
+  windows: {frame: [210, 200, 186]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: N
+      wall: [236, 232, 224]
+      plinth: [150, 146, 138]
+      plinth_h: 0.55
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.4, fascia: [176, 72, 58]}
+      openings:
+        - {kind: window, t: 0.16, w: 0.7, h: 0.85, sill_m: 1.15}
+        - {kind: window, t: 0.30, w: 0.55, h: 0.55, sill_m: 1.7, fill: [236, 232, 224]}
+        - {kind: door, t: 0.44, w: 0.9, h: 2.05, color: [120, 84, 56]}
+        - {kind: window, t: 0.64, w: 0.75, h: 0.8, sill_m: 1.2}
+        - {kind: window, floor: 1, t: 0.20, w: 0.7, h: 0.7, sill_m: 1.15}
+        - {kind: window, floor: 1, t: 0.78, w: 0.45, h: 0.4, sill_m: 1.5}
+      facades:
+        - {facade: O, openings: []}
+        - {facade: E, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [228, 222, 210]
+      roof: {type: shed, toward: S, pitch_deg: 10, overhang_m: 0.15}
+      openings: []
+
+# Nau de maó al fons, amb tanca de maó i portal blau al carrer (foto del Cadastre).
+0233401TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (portal blau i nau de maó)"
+  extra_roofs: false
+  wall_material: brick
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.2
+      facade: E
+      wall: [176, 86, 64]
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.25, fascia: [150, 70, 54]}
+      openings:
+        - {kind: window, floor: 1, t: 0.55, w: 0.7, h: 1.5, sill_m: 0.4, fill: [120, 96, 72]}
+        - {kind: window, floor: 1, t: 0.78, w: 0.55, h: 1.6, sill_m: 0.35}
+      facades:
+        - {facade: S, openings: []}
+        - {facade: O, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [168, 80, 60]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Al carrer, el 2024 és un mur blanc amb sòcol rosa i portal de fusta (el 6); al darrere, un frontó.
+0233402TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Street View set. 2024, ZA-P-2547, rumb 0 (el mur); la foto del Cadastre encara mostra bloc vist"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.4
+      facade: S
+      openings: []
+      wall: [186, 140, 120]
+      roof: {type: gable, ridge: across, pitch_deg: 24, overhang_m: 0.15, fascia: [160, 150, 140]}
+      facades:
+        - facade: S
+          nth: 2
+          openings: []
+        - {facade: E, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [236, 230, 224]
+      plinth: [214, 156, 148]
+      plinth_h: 0.55
+      roof: {type: shed, toward: S, pitch_deg: 6, overhang_m: 0.12, fascia: [168, 90, 68]}
+      openings:
+        - {kind: garage, t: 0.72, w: 2.4, h: 1.95, color: [110, 74, 48], frame: [90, 60, 40], leaves: 1}
+      facades:
+        - facade: S
+          nth: 2
+          openings: []
+
+# Garatge beix del 2024 (a la foto del Cadastre era groc, amb heura). Cos de dues plantes al darrere.
+0233403TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Street View set. 2024, ZA-P-2547, rumb 80 (garatge beix); foto del Cadastre més antiga"
+  extra_roofs: false
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: S
+      wall: [214, 186, 140]
+      plinth: [196, 160, 96]
+      plinth_h: 0.7
+      roof: {type: shed, toward: S, pitch_deg: 10, overhang_m: 0.2, fascia: [150, 70, 56]}
+      openings:
+        - {kind: garage, t: 0.55, w: 2.3, h: 2.25, color: [196, 176, 140], frame: [150, 150, 148], leaves: 1}
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: S
+      openings: []
+      wall: [220, 190, 120]
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3, fascia: [168, 78, 58]}
+      chimneys:
+        - {t: 0.2, depth_m: 1.2, size_m: 0.5, above_m: 0.8, color: [160, 80, 60]}
+      facades:
+        - facade: S
+          nth: 2
+          openings: []
+        - {facade: E, openings: []}
+        - {facade: O, openings: []}
+
+# Façana ocre llarga, finestres amb reixa i una de persiana. El portal blau del costat és de la finca veïna.
+0233404TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (ocre, reixes)"
+  extra_roofs: false
+  windows: {frame: [90, 90, 92], roller: [230, 226, 214]}
+  parts:
+    part3:
+      floors: 2
+      eave_m: 5.8
+      facade: E
+      wall: [196, 164, 120]
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [90, 86, 80]}
+      openings:
+        - {kind: window, floor: 1, t: 0.38, w: 0.9, h: 1.05, sill_m: 0.9, roller: 0.45}
+        - {kind: window, t: 0.58, w: 0.95, h: 0.9, sill_m: 1.15}
+        - {kind: window, t: 0.78, w: 0.9, h: 0.85, sill_m: 1.2}
+      facades:
+        - {facade: O, openings: []}
+        - facade: "NO"
+          openings: []
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [186, 160, 124]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 2.6
+      facade: O
+      wall: [176, 150, 116]
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Paret de tova amb sòcol de pedra: una porta i dues finestres altes, al llarg del carrer.
+0233405TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (tova i pedra)"
+  extra_roofs: false
+  windows: {frame: [120, 96, 70]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.2
+      facade: SE
+      openings: []
+      wall: [196, 156, 96]
+      cladding: {material: stone, color: [140, 124, 96], height_m: 0.95}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [90, 70, 56]}
+      facades:
+        - facade: SE
+          nth: 2
+          openings:
+            - {kind: door, t: 0.32, w: 0.85, h: 1.9, color: [110, 78, 52]}
+            - {kind: window, t: 0.58, w: 0.7, h: 0.85, sill_m: 1.25}
+            - {kind: window, t: 0.78, w: 0.7, h: 0.8, sill_m: 1.3}
+        - facade: "NO"
+          openings: []
+        - facade: SO
+          openings: []
+    part2:
+      floors: 1
+      eave_m: 2.7
+      facade: SE
+      wall: [186, 150, 96]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa de 1975: baixos grocs i pis gris el 2024, escala exterior de ferro i garatge de xapa.
+0233701TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Street View set. 2024, ZA-P-2547, rumb 0 (escala); la foto del Cadastre encara la mostra blanca"
+  extra_roofs: false
+  windows: {frame: [230, 228, 222], roller: [220, 218, 210]}
+  parts:
+    part3:
+      floors: 2
+      eave_m: 6.3
+      facade: SE
+      wall: [168, 164, 156]
+      cladding: {color: [214, 186, 96], height_m: 3.05}
+      roof: {type: hip, pitch_deg: 10, overhang_m: 0.45, fascia: [236, 234, 228]}
+      openings:
+        - {kind: window, t: 0.16, w: 0.7, h: 0.6, sill_m: 1.45, roller: 0.85}
+        - {kind: window, t: 0.48, w: 0.7, h: 0.55, sill_m: 1.5, roller: 0.9}
+        - {kind: door, t: 0.76, w: 0.8, h: 2.0, color: [214, 210, 200]}
+        - {kind: window, t: 0.92, w: 0.7, h: 0.55, sill_m: 1.5, roller: 0.8}
+        - {kind: window, floor: 1, t: 0.22, w: 1.15, h: 1.2, sill_m: 0.7}
+        - {kind: window, floor: 1, t: 0.48, w: 0.85, h: 1.0, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.90, w: 0.7, h: 0.85, sill_m: 1.05}
+      stairs:
+        - {from: 0.30, to: 0.58, depth_m: 3.2, floor: 1, color: [228, 224, 214], rail: [186, 192, 196]}
+      balconies:
+        - {floor: 1, from: 0.52, to: 0.78, depth_m: 0.85, slab: [214, 186, 96], rail: [176, 182, 188]}
+      facades:
+        - {facade: NE, openings: []}
+        - facade: "NO"
+          openings: []
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: SE
+      wall: [214, 186, 96]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.15, fascia: [140, 146, 150]}
+      openings:
+        - {kind: garage, t: 0.5, w: 2.5, h: 2.35, color: [176, 180, 184], frame: [140, 144, 148], leaves: 1}
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: SE
+      wall: [206, 188, 160]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part4:
+      floors: 1
+      eave_m: 2.5
+      facade: SE
+      wall: [200, 184, 156]
+      roof: {type: shed, toward: NE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Cobert del carrer: el 2024 és ocre, amb un forat tapiat de fusta i un portal blau al costat.
+0233702TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Street View set. 2024, ZA-P-2547, rumbs 0 i 240; la foto del Cadastre encara mostra maó vist"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.1
+      facade: SE
+      wall: [206, 176, 124]
+      plinth: [168, 156, 132]
+      plinth_h: 0.4
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.2, fascia: [120, 128, 136]}
+      openings:
+        - {kind: window, t: 0.42, w: 1.55, h: 1.15, sill_m: 0.8, fill: [92, 64, 44]}
+      facades:
+        - facade: SO
+          openings:
+            - {kind: garage, t: 0.62, w: 2.4, h: 2.4, color: [64, 112, 164], frame: [48, 78, 116], leaves: 2}
+        - facade: "NO"
+          openings: []
+
+# Mur blanc i portal de xapa al sud de la C. Santiago. El 2024 el portal és blau i el sòcol, vermellós.
+0333607TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, C. Santiago, rumb 225 (només referència)"
+  extra_roofs: false
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.4
+      facade: E
+      wall: [236, 232, 224]
+      plinth: [158, 86, 74]
+      plinth_h: 0.85
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.84, w: 3.3, h: 2.6, color: [56, 110, 168], frame: [200, 200, 198], leaves: 2}
+      facades:
+        - facade: E
+          nth: 2
+          openings: []
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
+    part1:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [228, 224, 216]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa groga de dues plantes: sòcol de pedra, porta de maó i balcó curt.
+0333606TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, C. Santiago, rumb 180 (només referència)"
+  extra_roofs: false
+  windows: {frame: [176, 84, 64], roller: [236, 234, 228]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.1
+      facade: E
+      wall: [214, 186, 120]
+      cladding: {material: stone, color: [168, 140, 96], height_m: 1.05}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.35, fascia: [150, 64, 52]}
+      openings:
+        - {kind: door, t: 0.16, w: 1.15, h: 2.15, color: [196, 196, 192]}
+        - {kind: door, t: 0.36, w: 0.85, h: 2.05, color: [90, 78, 64]}
+        - {kind: door, t: 0.58, w: 0.95, h: 2.15, color: [36, 36, 38], frame: [176, 84, 64]}
+        - {kind: window, t: 0.80, w: 1.05, h: 1.15, sill_m: 1.05, roller: 0.55}
+        - {kind: window, floor: 1, t: 0.22, w: 0.85, h: 1.05, sill_m: 0.9, roller: 0.35}
+        - {kind: window, floor: 1, t: 0.55, w: 0.8, h: 1.15, sill_m: 0.35, roller: 0.15}
+        - {kind: window, floor: 1, t: 0.80, w: 0.9, h: 1.05, sill_m: 0.9, roller: 0.2}
+      balconies:
+        - {floor: 1, from: 0.46, to: 0.66, depth_m: 0.7, slab: [214, 186, 120], rail: [36, 36, 38]}
+      facades:
+        - {facade: N, openings: []}
+        - {facade: O, openings: []}
+
+# Casa blanca del 1968, balcó corregut i persianes marrons, a la façana oest del carrer.
+0432809TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (balcó blanc i persianes marrons)"
+  extra_roofs: false
+  windows: {frame: [90, 90, 92], roller: [110, 78, 58]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.2
+      facade: O
+      wall: [236, 232, 226]
+      cladding: {color: [176, 140, 116], height_m: 0.95}
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.3, fascia: [220, 216, 208]}
+      openings:
+        - {kind: garage, t: 0.12, w: 1.15, h: 2.15, color: [140, 148, 150], leaves: 1}
+        - {kind: window, t: 0.34, w: 1.05, h: 1.15, sill_m: 0.95, roller: 0.85}
+        - {kind: window, t: 0.50, w: 1.05, h: 1.15, sill_m: 0.95, roller: 0.9}
+        - {kind: door, t: 0.66, w: 0.95, h: 2.15, color: [120, 90, 64]}
+        - {kind: window, t: 0.84, w: 1.7, h: 1.2, sill_m: 0.9, roller: 0.75}
+        - {kind: window, floor: 1, t: 0.28, w: 0.7, h: 1.05, sill_m: 0.45, roller: 0.3}
+        - {kind: window, floor: 1, t: 0.42, w: 0.7, h: 1.05, sill_m: 0.45, roller: 0.25}
+        - {kind: window, floor: 1, t: 0.58, w: 0.75, h: 1.1, sill_m: 0.4, roller: 0.2}
+        - {kind: window, floor: 1, t: 0.78, w: 0.9, h: 1.15, sill_m: 0.35, roller: 0.15}
+      balconies:
+        - {floor: 1, from: 0.22, to: 0.96, depth_m: 1.05, slab: [236, 232, 226], rail: [230, 230, 228]}
+      facades:
+        - facade: "NO"
+          openings: []
+        - {facade: SE, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: SE
+      wall: [228, 224, 216]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 3.0
+      facade: S
+      wall: [220, 200, 170]
+      roof: {type: shed, toward: S, pitch_deg: 10, overhang_m: 0.15}
+      openings: []
+
+# Casa grisa de dues plantes, amb balcó i sòcol de marbre. Al costat, el portal blau és de la finca veïna.
+0333605TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, C. Santiago, rumb 270 (només referència)"
+  extra_roofs: false
+  windows: {frame: [230, 228, 222], roller: [120, 82, 60]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.2
+      facade: NE
+      wall: [176, 168, 156]
+      cladding: {color: [214, 196, 176], height_m: 0.9}
+      roof: {type: hip, pitch_deg: 16, overhang_m: 0.35, fascia: [210, 206, 198]}
+      openings:
+        - {kind: window, t: 0.22, w: 0.95, h: 1.0, sill_m: 1.15, roller: 0.7}
+        - {kind: door, t: 0.50, w: 0.95, h: 2.15, color: [236, 234, 228], roller: 0.15}
+        - {kind: window, t: 0.78, w: 0.95, h: 1.0, sill_m: 1.15, roller: 0.55}
+        - {kind: window, floor: 1, t: 0.20, w: 0.9, h: 1.05, sill_m: 0.85, roller: 0.35}
+        - {kind: window, floor: 1, t: 0.50, w: 0.9, h: 1.15, sill_m: 0.4, roller: 0.2}
+        - {kind: window, floor: 1, t: 0.80, w: 0.9, h: 1.05, sill_m: 0.85, roller: 0.3}
+      balconies:
+        - {floor: 1, from: 0.38, to: 0.64, depth_m: 0.9, slab: [190, 184, 174], rail: [220, 220, 218]}
+      facades:
+        - {facade: O, openings: []}
+        - {facade: N, openings: []}
+    part1:
+      floors: 1
+      eave_m: 2.7
+      facade: S
+      wall: [186, 176, 160]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Cobert blanc petit, amb sòcol groc i una finestreta. El portal blau del costat és de la casa veïna.
+0432807TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, C. Santiago, rumb 0 (només referència)"
+  extra_roofs: false
+  windows: {frame: [196, 150, 48]}
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.6
+      facade: SO
+      wall: [236, 230, 216]
+      plinth: [196, 150, 48]
+      plinth_h: 0.85
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.25, fascia: [176, 72, 58]}
+      openings:
+        - {kind: window, t: 0.55, w: 0.7, h: 0.85, sill_m: 1.7}
+      facades:
+        - facade: "NO"
+          openings: []
+        - {facade: NE, openings: []}
+
+# Garatge ocre d'una planta, portal de lames fosques.
+0333603TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (garatge ocre)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.1
+      facade: S
+      wall: [206, 176, 124]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.15, fascia: [150, 70, 56]}
+      openings:
+        - {kind: garage, t: 0.55, w: 3.1, h: 2.35, color: [96, 72, 56], frame: [70, 64, 58], leaves: 2}
+      facades:
+        - {facade: O, openings: []}
+        - {facade: SE, openings: []}
+
+# Casa blanca amb emmarcats grocs, xemeneia i portal fosc sota un teuladí.
+0432806TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, C. Santiago, rumb 0 (només referència)"
+  extra_roofs: false
+  windows: {frame: [196, 150, 48]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: S
+      wall: [236, 232, 224]
+      plinth: [196, 150, 48]
+      plinth_h: 0.9
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.3, fascia: [160, 70, 54]}
+      openings:
+        - {kind: window, t: 0.22, w: 0.75, h: 0.85, sill_m: 1.15}
+        - {kind: window, floor: 1, t: 0.24, w: 0.7, h: 0.75, sill_m: 1.05}
+        - {kind: garage, t: 0.72, w: 2.7, h: 2.35, color: [70, 62, 54], frame: [236, 232, 224], leaves: 2}
+      canopies:
+        - {from: 0.55, to: 0.90, height_m: 2.7, depth_m: 0.7, color: [168, 78, 58]}
+      chimneys:
+        - {t: 0.32, depth_m: 2.2, size_m: 0.55, above_m: 1.1, color: [150, 70, 54]}
+      facades:
+        - {facade: SO, openings: []}
+
+# El 10: el carrer veu el portal de reixa i un garatge; el mur de trencadís és el pati.
+0432805TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Street View set. 2024, C. Santiago, rumb 90 (el 10); la foto del Cadastre és el pati"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.0
+      facade: S
+      wall: [230, 224, 214]
+      cladding: {material: stone, color: [168, 160, 148], height_m: 0.7}
+      roof: {type: shed, toward: S, pitch_deg: 10, overhang_m: 0.2, fascia: [150, 150, 148]}
+      openings:
+        - {kind: garage, t: 0.55, w: 2.5, h: 2.3, color: [150, 154, 156], frame: [90, 90, 92], leaves: 1}
+    part2:
+      floors: 2
+      eave_m: 5.8
+      facade: S
+      openings: []
+      wall: [236, 232, 226]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25}
+      facades:
+        - {facade: O, openings: []}
+        - {facade: N, openings: []}
+    part3:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [228, 224, 216]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Entrada del 24: portal de xapa entre murs de tova. Al Cadastre és un volum sense plantes.
+0432383TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto de façana del Cadastre (portal de xapa, el 24)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.5
+      facade: SE
+      wall: [196, 164, 112]
+      roof: {type: none}
+      openings:
+        - {kind: garage, t: 0.50, w: 3.2, h: 2.05, color: [168, 174, 176], frame: [140, 146, 148], leaves: 2}
+      facades:
+        - facade: NE
+          openings: []
+        - facade: "NO"
+          openings: []
+
+# Façana blanca amb porta i portal de fusta blaus. El mur alt pelat continua al nord.
+0432804TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View set. 2024, C. Santiago, rumb 90 del panorama nord (només referència)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: "NO"
+      wall: [232, 224, 208]
+      plinth: [140, 124, 100]
+      plinth_h: 0.45
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.12, fascia: [160, 156, 148]}
+      openings:
+        - {kind: door, t: 0.28, w: 0.85, h: 2.0, color: [48, 100, 164]}
+        - {kind: garage, t: 0.68, w: 2.7, h: 2.45, color: [56, 108, 168], frame: [48, 78, 120], leaves: 2}
+    part3:
+      floors: 2
+      eave_m: 5.8
+      facade: E
+      wall: [228, 220, 206]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25}
+      openings: []
+      facades:
+        - {facade: O, openings: []}
+    part2:
+      floors: 1
+      eave_m: 3.4
+      facade: O
+      wall: [220, 206, 180]
+      plinth: [150, 132, 100]
+      plinth_h: 0.6
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Mur blanc pelat al revolt, amb el cos de dues plantes al darrere.
+0432803TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre; el carrer és el mur llarg (només referència)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.1
+      facade: S
+      wall: [228, 214, 190]
+      plinth: [150, 138, 118]
+      plinth_h: 0.7
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.15, fascia: [168, 112, 88]}
+      openings: []
+      facades:
+        - {facade: E, nth: 3, openings: []}
+        - {facade: E, nth: 1, openings: []}
+        - {facade: O, openings: []}
+        - {facade: O, nth: 2, openings: []}
+        - {facade: SO, openings: []}
+    part2:
+      floors: 2
+      eave_m: 6.0
+      facade: N
+      wall: [214, 186, 150]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25}
+      openings: []
+      facades:
+        - {facade: S, openings: []}
+        - {facade: S, nth: 2, openings: []}
+        - {facade: E, openings: []}
+
+# Garatge de lames beix, paret grisa i remat vermell. El portal mira al nord.
+0432802TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View 2024, panorama 18 C. Santiago (només referència)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.15
+      facade: N
+      wall: [168, 166, 160]
+      roof: {type: shed, toward: N, pitch_deg: 6, overhang_m: 0.15, fascia: [168, 64, 58]}
+      openings:
+        - {kind: garage, t: 0.50, w: 3.15, h: 2.35, color: [214, 186, 120], frame: [150, 110, 62], leaves: 2}
+      facades:
+        - {facade: O, openings: []}
+
+# Garatge blanc amb frontó i portal gris. La finestreta del frontó està tapiada amb maó.
+0432801TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre; al fons del panorama del 2024 es veu el portal gris (només referència)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.4
+      facade: N
+      wall: [232, 228, 220]
+      plinth: [158, 152, 142]
+      plinth_h: 0.55
+      roof: {type: gable, ridge: across, pitch_deg: 24, overhang_m: 0.15, fascia: [150, 146, 138]}
+      openings:
+        - {kind: window, t: 0.42, w: 0.55, h: 0.6, sill_m: 2.35, fill: [160, 72, 58]}
+      facades:
+        - facade: E
+          openings:
+            - {kind: garage, t: 0.55, w: 2.9, h: 2.4, color: [132, 136, 140], frame: [110, 114, 118], leaves: 2}
+
+# Casa de tova vista des del pati. Al carrer, els cossos baixos.
+0333223TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (pati); Street View 2025, 34 C. Santiago (només referència)"
+  extra_roofs: false
+  parts:
+    part4:
+      floors: 2
+      eave_m: 6.0
+      facade: E
+      wall: [196, 156, 108]
+      plinth: [150, 124, 90]
+      plinth_h: 0.4
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25, fascia: [150, 90, 70]}
+      windows: {frame: [96, 72, 52]}
+      openings:
+        - {kind: window, t: 0.22, w: 0.85, h: 1.05, sill_m: 1.15}
+        - {kind: door, t: 0.50, w: 0.9, h: 2.05, color: [120, 86, 52]}
+        - {kind: window, t: 0.78, w: 0.85, h: 1.05, sill_m: 1.15}
+        - {kind: window, t: 0.28, w: 0.7, h: 0.9, sill_m: 0.85, floor: 1}
+        - {kind: window, t: 0.72, w: 0.7, h: 0.9, sill_m: 0.85, floor: 1}
+      facades:
+        - {facade: O, openings: []}
+        - {facade: N, openings: []}
+        - {facade: "NO", openings: []}
+    part3:
+      floors: 1
+      eave_m: 2.8
+      facade: N
+      wall: [206, 176, 132]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: O, openings: []}
+    part1:
+      floors: 1
+      eave_m: 2.7
+      facade: S
+      wall: [210, 190, 160]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [210, 190, 160]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Pati beix: escala, porxo i balcó. Des del carrer gairebé no es veu.
+0333224TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre, 21 ago 2015, el pati (només referència)"
+  extra_roofs: false
+  parts:
+    part4:
+      floors: 2
+      eave_m: 6.1
+      facade: O
+      wall: [214, 196, 164]
+      roof: {type: hip, pitch_deg: 16, overhang_m: 0.3}
+      openings: []
+      facades:
+        - facade: O
+          nth: 2
+          openings:
+            - {kind: door, t: 0.42, w: 0.9, h: 2.1, color: [96, 72, 48]}
+            - {kind: window, t: 0.72, w: 1.1, h: 1.15, sill_m: 0.9, roller: 0.35}
+            - {kind: window, t: 0.35, w: 0.9, h: 1.2, sill_m: 0.7, floor: 1, roller: 0.2}
+            - {kind: window, t: 0.62, w: 1.0, h: 1.2, sill_m: 0.7, floor: 1}
+          balconies:
+            - {floor: 1, from: 0.28, to: 0.78, depth_m: 0.9, slab: [206, 196, 176], rail: [236, 236, 232]}
+        - {facade: S, openings: []}
+        - {facade: E, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: N
+      wall: [214, 196, 164]
+      roof: {type: shed, toward: N, pitch_deg: 10, overhang_m: 0.15, fascia: [168, 96, 72]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.7
+      facade: S
+      wall: [206, 190, 160]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 2.6
+      facade: O
+      wall: [206, 190, 160]
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Nau beix del pati, amb el pou al davant. Una planta.
+49130A50107682:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre, 21 ago 2015, el pati (només referència)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: S
+      wall: [214, 196, 160]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.2, fascia: [150, 150, 148]}
+      windows: {frame: [230, 230, 226]}
+      openings:
+        - {kind: door, t: 0.18, w: 0.9, h: 2.05, color: [236, 236, 232]}
+        - {kind: window, t: 0.48, w: 1.15, h: 1.05, sill_m: 1.05}
+        - {kind: window, t: 0.78, w: 1.15, h: 1.05, sill_m: 1.05}
+      facades:
+        - {facade: E, openings: []}
+        - {facade: N, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: E
+      wall: [214, 196, 160]
+      roof: {type: shed, toward: E, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Maó vist i porta de reixa, al costat de la casa crema.
+0333221TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View 2025, 34 C. Santiago, rumb 60 (només referència)"
+  extra_roofs: false
+  windows: {frame: [48, 48, 46]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.0
+      facade: S
+      wall: [176, 92, 72]
+      wall_material: brick
+      cladding: {material: stone, color: [168, 156, 132], height_m: 0.85}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25}
+      openings:
+        - {kind: window, t: 0.28, w: 0.9, h: 1.15, sill_m: 1.0}
+        - {kind: door, t: 0.62, w: 0.95, h: 2.15, color: [42, 40, 38]}
+        - {kind: window, t: 0.32, w: 0.7, h: 0.7, sill_m: 1.3, floor: 1}
+        - {kind: window, t: 0.68, w: 0.7, h: 0.7, sill_m: 1.3, floor: 1}
+      facades:
+        - {facade: O, openings: []}
+        - {facade: N, openings: []}
+        - {facade: E, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: SE
+      wall: [196, 176, 148]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+    part3:
+      floors: 1
+      eave_m: 2.7
+      facade: SE
+      wall: [190, 170, 142]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: O, openings: []}
+
+# Cantonada crema, sòcol de pedra i reixes. El 2025 hi ha una franja verda fina sota el ràfec.
+0333219TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View 2025, 34 C. Santiago, rumb 120 (només referència)"
+  extra_roofs: false
+  windows: {frame: [42, 72, 64]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.0
+      facade: SO
+      wall: [232, 220, 196]
+      cladding: {material: stone, color: [168, 156, 132], height_m: 0.95}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.25, fascia: [90, 78, 68]}
+      openings:
+        - {kind: window, t: 0.36, w: 0.95, h: 1.15, sill_m: 1.0}
+        - {kind: window, t: 0.72, w: 0.95, h: 1.15, sill_m: 1.0}
+        - {kind: window, t: 0.32, w: 0.85, h: 1.05, sill_m: 0.85, floor: 1, roller: 0.85}
+        - {kind: window, t: 0.68, w: 0.85, h: 1.05, sill_m: 0.85, floor: 1, roller: 0.85}
+      facades:
+        - facade: SE
+          openings:
+            - {kind: window, t: 0.45, w: 0.9, h: 1.1, sill_m: 1.05}
+            - {kind: window, t: 0.5, w: 0.85, h: 1.0, sill_m: 0.9, floor: 1, roller: 0.9}
+        - {facade: "NO", openings: []}
+
+# Porta blanca amb graons i dues reixes. Continua la casa de la cantonada.
+0333218TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View 2025, 34 C. Santiago, rumb 60 (només referència)"
+  extra_roofs: false
+  windows: {frame: [42, 72, 64]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.0
+      facade: SE
+      wall: [232, 220, 196]
+      cladding: {material: stone, color: [168, 156, 132], height_m: 0.95}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.22, fascia: [90, 78, 68]}
+      openings:
+        - {kind: window, t: 0.38, w: 0.9, h: 1.1, sill_m: 1.05}
+        - {kind: window, t: 0.42, w: 0.85, h: 1.0, sill_m: 0.85, floor: 1, roller: 0.8}
+      facades:
+        - facade: SE
+          nth: 2
+          openings:
+            - {kind: door, t: 0.55, w: 0.9, h: 2.1, color: [236, 236, 232], steps: 3, step_color: [160, 152, 136]}
+            - {kind: window, t: 0.5, w: 0.8, h: 0.95, sill_m: 0.9, floor: 1, roller: 0.85}
+        - {facade: "NO", openings: []}
+
+# Maó, galeria envidrada i portal verd. El rètol diu Calle Calzada.
+0334603TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View 2025, 34 C. Santiago, rumb 240 i 300 (només referència)"
+  extra_roofs: false
+  windows: {frame: [230, 230, 226]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.2
+      facade: SE
+      wall: [168, 96, 74]
+      wall_material: brick
+      cladding: {material: stone, color: [176, 140, 100], height_m: 1.05}
+      roof: {type: gable, ridge: along, pitch_deg: 32, overhang_m: 0.25, fascia: [72, 64, 58]}
+      openings:
+        - {kind: door, t: 0.28, w: 0.9, h: 2.1, color: [92, 64, 48], steps: 4, step_color: [186, 164, 130]}
+        - {kind: window, t: 0.58, w: 0.85, h: 1.05, sill_m: 1.15}
+        - {kind: window, t: 0.22, w: 0.8, h: 1.15, sill_m: 0.35, floor: 1}
+        - {kind: window, t: 0.45, w: 0.8, h: 1.15, sill_m: 0.35, floor: 1}
+        - {kind: window, t: 0.68, w: 0.8, h: 1.15, sill_m: 0.35, floor: 1}
+      balconies:
+        - {floor: 1, from: 0.08, to: 0.78, depth_m: 0.85, slab: [196, 176, 140], rail: [48, 52, 54]}
+      facades:
+        - {facade: "NO", openings: []}
+        - {facade: SO, openings: []}
+    part3:
+      floors: 1
+      eave_m: 2.7
+      facade: SE
+      wall: [236, 232, 224]
+      plinth: [176, 176, 172]
+      plinth_h: 0.35
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.12, fascia: [150, 154, 156]}
+      openings:
+        - {kind: garage, t: 0.48, w: 3.5, h: 2.45, color: [40, 138, 58], frame: [230, 232, 228], leaves: 2}
+      facades:
+        - {facade: E, openings: []}
+        - {facade: "NO", openings: []}
+    part1:
+      floors: 1
+      eave_m: 2.6
+      facade: SE
+      wall: [232, 228, 220]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.08}
+      openings: []
+      facades:
+        - {facade: SO, openings: []}
+        - {facade: NE, openings: []}
+
+# Tram nord de la C. Santiago, de la casa de maó del 2000 fins al revolt del 56.
+0333217TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View 2026, C. Santiago (panell al costat de La Mullidora; només referència)"
+  extra_roofs: false
+  windows: {frame: [236, 232, 224], frame_w: 0.08}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.1
+      facade: "NO"
+      wall: [176, 78, 62]
+      wall_material: brick
+      cladding: {material: stone, color: [168, 156, 136], height_m: 0.95}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25, fascia: [90, 78, 68]}
+      openings:
+        - {kind: window, t: 0.26, w: 0.95, h: 1.15, sill_m: 1.05}
+        - {kind: door, t: 0.52, w: 0.9, h: 2.1, color: [236, 232, 224], steps: 2, step_color: [168, 156, 136]}
+        - {kind: window, t: 0.76, w: 0.95, h: 1.15, sill_m: 1.05}
+        - {kind: window, t: 0.32, w: 0.95, h: 1.05, sill_m: 0.35, floor: 1}
+        - {kind: window, t: 0.70, w: 0.95, h: 1.05, sill_m: 0.35, floor: 1, roller: 0.85}
+      facades:
+        - {facade: NE, openings: []}
+        - {facade: NE, nth: 2, openings: []}
+
+0333216TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (façana blanca amb porticons) i Street View 2026, rumb 90 (només referència)"
+  extra_roofs: false
+  windows: {frame: [228, 220, 206], roller: [148, 112, 82]}
+  parts:
+    part3:
+      floors: 2
+      eave_m: 6.0
+      facade: NE
+      wall: [232, 226, 214]
+      plinth: [148, 140, 126]
+      plinth_h: 0.75
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.35, fascia: [120, 96, 78]}
+      openings:
+        - {kind: window, t: 0.22, w: 0.85, h: 1.35, sill_m: 0.85, roller: 0.9}
+        - {kind: door, t: 0.48, w: 0.9, h: 2.05, color: [150, 114, 84]}
+        - {kind: window, t: 0.74, w: 0.85, h: 1.35, sill_m: 0.85, roller: 0.9}
+        - {kind: window, t: 0.30, w: 0.7, h: 1.15, sill_m: 0.4, floor: 1, roller: 0.85}
+        - {kind: window, t: 0.68, w: 0.7, h: 1.15, sill_m: 0.4, floor: 1, roller: 0.85}
+      facades:
+        - facade: "NO"
+          openings:
+            - {kind: window, t: 0.4, w: 0.8, h: 1.2, sill_m: 0.9, roller: 0.7}
+            - {kind: window, t: 0.55, w: 0.75, h: 1.05, sill_m: 0.4, floor: 1, roller: 0.8}
+    part1:
+      floors: 1
+      eave_m: 3.0
+      facade: "NO"
+      wall: [228, 222, 210]
+      plinth: [150, 142, 128]
+      plinth_h: 0.5
+      roof: {type: shed, toward: "NO", pitch_deg: 10, overhang_m: 0.15}
+      openings: []
+      facades:
+        - {facade: SO, openings: []}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: "NO"
+      wall: [222, 214, 200]
+      plinth: [140, 132, 118]
+      plinth_h: 0.45
+      roof: {type: shed, toward: "NO", pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: "NO", nth: 2, openings: []}
+        - {facade: NE, openings: []}
+        - {facade: SO, openings: []}
+    part4:
+      floors: 1
+      eave_m: 2.7
+      facade: NE
+      wall: [214, 204, 188]
+      roof: {type: shed, toward: NE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: "NO", openings: []}
+        - {facade: SO, openings: []}
+
+0334211TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (cantonada de pedra, rètol Calle Santiago) i Street View 2026 (només referència)"
+  extra_roofs: false
+  windows: {frame: [168, 168, 164], frame_w: 0.1}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.3
+      facade: SE
+      wall: [214, 196, 168]
+      wall_material: stone
+      cladding: {material: stone, color: [150, 142, 128], height_m: 1.05}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [120, 108, 96]}
+      openings:
+        - {kind: window, t: 0.18, w: 0.85, h: 1.15, sill_m: 1.0, roller: 0.75}
+        - {kind: door, t: 0.38, w: 0.9, h: 2.1, color: [236, 236, 232]}
+        - {kind: window, t: 0.58, w: 0.85, h: 1.15, sill_m: 1.0, roller: 0.7}
+        - {kind: door, t: 0.80, w: 0.9, h: 2.05, color: [70, 74, 72]}
+        - {kind: window, t: 0.16, w: 0.7, h: 1.05, sill_m: 0.45, floor: 1}
+        - {kind: window, t: 0.38, w: 0.7, h: 1.05, sill_m: 0.45, floor: 1}
+        - {kind: window, t: 0.60, w: 0.7, h: 1.05, sill_m: 0.45, floor: 1}
+        - {kind: window, t: 0.82, w: 0.7, h: 1.05, sill_m: 0.45, floor: 1}
+      facades:
+        - {facade: SO, openings: []}
+        - facade: "NO"
+          openings:
+            - {kind: window, t: 0.3, w: 0.8, h: 1.1, sill_m: 1.0}
+            - {kind: window, t: 0.7, w: 0.8, h: 1.1, sill_m: 1.0}
+            - {kind: window, t: 0.35, w: 0.7, h: 1.0, sill_m: 0.4, floor: 1}
+            - {kind: window, t: 0.7, w: 0.7, h: 1.0, sill_m: 0.4, floor: 1}
+
+0334210TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (Asociación Cultural La Mullidora) i Street View 2026, rumb 315 (només referència)"
+  extra_roofs: false
+  windows: {frame: [168, 168, 164], frame_w: 0.1, roller: [236, 236, 232]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.3
+      facade: SE
+      wall: [214, 196, 168]
+      wall_material: stone
+      cladding: {material: stone, color: [150, 142, 128], height_m: 1.05}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3, fascia: [120, 108, 96]}
+      openings:
+        - {kind: door, t: 0.22, w: 0.95, h: 2.15, color: [244, 244, 240]}
+        - {kind: window, t: 0.52, w: 1.05, h: 1.15, sill_m: 1.0, roller: 0.95}
+        - {kind: window, t: 0.80, w: 1.05, h: 1.15, sill_m: 1.0, roller: 0.95}
+        - {kind: window, t: 0.22, w: 0.85, h: 1.0, sill_m: 0.5, floor: 1}
+        - {kind: window, t: 0.52, w: 0.85, h: 1.0, sill_m: 0.5, floor: 1}
+        - {kind: window, t: 0.80, w: 0.85, h: 1.0, sill_m: 0.5, floor: 1}
+      facades:
+        - facade: "NO"
+          openings:
+            - {kind: window, t: 0.35, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.8}
+            - {kind: window, t: 0.7, w: 0.9, h: 1.1, sill_m: 1.0}
+            - {kind: window, t: 0.4, w: 0.75, h: 1.0, sill_m: 0.45, floor: 1}
+            - {kind: window, t: 0.72, w: 0.75, h: 1.0, sill_m: 0.45, floor: 1}
+
+0334209TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (bloc groc i franja blanca) i Street View 2026, rumb 0 i 45 (només referència)"
+  extra_roofs: false
+  windows: {frame: [90, 78, 62]}
+  parts:
+    part1:
+      floors: 1
+      eave_m: 4.6
+      facade: SE
+      wall: [232, 232, 226]
+      cladding: {color: [206, 176, 96], height_m: 2.7}
+      roof: {type: gable, ridge: along, pitch_deg: 12, overhang_m: 0.15, fascia: [210, 210, 206]}
+      openings:
+        - {kind: door, t: 0.14, w: 1.35, h: 2.2, color: [236, 236, 232]}
+        - {kind: window, t: 0.32, w: 0.55, h: 1.15, sill_m: 1.15, roller: 0.4}
+        - {kind: window, t: 0.42, w: 0.55, h: 1.15, sill_m: 1.15, roller: 0.4}
+        - {kind: window, t: 0.52, w: 0.55, h: 1.15, sill_m: 1.15, roller: 0.4}
+        - {kind: window, t: 0.62, w: 0.55, h: 1.15, sill_m: 1.15, roller: 0.4}
+        - {kind: window, t: 0.72, w: 0.55, h: 1.15, sill_m: 1.15, roller: 0.4}
+        - {kind: window, t: 0.82, w: 0.55, h: 1.15, sill_m: 1.15, roller: 0.4}
+        - {kind: door, t: 0.94, w: 0.9, h: 2.05, color: [70, 64, 56]}
+      facades:
+        - {facade: SO, nth: 2, openings: []}
+
+0333214TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (blanc, sòcol gris i portal de xapa) i Street View 2026 (només referència)"
+  extra_roofs: false
+  windows: {frame: [230, 226, 218], roller: [236, 236, 232]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.0
+      facade: SO
+      wall: [236, 232, 224]
+      plinth: [158, 152, 142]
+      plinth_h: 0.9
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3, fascia: [130, 120, 110]}
+      openings:
+        - {kind: window, t: 0.28, w: 1.05, h: 1.05, sill_m: 1.15, roller: 0.9}
+        - {kind: window, t: 0.52, w: 0.7, h: 0.7, sill_m: 1.35, roller: 0.5}
+        - {kind: window, t: 0.74, w: 0.9, h: 1.05, sill_m: 1.15, roller: 0.85}
+      facades:
+        - {facade: "NO", openings: []}
+        - {facade: NE, openings: []}
+    part1:
+      floors: 1
+      eave_m: 3.1
+      facade: "NO"
+      wall: [228, 222, 210]
+      plinth: [150, 144, 134]
+      plinth_h: 0.6
+      roof: {type: shed, toward: "NO", pitch_deg: 8, overhang_m: 0.12}
+      openings:
+        - {kind: garage, t: 0.55, w: 2.6, h: 2.4, color: [176, 180, 184], frame: [120, 96, 72], leaves: 2}
+      facades:
+        - {facade: "NO", nth: 2, openings: []}
+        - {facade: SO, openings: []}
+        - {facade: NE, openings: []}
+
+0333212TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (mur amb portal verd) i Street View 2026, 46 C. Santiago, rumb 120 (només referència)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.9
+      facade: SO
+      wall: [206, 196, 180]
+      plinth: [150, 132, 112]
+      plinth_h: 0.55
+      roof: {type: shed, toward: SO, pitch_deg: 8, overhang_m: 0.08}
+      openings:
+        - {kind: door, t: 0.72, w: 0.9, h: 2.0, color: [48, 92, 58]}
+      facades:
+        - {facade: "NO", openings: []}
+        - {facade: "NO", nth: 2, openings: []}
+        - {facade: NE, openings: []}
+        - {facade: NE, nth: 2, openings: []}
+
+0334208TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (beix, sòcol de pedra) i Street View 2026, 46 C. Santiago: balcó i tendal afegits (només referència)"
+  extra_roofs: false
+  windows: {frame: [236, 232, 224]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.4
+      facade: SE
+      wall: [196, 184, 164]
+      cladding: {material: stone, color: [176, 156, 124], height_m: 0.9}
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.25, fascia: [150, 140, 128]}
+      openings:
+        - {kind: garage, t: 0.22, w: 3.3, h: 2.45, color: [168, 174, 178], frame: [150, 64, 52], leaves: 2}
+        - {kind: window, t: 0.58, w: 1.0, h: 1.05, sill_m: 1.05}
+        - {kind: door, t: 0.78, w: 0.85, h: 2.1, color: [244, 242, 236]}
+      balconies:
+        - {floor: 1, from: 0.08, to: 0.92, depth_m: 0.95, slab: [186, 174, 154], rail: [214, 214, 210]}
+      canopies:
+        - {from: 0.08, to: 0.92, height_m: 3.15, depth_m: 0.7, color: [210, 150, 64]}
+      facades:
+        - {facade: "NO", openings: []}
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: SE
+      wall: [210, 198, 176]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: SO, openings: []}
+    part3:
+      floors: 1
+      eave_m: 2.6
+      facade: NE
+      wall: [206, 194, 172]
+      roof: {type: shed, toward: NE, pitch_deg: 8, overhang_m: 0.08}
+      openings: []
+      facades:
+        - {facade: SO, openings: []}
+
+0333208TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre i Street View 2026, 56 C. Santiago, rumb 180 i 240 (només referència)"
+  extra_roofs: false
+  windows: {frame: [230, 226, 216]}
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.1
+      facade: NE
+      wall: [230, 216, 190]
+      plinth: [154, 148, 138]
+      plinth_h: 0.45
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.3, fascia: [140, 124, 108]}
+      openings:
+        - {kind: window, t: 0.22, w: 0.95, h: 1.15, sill_m: 1.0}
+        - {kind: window, t: 0.48, w: 0.9, h: 1.1, sill_m: 1.05, roller: 0.35}
+        - {kind: garage, t: 0.78, w: 2.2, h: 2.15, color: [112, 78, 52], leaves: 2}
+        - {kind: window, t: 0.28, w: 0.9, h: 1.05, sill_m: 0.4, floor: 1}
+        - {kind: window, t: 0.55, w: 0.85, h: 1.0, sill_m: 0.45, floor: 1, roller: 0.6}
+      fence:
+        offset_m: 2.8
+        from: 0.0
+        to: 0.62
+        height_m: 1.05
+        base: [168, 72, 58]
+        rail: [36, 38, 40]
+      facades:
+        - {facade: SO, openings: []}
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: NE
+      wall: [214, 200, 176]
+      roof: {type: shed, toward: NE, pitch_deg: 10, overhang_m: 0.12}
+      openings: []
+      facades:
+        - {facade: SO, openings: []}
+
+0333207TM6503S:
+  review: {level: full, date: "2026-10-10"}
+  photo: "Foto del Cadastre (galeria del darrere) i Street View 2026, 56 C. Santiago (només referència)"
+  extra_roofs: false
+  windows: {frame: [228, 220, 206]}
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.2
+      facade: NE
+      wall: [214, 198, 172]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25, fascia: [150, 130, 110]}
+      openings:
+        - {kind: door, t: 0.35, w: 0.9, h: 2.1, color: [236, 228, 210]}
+        - {kind: window, t: 0.68, w: 0.95, h: 1.1, sill_m: 1.05}
+        - {kind: window, t: 0.4, w: 0.9, h: 1.05, sill_m: 0.4, floor: 1}
+        - {kind: window, t: 0.7, w: 0.9, h: 1.05, sill_m: 0.4, floor: 1}
+      facades:
+        - facade: SE
+          openings: []
+          balconies:
+            - {floor: 1, from: 0.12, to: 0.88, depth_m: 1.1, slab: [200, 188, 168], rail: [90, 90, 92]}
+        - {facade: SO, openings: []}
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: "N"
+      wall: [220, 186, 140]
+      plinth: [150, 112, 90]
+      plinth_h: 0.7
+      roof: {type: shed, toward: "N", pitch_deg: 8, overhang_m: 0.15}
+      openings:
+        - {kind: door, t: 0.42, w: 0.9, h: 2.05, color: [230, 210, 140]}
+      facades:
+        - {facade: SE, openings: []}
+        - {facade: SE, nth: 2, openings: []}
+        - {facade: SE, nth: 3, openings: []}
+        - {facade: "NO", openings: []}
+        - {facade: "NO", nth: 2, openings: []}
+        - {facade: SO, openings: []}
+        - {facade: SO, nth: 2, openings: []}
+    part3:
+      floors: 1
+      eave_m: 2.7
+      facade: SE
+      wall: [206, 190, 164]
+      roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: "NO", openings: []}
+        - {facade: SO, openings: []}
+        - {facade: NE, openings: []}
+
+# Coberts que l'ortofoto veu i el Cadastre no. Planta del rectangle de la teulada; parets i
+# alçades estimades (no hi ha façana de prop). Cap obertura inventada. No és una anàlisi
+# detallada de la casa: les parts del Cadastre segueixen genèriques.
+
+# Dos coberts al costat de la nau del canal: un de petit aïllat i un de més gran, de teula clara.
+002100500TM65C:
+  parts: {}
+  extra_parts:
+    - outline: [[260342.3, 4652378.8], [260342.3, 4652384.0], [260338.1, 4652384.0], [260338.1, 4652378.8]]
+      floors: 1
+      eave_m: 2.4
+      facade: E
+      wall: [196, 184, 164]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.15, fascia: [160, 120, 100]}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
+    - outline: [[260341.6, 4652359.5], [260341.6, 4652367.6], [260334.6, 4652367.6], [260334.6, 4652359.5]]
+      floors: 1
+      eave_m: 3.2
+      facade: E
+      wall: [188, 164, 132]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25, fascia: [150, 110, 90]}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
+
+# Cobert petit a la parcel·la rústica 0132947, a uns 8 m de 0232109 (el pati d'aquella casa
+# no en té: extra_roofs false). Sense edificació al Cadastre. Alçada estimada, façanes no vistes.
+0132947TM6503S:
+  parts: {}
+  extra_parts:
+    - outline: [[260048.7, 4653057.1], [260048.7, 4653061.6], [260044.8, 4653061.6], [260044.8, 4653057.1]]
+      floors: 1
+      eave_m: 2.3
+      facade: E
+      wall: [176, 168, 156]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.12, fascia: [130, 90, 82]}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
+
+# Cobert vermellós al pati del sud de la C. Santiago, a uns 10 m de la casa.
+0333206TM6503S:
+  parts: {}
+  extra_parts:
+    - outline: [[260306.3, 4653200.2], [260306.3, 4653203.7], [260300.0, 4653203.7], [260300.0, 4653200.2]]
+      floors: 1
+      eave_m: 2.4
+      facade: N
+      wall: [186, 170, 150]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.12, fascia: [140, 90, 84]}
+      openings: []
+      facades:
+        - {facade: E, openings: []}
+        - {facade: O, openings: []}
+        - {facade: S, openings: []}
+
+# Nau de teula vermella: el Cadastre només en toca una cantonada. Dues aigües, façanes no vistes.
+0334204TM6503S:
+  parts: {}
+  extra_parts:
+    - outline: [[260243.7, 4653242.9], [260253.1, 4653253.5], [260244.6, 4653261.1], [260235.2, 4653250.4]]
+      floors: 1
+      eave_m: 3.6
+      facade: SE
+      wall: [176, 154, 132]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.3, fascia: [140, 80, 72]}
+      openings: []
+      facades:
+        - {facade: NE, openings: []}
+        - {facade: "NO", openings: []}
+        - {facade: SO, openings: []}
+
+# Cobert vermell al pati, fora de les parts. La taca de l'ortofoto que cau sobre la casa
+# (a l'est) és la teulada desplaçada de les parts, i no es modela.
+0432842TM6503S:
+  parts: {}
+  extra_parts:
+    - outline: [[260259.2, 4652996.2], [260256.0, 4652987.2], [260261.7, 4652985.1], [260264.9, 4652994.2]]
+      floors: 1
+      eave_m: 2.6
+      facade: O
+      wall: [178, 160, 140]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.15, fascia: [140, 88, 84]}
+      openings: []
+      facades:
+        - {facade: S, openings: []}
+        - {facade: E, openings: []}
+        - {facade: N, openings: []}

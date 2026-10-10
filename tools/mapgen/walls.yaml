@@ -590,3 +590,74 @@
   gates:
     - {near: [260424.0, 4652876.0], w: 3.4, h: 1.6, color: [70, 52, 40], leaves: 2}
   photo: "Foto del Cadastre, 2016: mur baix de bloc, pilars i portal fosc"
+
+# Mur de bloc i malla del pati de la casa de maó retirada (C. Viriato).
+"0432813-tanca":
+  parcel: "0432813TM6503S"
+  near: [260247.4, 4653044.4]
+  height_m: 1.15
+  thick_m: 0.25
+  material: block
+  color: [206, 192, 166]
+  rail_m: 0.85
+  rail: [150, 150, 152]
+  photo: "Foto del Cadastre: mur de bloc d'~1,15 m i malla per damunt, al pati"
+
+# Tanca crema amb portal de fusta davant la casa nova de la C. Calzada (2014).
+"0232110-carrer":
+  parcel: "0232110TM6503S"
+  near:
+    - [260099.0, 4653058.1]
+    - [260088.8, 4653061.2]
+    - [260078.8, 4653065.1]
+  height_m: 1.7
+  thick_m: 0.25
+  material: block
+  color: [220, 210, 196]
+  gates:
+    - {near: [260081.2, 4653064.2], w: 1.15, h: 2.05, color: [120, 78, 48], leaves: 1}
+  photo: "Street View set. 2024: mur crema d'~1,7 m i portal de fusta al racó del porxo"
+
+# Mur blanc amb sòcol rosa i portal de fusta (el 6), al carrer de la finca del frontó.
+"0233402-carrer":
+  parcel: "0233402TM6503S"
+  near: [260108.5, 4653061.6]
+  height_m: 1.85
+  thick_m: 0.28
+  material: block
+  color: [236, 230, 224]
+  plinth: {material: stone, color: [214, 156, 148], height_m: 0.55}
+  tiles: {color: [168, 90, 68], height_m: 0.18, over_m: 0.08}
+  photo: "Street View set. 2024: el portal és a la façana; el tram de tàpia és el tros de vora que en queda fora"
+
+# Tanca de maó i portal de xapa blava davant la nau (foto del Cadastre).
+"0233401-carrer":
+  parcel: "0233401TM6503S"
+  near:
+    - [260118.0, 4653087.2]
+    - [260125.5, 4653093.0]
+  height_m: 2.15
+  thick_m: 0.28
+  material: brick
+  color: [176, 84, 62]
+  gates:
+    - {near: [260116.2, 4653086.8], w: 3.6, h: 2.1, color: [36, 86, 168], leaves: 2}
+    - {near: [260124.8, 4653092.6], w: 0.9, h: 2.0, color: [230, 230, 226], leaves: 1}
+  photo: "Foto del Cadastre: mur de maó d'~2,1 m, portal blau i porta blanca"
+
+# El 10 de la C. Santiago: mur blanc, sòcol de pedra, arc de teula i reixa.
+"0432805-carrer":
+  parcel: "0432805TM6503S"
+  near:
+    - [260209.5, 4653070.2]
+    - [260216.0, 4653076.0]
+    - [260220.0, 4653081.0]
+  height_m: 1.7
+  thick_m: 0.28
+  material: block
+  color: [236, 232, 224]
+  plinth: {material: stone, color: [168, 160, 148], height_m: 0.55}
+  tiles: {color: [176, 78, 58], height_m: 0.16, over_m: 0.08}
+  gates:
+    - {near: [260213.5, 4653074.5], w: 2.4, h: 1.85, color: [28, 28, 30], leaves: 2, solid_m: 0.15}
+  photo: "Street View set. 2024, rumb 90: mur blanc, sòcol de pedra i reixa del 10"

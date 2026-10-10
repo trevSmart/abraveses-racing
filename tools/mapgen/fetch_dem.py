@@ -7,11 +7,10 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+from pyproj import Transformer
 from rasterio.crs import CRS
-from rasterio.io import MemoryFile
-from rasterio.mask import mask
-from rasterio.warp import calculate_default_transform, reproject, Resampling, transform_geom
-from shapely.geometry import box, mapping
+from rasterio.transform import from_origin
+from rasterio.warp import Resampling, reproject
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.config import ensure_parent, load_config, utm_origin  # noqa: E402
@@ -25,30 +24,13 @@ def _copernicus_urls(lat: float, lon: float) -> list[str]:
         # Tile W006 covers 6°W–5°W for lon ≈ -5.9
         lon_tag = f"W{int(np.ceil(abs(lon))):03d}_00"
     hemi = "N" if lat >= 0 else "S"
-    name = f"Copernicus_DSM_COG_10_{hemi}{abs(lat_int):02d}_00_{lon_tag}_DEM.tif"
+    # El COG és dins d'una carpeta amb el mateix nom, sense el .tif.
+    folder = f"Copernicus_DSM_COG_10_{hemi}{abs(lat_int):02d}_00_{lon_tag}_DEM"
+    name = f"{folder}.tif"
     return [
-        f"https://copernicus-dem-30m.s3.eu-central-1.amazonaws.com/{name}",
-        f"https://storage.googleapis.com/copernicus-dem-30m/{name}",
-        f"https://copernicus-dem-30m.s3.amazonaws.com/{name}",
+        f"https://copernicus-dem-30m.s3.eu-central-1.amazonaws.com/{folder}/{name}",
+        f"https://copernicus-dem-30m.s3.amazonaws.com/{folder}/{name}",
     ]
-
-
-def _open_dem_source(cfg: dict) -> rasterio.DatasetReader:
-    local = cfg.get("mdt_local_path")
-    if local and Path(local).is_file():
-        print(f"Using local MDT: {local}")
-        return rasterio.open(local)
-
-    center = cfg["center_wgs84"]
-    last_err: Exception | None = None
-    for url in _copernicus_urls(center["lat"], center["lon"]):
-        try:
-            print(f"Trying Copernicus DEM: {url}")
-            return rasterio.open(url)
-        except Exception as exc:  # noqa: BLE001
-            last_err = exc
-            print(f"  failed: {exc}")
-    raise RuntimeError("Could not open Copernicus DEM") from last_err
 
 
 def _write_synthetic_dem(cfg: dict, out_path: Path) -> Path:
@@ -83,67 +65,155 @@ def _write_synthetic_dem(cfg: dict, out_path: Path) -> Path:
     return out_path
 
 
+def _utm_bounds(cfg: dict) -> tuple[float, float, float, float]:
+    """Envolupant UTM del bbox WGS84 (les quatre cantonades)."""
+    bbox = cfg["bbox_wgs84"]
+    transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{cfg['utm_epsg']}", always_xy=True)
+    xs: list[float] = []
+    ys: list[float] = []
+    for lon, lat in (
+        (bbox["west"], bbox["south"]),
+        (bbox["east"], bbox["south"]),
+        (bbox["west"], bbox["north"]),
+        (bbox["east"], bbox["north"]),
+    ):
+        x, y = transformer.transform(lon, lat)
+        xs.append(x)
+        ys.append(y)
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _next_lon_tile(lon: float) -> float:
+    """Límit est de la tessel·la Copernicus d'1° que conté `lon`."""
+    if lon >= 0:
+        return float(np.floor(lon) + 1)
+    return float(-(np.ceil(abs(lon)) - 1))
+
+
+def _copernicus_tile_groups(bbox: dict) -> list[list[str]]:
+    """Mirrors de cada tessel·la GLO-30 que talla el bbox."""
+    groups: list[list[str]] = []
+    seen: set[str] = set()
+    lat = int(np.floor(bbox["south"]))
+    lat_top = int(np.floor(bbox["north"]))
+    while lat <= lat_top:
+        lon = float(bbox["west"])
+        while lon <= float(bbox["east"]) + 1e-9:
+            urls = _copernicus_urls(lat + 0.5, lon)
+            if urls[0] not in seen:
+                seen.add(urls[0])
+                groups.append(urls)
+            lon = _next_lon_tile(lon) + 1e-6
+        lat += 1
+    return groups
+
+
+def _reproject_into(src: rasterio.DatasetReader, dest: np.ndarray, transform, crs: CRS) -> None:
+    """Reprojecta la banda 1 sobre `dest` (NaN fora de la font). No pisa cotes ja vàlides."""
+    tmp = np.full(dest.shape, np.nan, dtype=np.float32)
+    reproject(
+        source=rasterio.band(src, 1),
+        destination=tmp,
+        src_transform=src.transform,
+        src_crs=src.crs,
+        src_nodata=src.nodata,
+        dst_transform=transform,
+        dst_crs=crs,
+        dst_nodata=np.nan,
+        resampling=Resampling.bilinear,
+    )
+    hole = ~np.isfinite(dest) & np.isfinite(tmp) & (tmp > 0)
+    dest[hole] = tmp[hole]
+
+
+def _fill_copernicus(cfg: dict, dest: np.ndarray, transform, crs: CRS) -> None:
+    """On el MDT05 no arriba (la fulla 307 s'acaba abans del cementiri), Copernicus GLO-30.
+
+    El biaix és la mediana de la diferència al tros on tots dos tenen cota, perquè els dos
+    models no comparteixen geoide i un esglaó es veuria al camp.
+    """
+    if np.isfinite(dest).all():
+        return
+    cop = np.full(dest.shape, np.nan, dtype=np.float32)
+    opened = False
+    for urls in _copernicus_tile_groups(cfg["bbox_wgs84"]):
+        src = None
+        for url in urls:
+            try:
+                print(f"Trying Copernicus DEM: {url}")
+                src = rasterio.open(url)
+                break
+            except Exception as exc:  # noqa: BLE001
+                print(f"  failed: {exc}")
+        if src is None:
+            continue
+        with src:
+            _reproject_into(src, cop, transform, crs)
+        opened = True
+    if not opened or not np.isfinite(cop).any():
+        raise RuntimeError("Could not open Copernicus DEM")
+    both = np.isfinite(dest) & np.isfinite(cop)
+    bias = float(np.median(dest[both] - cop[both])) if both.any() else 0.0
+    hole = ~np.isfinite(dest) & np.isfinite(cop)
+    dest[hole] = cop[hole] + np.float32(bias)
+    print(f"DEM: {int(hole.sum())} cel·les fora del MDT05, Copernicus amb biaix {bias:+.2f} m")
+
+
 def fetch_dem() -> Path:
     cfg = load_config()
-    bbox = cfg["bbox_wgs84"]
-    geom = box(bbox["west"], bbox["south"], bbox["east"], bbox["north"])
-    utm_epsg = cfg["utm_epsg"]
+    utm_epsg = int(cfg["utm_epsg"])
+    crs = CRS.from_epsg(utm_epsg)
+    minx, miny, maxx, maxy = _utm_bounds(cfg)
+    res_m = 5.0
+    width = int(np.ceil((maxx - minx) / res_m))
+    height = int(np.ceil((maxy - miny) / res_m))
+    transform = from_origin(minx, maxy, res_m, res_m)
+    dest = np.full((height, width), np.nan, dtype=np.float32)
     out_path = ensure_parent(cfg["paths"]["dem_tif"])
+
+    local = cfg.get("mdt_local_path")
+    if local and Path(local).is_file():
+        print(f"Using local MDT: {local}")
+        with rasterio.open(local) as src:
+            _reproject_into(src, dest, transform, crs)
+    else:
+        print("Sense MDT local")
 
     try:
-        src_ctx = _open_dem_source(cfg)
-    except RuntimeError:
-        return _write_synthetic_dem(cfg, out_path)
+        _fill_copernicus(cfg, dest, transform, crs)
+    except RuntimeError as exc:
+        if not np.isfinite(dest).any():
+            print(f"  {exc}")
+            return _write_synthetic_dem(cfg, out_path)
+        print(f"  {exc}; es deixen els forats del MDT")
 
-    with src_ctx as src:
-        src_crs = src.crs or CRS.from_epsg(4326)
-        geom_wgs84 = mapping(geom)
-        if src_crs.to_epsg() != 4326:
-            geom_mask = transform_geom("EPSG:4326", src_crs, geom_wgs84)
-        else:
-            geom_mask = geom_wgs84
-        cropped, crop_transform = mask(src, [geom_mask], crop=True, nodata=np.nan)
-        if src_crs.to_epsg() != utm_epsg:
-            height, width = cropped.shape[1], cropped.shape[2]
-            dst_transform, dst_w, dst_h = calculate_default_transform(
-                src_crs,
-                CRS.from_epsg(utm_epsg),
-                width,
-                height,
-                *rasterio.transform.array_bounds(height, width, crop_transform),
-            )
-            reprojected = np.empty((cropped.shape[0], dst_h, dst_w), dtype=np.float32)
-            reproject(
-                source=cropped,
-                destination=reprojected,
-                src_transform=crop_transform,
-                src_crs=src_crs,
-                dst_transform=dst_transform,
-                dst_crs=CRS.from_epsg(utm_epsg),
-                resampling=Resampling.bilinear,
-            )
-            out_data = reprojected
-            out_transform = dst_transform
-            out_crs = CRS.from_epsg(utm_epsg)
-        else:
-            out_data = cropped
-            out_transform = crop_transform
-            out_crs = src_crs
+    missing = float((~np.isfinite(dest)).mean())
+    if missing > 0.001:
+        if not np.isfinite(dest).any():
+            return _write_synthetic_dem(cfg, out_path)
+        raise RuntimeError(f"DEM incomplet: {missing:.1%} del bbox sense cota")
 
-    out_path = ensure_parent(cfg["paths"]["dem_tif"])
+    # Un forat mínim (vora del reprojectat) s'omple amb el veí: el sampler del món ja ho fa,
+    # però el GeoTIFF es desa sense NaN.
+    bad = ~np.isfinite(dest)
+    if bad.any():
+        from scipy import ndimage
+
+        idx = ndimage.distance_transform_edt(bad, return_distances=False, return_indices=True)
+        dest = dest[tuple(idx)]
+
     profile = {
         "driver": "GTiff",
-        "height": out_data.shape[1],
-        "width": out_data.shape[2],
-        "count": out_data.shape[0],
+        "height": height,
+        "width": width,
+        "count": 1,
         "dtype": "float32",
-        "crs": out_crs,
-        "transform": out_transform,
-        "nodata": np.nan,
+        "crs": crs,
+        "transform": transform,
     }
     with rasterio.open(out_path, "w", **profile) as dst:
-        dst.write(out_data.astype(np.float32))
-    print(f"Saved DEM → {out_path}")
+        dst.write(dest.astype(np.float32), 1)
+    print(f"Saved DEM → {out_path} ({width}×{height}, {res_m:.0f} m)")
     return out_path
 
 

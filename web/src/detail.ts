@@ -7,7 +7,7 @@
 
 import * as THREE from "three";
 
-export type DetailMode =
+type DetailMode =
   /** Projecció des de dalt (x, z del món): terra, calçades. */
   | "top"
   /** Triplanar segons la normal: parets i murs de qualsevol orientació. */
