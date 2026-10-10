@@ -1,0 +1,3208 @@
+# Fitxes de casa fetes a partir de fotos de façana, per referència cadastral (edifici).
+# Les cases amb fitxa es fan amb aquestes dades en lloc de l'estil a l'atzar de village.py.
+#
+# Façana: `facade` és l'orientació de la façana fotografiada (N, NE, E…); el mur de la planta
+# que hi mira més és el que porta `openings`. `t` = fracció de l'amplada d'aquest mur mirant-lo
+# des de fora (0 = cantonada esquerra, 1 = dreta); pot sortir de 0..1 (tanca, porxo).
+# Alçades en metres sobre el terra davant de cada element. Colors sRGB de la foto, corregits
+# d'exposició (el blanc de la tanca de referència).
+
+002000300TM55D:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Google Street View, set. 2024, des de la ZA-P-2547 mirant al sud (només referència)"
+  # part3 és el porxo de davant (es fa amb `terrace`); part1 és un annex sense plantes.
+  parts: [part2]
+  footprint: rect  # façana plana: el rectangle mínim, sense els graons de la planta cadastral
+  floors: 1
+  eave_m: 4.1  # planta baixa aixecada (graons a la porta): la paret fa ~3,6 m vista des del jardí
+  facade: N
+  wall: [212, 174, 111]  # arrebossat groc palla
+  plinth: [176, 150, 108]
+  roof: {type: hip, pitch_deg: 22, overhang_m: 0.8, fascia: [223, 204, 156]}
+  windows:
+    frame: [120, 84, 62]
+    roller: [140, 100, 78]  # persianes enrotllables marrons
+  openings:
+    - {kind: window, t: 0.17, w: 2.4, h: 1.6, sill_m: 1.37, roller: 0.88}
+    - {kind: window, t: 0.44, w: 2.0, h: 1.6, sill_m: 1.37, roller: 0.88}
+    - {kind: door, t: 0.655, w: 1.1, h: 2.5, bottom_m: 0.38, color: [128, 86, 60], sidelight: left, lamp: true}
+    - {kind: window, t: 0.83, w: 2.4, h: 1.6, sill_m: 1.37, roller: 0.6}
+  chimneys:
+    - {t: 0.14, depth_m: 4.4, size_m: 0.5, above_m: 1.1, color: [178, 166, 150], cap: [118, 114, 106]}
+    - {t: 0.175, depth_m: 4.4, size_m: 0.5, above_m: 1.1, color: [178, 166, 150], cap: [118, 114, 106]}
+  # Porxo enrajolat davant de la meitat dreta, amb barana de balustres i escales a la porta.
+  terrace:
+    from: 0.47
+    to: 0.97
+    depth_m: 2.2
+    height_m: 0.36
+    floor: [176, 104, 80]
+    steps: [0.56, 0.7]
+    rail: [228, 222, 205]
+  # Tanca de balustres blancs sobre sòcol de pedra, amb pilars i gerros.
+  fence:
+    offset_m: 3.6
+    from: -0.12
+    to: 1.18
+    height_m: 1.0
+    gate: [0.56, 0.67]
+    rail: [228, 222, 205]
+    base: [170, 160, 140]
+
+# --- Entrada del poble per la Calle Santibáñez (Street View, set. 2024) ---------------------
+
+# Casa A, costat nord: cobert d'una planta amb porta de garatge (part1) i casa de dues plantes
+# amb la planta baixa de pedra i balcó corregut (part3). part2 (cobert del darrere) com sempre.
+# La tàpia alta de bloc gris del costat est és a walls.yaml (0032901-est).
+0032901TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Street View, set. 2024, des de la ZA-P-2547 mirant al nord (només referència)"
+  facade: S
+  footprint: rect
+  windows:
+    frame: [112, 76, 52]
+    roller: [138, 128, 112]
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.7
+      wall: [226, 213, 182]  # arrebossat crema
+      cladding: {material: stone, color: [168, 124, 92], height_m: 1.1}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.21, w: 0.65, h: 0.4, sill_m: 1.65}
+        - {kind: garage, t: 0.8, w: 2.3, h: 2.5, color: [165, 168, 165], frame: [92, 130, 178], leaves: 3, glass_top_m: 0.4}
+      # El mur oest (11 m) dona a la corba del carrer: una finestra, Street View rumb 91.
+      facades:
+        - facade: O
+          openings:
+            - {kind: window, t: 0.28, w: 0.85, h: 0.65, sill_m: 1.35}
+    part3:
+      floors: 2
+      eave_m: 6.1
+      wall: [228, 220, 196]
+      cladding: {material: stone, color: [168, 124, 92], height_m: 3.0}
+      # Quatre aigües: la vista zenital de Google (2026) ensenya els quatre vessants.
+      roof: {type: hip, pitch_deg: 22, overhang_m: 0.9, fascia: [196, 170, 140]}
+      # t per perspectiva (SV 7463 ZA-P-2547 rumb 20, cantonades i alçades de planta).
+      openings:
+        - {kind: window, t: 0.28, w: 1.5, h: 1.2, sill_m: 1.2}
+        - {kind: door, t: 0.54, w: 0.95, h: 2.2, bottom_m: 0.72, color: [118, 74, 50], steps: 4, step_color: [196, 192, 182], step_rail: [right]}
+        - {kind: window, t: 0.75, w: 0.9, h: 1.0, sill_m: 1.4}
+        - {kind: window, t: 0.96, w: 0.4, h: 0.95, sill_m: 1.4}
+        - {kind: window, floor: 1, t: 0.28, w: 1.2, h: 1.3, sill_m: 0.9, roller: 0.4}
+        - {kind: door, floor: 1, t: 0.52, w: 0.9, h: 2.1, color: [112, 76, 52]}
+        - {kind: window, floor: 1, t: 0.73, w: 0.9, h: 1.2, sill_m: 0.95, roller: 0.3}
+      balconies:
+        - {floor: 1, from: 0.0, to: 1.0, depth_m: 1.1, slab: [212, 202, 182]}
+
+# Casa de maó vist del 7742 ZA-P-2547 (costat nord): dues plantes (part2) amb teulada a dues
+# aigües (frontó a l'est), balcó corregut amb cantell de pedra, garatge gris de quatre fulles i
+# sòcol de pedra. part1 és un cobert obert cap al pati, amb coberta de xapa d'una aigua; la
+# paret del carrer (bloc i maó buit) n'és el tancament. Tàpies a walls.yaml (0032941-*).
+0032941TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7742 i 7463 ZA-P-2547 (només referència)"
+  facade: S
+  footprint: rect
+  windows:
+    frame: [238, 236, 230]
+    roller: [232, 230, 224]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.9
+      wall: [188, 104, 76]
+      wall_material: brick
+      cladding: {material: stone, color: [158, 140, 118], height_m: 1.0}
+      roof: {type: gable, ridge: along, pitch_deg: 25, overhang_m: 0.9, fascia: [236, 232, 224]}
+      # Façana S (17,6 m). t per perspectiva (SV 7742 rumb 10, cantonades i alçades de planta).
+      openings:
+        - {kind: garage, t: 0.178, w: 4.6, h: 2.6, color: [124, 128, 128], frame: [170, 62, 52], leaves: 4}
+        - {kind: window, t: 0.633, w: 1.2, h: 1.1, sill_m: 1.0, roller: 0.7}
+        - {kind: door, t: 0.924, w: 0.9, h: 2.1, bottom_m: 0.1, color: [240, 238, 232]}
+        - {kind: window, floor: 1, t: 0.145, w: 1.3, h: 1.2, sill_m: 0.8}
+        - {kind: window, floor: 1, t: 0.358, w: 1.3, h: 1.2, sill_m: 0.8, roller: 0.75}
+        - {kind: window, floor: 1, t: 0.611, w: 1.6, h: 1.2, sill_m: 0.8, roller: 0.4}
+        - {kind: window, floor: 1, t: 0.761, w: 0.85, h: 2.1, sill_m: 0.05, roller: 0.9}   # balconera
+      balconies:
+        - {floor: 1, from: -0.03, to: 1.03, depth_m: 1.2, slab: [214, 206, 190], edge: [156, 138, 116]}
+      facades:
+        # Frontó de l'est (de cara a la cruïlla).
+        - facade: E
+          openings:
+            - {kind: window, floor: 1, t: 0.6, w: 1.0, h: 1.2, sill_m: 0.8, roller: 0.3}
+            - {kind: window, t: 0.72, w: 1.0, h: 1.1, sill_m: 1.0, roller: 0.5}
+        # Frontó de l'oest, per sobre de la paret del carrer: només la finestreta del pis.
+        - facade: O
+          openings:
+            - {kind: window, floor: 1, t: 0.6, w: 0.6, h: 0.9, sill_m: 1.0}
+    # Cobert obert cap al pati (est): xapa d'una aigua sobre pilars i paret de maó buit al fons.
+    part1:
+      floors: 1
+      eave_m: 2.5
+      wall: [196, 112, 82]
+      wall_material: brick
+      cladding: {color: [196, 186, 166], height_m: 1.2}
+      facade: E
+      roof: {type: shed, toward: E, pitch_deg: 8, overhang_m: 0.3}
+      openings: []
+      loggia: {from: 0.04, to: 0.96, depth_m: 3.0, floor: 0, parapet_m: 0.0, floor_color: [150, 140, 126], posts: 0.3, post_color: [176, 172, 164]}
+      facades:
+        - {facade: S, openings: []}   # la paret del carrer (bloc i maó buit)
+        - {facade: N, openings: []}
+        - {facade: O, openings: []}
+
+# Casa B, costat sud: dues plantes granat amb emmarcats crema (part2) i annex baix amb
+# xemeneia de barret (part1), de teulada d'una aigua que puja cap al sud. El mur granat del
+# costat oest és a walls.yaml (0132102-oest).
+0132102TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Street View, set. 2024, des de la ZA-P-2547 mirant al sud (només referència)"
+  facade: N
+  footprint: rect
+  wall: [166, 56, 60]  # arrebossat granat
+  plinth: [204, 170, 104]
+  plinth_h: 0.35
+  windows:
+    frame: [228, 210, 166]
+    frame_w: 0.14
+    roller: [150, 100, 62]
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.8
+      # Una aigua: el ràfec baix al carrer (N) i el capdamunt al sud (SV 7463 rumbs 102 i 130).
+      roof: {type: shed, toward: N, pitch_deg: 12, overhang_m: 0.35}
+      openings: []
+      # El garatge blanc mira a l'oest, a la meitat nord de la paret (Street View rumbs 102 i 130).
+      facades:
+        - facade: O
+          openings:
+            - {kind: garage, t: 0.45, w: 2.4, h: 2.25, color: [236, 234, 228], frame: [228, 220, 190], leaves: 1}
+      chimneys:
+        - {t: 0.4, depth_m: 2.5, size_m: 0.8, above_m: 0.9, color: [224, 204, 160], cap: [92, 80, 70]}
+    part2:
+      floors: 2
+      eave_m: 5.6
+      roof: {type: gable, ridge: along, pitch_deg: 24, overhang_m: 0.4}
+      openings:
+        - {kind: window, t: 0.16, w: 0.95, h: 1.0, sill_m: 1.0, roller: 0.95}
+        - {kind: door, t: 0.4, w: 1.0, h: 2.2, bottom_m: 0.45, color: [150, 96, 56], steps: 3, step_color: [180, 92, 62]}
+        - {kind: window, t: 0.73, w: 1.3, h: 1.05, sill_m: 1.0, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.17, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.39, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.73, w: 1.25, h: 1.1, sill_m: 0.85, roller: 0.9}
+      # El pis de la mitgera oest queda vist per damunt de l'annex: finestreta al frontó.
+      facades:
+        - facade: O
+          openings:
+            - {kind: window, floor: 1, t: 0.55, w: 0.55, h: 0.45, sill_m: 1.7}
+        - {facade: E, openings: []}   # frontó de l'est, cec (SV 7742 rumb 280)
+
+# Casa groga d'una planta, retirada del carrer (el set. 2024 la vegetació la tapa des de
+# la ZA-P-2547). La foto de façana del Cadastre mira el front llarg, cap al nord-est.
+0132131TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre; Street View set. 2024 no la veu (vegetació)"
+  facade: NE
+  footprint: rect
+  windows:
+    frame: [236, 232, 220]
+  parts:
+    part4:
+      floors: 1
+      eave_m: 3.5
+      wall: [228, 186, 58]
+      plinth: [146, 92, 58]
+      plinth_h: 0.95
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.4, fascia: [186, 108, 78]}
+      openings:
+        - {kind: window, t: 0.14, w: 1.05, h: 1.15, sill_m: 1.05}
+        - {kind: door, t: 0.36, w: 1.05, h: 2.05, bottom_m: 0.05, color: [232, 228, 216]}
+        - {kind: garage, t: 0.58, w: 2.5, h: 2.15, color: [186, 184, 174], frame: [210, 206, 190], leaves: 2}
+        - {kind: garage, t: 0.84, w: 2.3, h: 2.15, color: [176, 174, 164], frame: [200, 196, 180], leaves: 1}
+      chimneys:
+        - {t: 0.1, depth_m: 6.4, size_m: 0.55, above_m: 0.7, color: [228, 186, 58], cap: [90, 78, 68]}
+        - {t: 0.78, depth_m: 6.4, size_m: 0.55, above_m: 0.7, color: [228, 186, 58], cap: [90, 78, 68]}
+
+# Casa de maó del 15 C. Santibáñez (costat sud). Dos cossos de maó a quatre aigües: el baix de
+# l'oest (part1) avança 3 m cap al carrer, amb planta alçada sobre un semisoterrani, finestral
+# fosc i l'entrada amb escales a la paret de l'est; l'alt de l'est (part2) té el garatge a baix,
+# la porta balconera amb balcó a dalt i, al davant, el porxo del cotxe de xapa vermella. Les
+# tàpies de pedra (carrer i costat oest) són a walls.yaml.
+0132103TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7748 i 18 C. Santibáñez (només referència)"
+  facade: N
+  wall: [170, 102, 76]
+  wall_material: brick
+  windows:
+    frame: [92, 64, 46]
+    roller: [214, 206, 188]
+  parts:
+    part1:
+      floors: 1
+      eave_m: 4.7
+      cladding: {material: stone, color: [146, 138, 128], height_m: 1.35}
+      roof: {type: hip, pitch_deg: 22, overhang_m: 0.6, fascia: [236, 234, 228]}
+      # Façana N (5,93 m): finestral fosc a la planta alçada i finestreta del semisoterrani.
+      openings:
+        - {kind: window, t: 0.5, w: 2.3, h: 1.5, sill_m: 2.4}
+        - {kind: window, t: 0.5, w: 1.1, h: 0.5, sill_m: 0.45}
+      facades:
+        # Paret de l'est, el tros que sobresurt de part2: l'entrada, amb escales de maó vermell.
+        - facade: SE
+          openings:
+            - {kind: door, t: 0.91, w: 0.95, h: 2.1, bottom_m: 1.3, color: [80, 52, 36],
+               steps: 6, step_color: [176, 96, 70]}
+    part2:
+      floors: 2
+      eave_m: 6.3
+      cladding: {material: stone, color: [146, 138, 128], height_m: 0.5}
+      roof: {type: hip, pitch_deg: 22, overhang_m: 0.6, fascia: [236, 234, 228]}
+      # Façana N (3,38 m): garatge darrere el porxo i porta balconera amb balcó de ferro.
+      openings:
+        - {kind: garage, t: 0.5, w: 2.2, h: 2.4, color: [92, 58, 44], frame: [80, 52, 40], leaves: 1}
+        - {kind: window, floor: 1, t: 0.5, w: 1.1, h: 2.1, sill_m: 0.05}
+      balconies:
+        - {floor: 1, from: 0.05, to: 0.95, depth_m: 0.6, slab: [214, 206, 190]}
+      # Porxo del cotxe: xapa vermella sobre pals negres, del cantó est fins a l'entrada.
+      canopies:
+        - {from: -0.9, to: 0.8, height_m: 2.5, depth_m: 4.5, color: [150, 60, 52], under: [140, 64, 56], posts: true}
+      facades:
+        - {facade: SE, openings: []}   # lateral de maó vist pel solar de l'est: cec a la part que es veu
+
+# Cantonada de la C. Santibáñez amb la Rinconada (7727): salmó amb sòcol de pedra i tendals de
+# ratlles. part1 és la casa (planta en L); part2, el garatge de davant a l'osca de la cantonada,
+# amb teulada d'una aigua i, a sobre, el pis enretirat amb un balcó de fusta. El pati de l'est i les
+# seves tàpies (crema, portal de vianants a la cantonada i paret de tova) són a walls.yaml.
+0232108TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7726 C. Santibáñez, 7727 i 7728 ZA-P-2547 i 3 Rinconada (només referència)"
+  facade: S
+  wall: [214, 156, 122]
+  cladding: {material: stone, color: [164, 136, 104], height_m: 0.8}
+  windows:
+    frame: [150, 150, 136]   # emmarcat d'aplacat de pedra grisa
+    frame_w: 0.14
+    roller: [120, 78, 52]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.0
+      roof: {type: hip, wings: true, pitch_deg: 24, overhang_m: 0.45, fascia: [150, 64, 48]}
+      # Façana del carrer: quatre finestres amb porticons de fusta tancats i tendal de ratlles.
+      openings:
+        - {kind: window, t: 0.22, w: 1.0, h: 1.1, sill_m: 1.1, fill: [92, 58, 40], awning: {depth_m: 0.7, color: [158, 86, 58], stripe: [232, 214, 186]}}
+        - {kind: window, t: 0.50, w: 1.0, h: 1.1, sill_m: 1.1, fill: [92, 58, 40], awning: {depth_m: 0.7, color: [158, 86, 58], stripe: [232, 214, 186]}}
+        - {kind: window, floor: 1, t: 0.22, w: 0.95, h: 1.0, sill_m: 0.9, fill: [92, 58, 40], awning: {depth_m: 0.6, color: [158, 86, 58], stripe: [232, 214, 186]}}
+        - {kind: window, floor: 1, t: 0.50, w: 0.95, h: 1.0, sill_m: 0.9, fill: [92, 58, 40], awning: {depth_m: 0.6, color: [158, 86, 58], stripe: [232, 214, 186]}}
+      facades:
+        # Pis enretirat damunt del garatge: finestral amb persiana de fusta i balcó de fusta.
+        - facade: S
+          nth: 2
+          openings:
+            - {kind: window, floor: 1, t: 0.45, w: 1.5, h: 2.0, sill_m: 0.05, roller: 0.85}
+          balconies:
+            - {floor: 1, from: 0.08, to: 0.92, depth_m: 0.7, slab: [190, 160, 130], rail: [96, 60, 40], rail_bar_m: 0.06}
+        # Costat del pati (E): a dalt finestra i finestreta amb porticons; a baix, porta amb fanal
+        # i finestra amb un tendal clar (amagades per la tàpia, mides suposades).
+        - facade: E
+          nth: 2
+          openings:
+            - {kind: window, floor: 1, t: 0.3, w: 0.9, h: 1.0, sill_m: 0.9, fill: [92, 58, 40]}
+            - {kind: window, floor: 1, t: 0.78, w: 0.5, h: 0.6, sill_m: 1.2, fill: [92, 58, 40]}
+            - {kind: door, t: 0.25, w: 0.85, h: 2.05, color: [110, 70, 44], lamp: true}
+            - {kind: window, t: 0.7, w: 1.2, h: 1.1, sill_m: 1.0, roller: 0.5, awning: {depth_m: 1.4, color: [226, 216, 196]}}
+        # Paret de l'osca damunt del garatge, cega.
+        - facade: E
+          openings: []
+        # Oest i nord: tapades per les cases veïnes.
+        - facade: O
+          openings: []
+        - facade: N
+          openings: []
+    # Garatge de la cantonada: porta seccional marró i teulada d'una aigua cap al carrer.
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      roof: {type: shed, pitch_deg: 7, overhang_m: 0.35}
+      openings:
+        - {kind: garage, t: 0.5, w: 2.3, h: 2.3, color: [140, 82, 58], frame: [150, 100, 70], leaves: 1}
+      facades:
+        - {facade: E, openings: []}   # dona al pati, darrere la tàpia
+
+# Casa d'una planta de la cantonada de la Rinconada (2014): gris clar amb sòcol de pedra, ràfec de
+# bigues de fusta i teulada a quatre aigües per ales (la planta té una osca al nord-est). Porxo
+# d'entrada encastat a l'extrem est de la façana del carrer.
+0232303TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7725 i 7726 C. Santibáñez i 3 Rinconada (només referència)"
+  facade: S
+  wall: [206, 202, 194]
+  cladding: {material: stone, color: [198, 158, 96], height_m: 0.85}
+  windows:
+    frame: [190, 186, 176]   # emmarcat de pedra artificial clara
+    frame_w: 0.14
+    roller: [96, 74, 56]
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.35
+      roof: {type: hip, wings: true, pitch_deg: 20, overhang_m: 0.5, fascia: [70, 46, 34]}
+      openings:
+        - {kind: window, t: 0.18, w: 1.4, h: 1.2, sill_m: 0.9, roller: 0.5}
+        - {kind: window, t: 0.6, w: 0.8, h: 1.0, sill_m: 1.0, roller: 0.6}
+      # Porxo d'entrada encastat, amb graons: la porta és al fons.
+      loggia:
+        from: 0.78
+        to: 0.92
+        depth_m: 1.2
+        floor: 0
+        parapet_m: 0.0
+        floor_color: [168, 84, 64]
+        openings:
+          - {kind: door, t: 0.5, w: 0.9, h: 2.1, bottom_m: 0.45, color: [96, 74, 56]}
+      facades:
+        # Rinconada: cinc finestres estretes i una de gran a tocar de la cantonada.
+        - facade: O
+          openings:
+            - {kind: window, t: 0.22, w: 0.45, h: 1.2, sill_m: 1.0, roller: 0.3}
+            - {kind: window, t: 0.32, w: 0.45, h: 1.2, sill_m: 1.0, roller: 0.3}
+            - {kind: window, t: 0.42, w: 0.45, h: 1.2, sill_m: 1.0, roller: 0.3}
+            - {kind: window, t: 0.52, w: 0.45, h: 1.2, sill_m: 1.0, roller: 0.3}
+            - {kind: window, t: 0.62, w: 0.45, h: 1.2, sill_m: 1.0, roller: 0.3}
+            - {kind: window, t: 0.9, w: 1.3, h: 1.2, sill_m: 0.9, roller: 0.6}
+        # E (mitgera amb 0232301), E de l'osca i N: donen a patis.
+        - {facade: E, openings: []}
+        - {facade: E, nth: 2, openings: []}
+        - {facade: N, openings: []}
+        - {facade: N, nth: 2, openings: []}
+
+# 7725 C. Santibáñez. La casa emblanquinada de la foto del Cadastre ja no hi és: al Street View del
+# 2024 hi ha un bloc nou d'una planta, arrebossat ocre a la rústica, amb remat vermell i porta de
+# garatge a l'extrem est.
+0232301TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Street View set. 2024, 7725 C. Santibáñez i 14 C. Santibáñez (només referència); la foto del Cadastre és d'abans de la reforma"
+  facade: S
+  floors: 1
+  eave_m: 3.1
+  wall: [208, 166, 112]
+  plinth: [196, 156, 106]
+  plinth_h: 0.15
+  roof: {type: shed, pitch_deg: 6, overhang_m: 0.12}
+  windows:
+    frame: [96, 80, 64]
+    roller: [96, 80, 64]
+  openings:
+    - {kind: garage, t: 0.83, w: 2.4, h: 2.4, color: [96, 80, 66], frame: [176, 140, 96], leaves: 1, glass_top_m: 0.25}
+  facades:
+    - {facade: E, openings: []}
+    - {facade: N, openings: []}
+    - {facade: O, openings: []}
+
+# --- Calle Santibáñez endins (Street View set. 2024 i fotos de façana del Cadastre) ---------
+
+# Finca llarga del 17 C. Santibáñez. Al carrer, el garatge blanc amb sòcol i remat de maó a franges
+# (part3) i el cobert blanc de darrere (part2); la tàpia amb pilars de maó a franges i portals de
+# reixa és a walls.yaml (0132135-carrer). Al fons, a ~50 m, la casa de dues plantes (part1): pis
+# de maó groguenc amb balcó corregut, planta baixa arrebossada de gris amb sòcol de pedra, i
+# teulada a quatre aigües. Del carrer només se'n veu la façana NE, per sobre del portal.
+0132135TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7748 i 18 C. Santibáñez (només referència)"
+  facade: NE
+  windows:
+    frame: [232, 232, 228]
+    roller: [218, 206, 182]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.9
+      wall: [208, 174, 122]
+      wall_material: brick
+      # Sòcol de pedra i planta baixa arrebossada de gris; el pis és de maó groguenc.
+      cladding:
+        - {material: stone, color: [150, 130, 112], height_m: 0.85}
+        - {color: [122, 128, 128], height_m: 2.95}
+      roof: {type: hip, pitch_deg: 22, overhang_m: 0.6, fascia: [236, 234, 228]}
+      # Façana NE (de cara al carrer, a 50 m). Totes les persianes baixades a les dues fotos.
+      openings:
+        - {kind: window, t: 0.18, w: 1.2, h: 1.3, sill_m: 0.9, roller: 1.0}   # suposada (tapada)
+        - {kind: door, t: 0.42, w: 1.0, h: 2.05, bottom_m: 0.3, color: [226, 226, 220],
+           steps: 2, step_color: [176, 170, 160]}
+        - {kind: window, t: 0.615, w: 1.3, h: 1.35, sill_m: 0.85, roller: 1.0}
+        - {kind: door, t: 0.89, w: 1.2, h: 2.05, bottom_m: 0.05, color: [226, 226, 220]}
+        - {kind: window, floor: 1, t: 0.2, w: 1.3, h: 2.2, sill_m: 0.05, roller: 1.0}   # porta balconera
+        - {kind: window, floor: 1, t: 0.6, w: 1.4, h: 2.2, sill_m: 0.05, roller: 1.0}   # porta balconera
+        - {kind: window, floor: 1, t: 0.83, w: 1.3, h: 1.45, sill_m: 0.8, roller: 1.0}
+      balconies:
+        - {floor: 1, from: 0.0, to: 0.79, depth_m: 1.0, slab: [206, 206, 200], edge: [190, 190, 186]}
+    # Cobert blanc darrere el garatge: no es veu des del carrer.
+    part2:
+      floors: 1
+      eave_m: 3.0
+      wall: [232, 230, 224]
+      roof: {type: gable, ridge: along, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+      facades:
+        - {facade: SE, openings: []}   # cega: es veu a través del portal
+    part3:
+      floors: 1
+      eave_m: 3.1
+      wall: [232, 228, 218]
+      cladding: {material: brick, color: [207, 150, 120], height_m: 0.85}
+      # Coberta de fibrociment, gairebé plana, darrere l'ampit; remat de maó a franges.
+      roof: {type: gable, ridge: along, pitch_deg: 8, overhang_m: 0.1, fascia: [207, 150, 120]}
+      openings:
+        - {kind: garage, t: 0.5, w: 2.45, h: 2.55, color: [42, 36, 34], frame: [56, 48, 46], leaves: 1}
+      facades:
+        - {facade: SE, openings: []}   # cega: es veu a través del portal
+
+# Casa de dues plantes del 1963, crema amb sòcol de pedra i ràfec ample (12 C. Santibáñez).
+# Planta en L: el cos del carrer (S) i l'ala de l'oest, enretirada darrere el pati. Al pis de dalt,
+# terrassa estreta en L al racó del pati, sota el ràfec (porxo). La tàpia del pati, amb el portal
+# de fusta, és a walls.yaml (0232302-carrer). part1 és el garatge del pati, amb terrat.
+0232302TM6503S:
+  review: {level: full, date: "2026-10-08"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 12, 13 i 14 C. Santibáñez (només referència)"
+  facade: S
+  extra_roofs: false         # l'ortofoto hi veia un cobert al pati (l'ombra de la tàpia i l'arbret)
+  wall: [222, 212, 192]
+  cladding: {material: stone, color: [176, 146, 104], height_m: 0.85}
+  windows:
+    frame: [228, 224, 214]
+    roller: [226, 222, 212]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.9
+      # Teulada a quatre aigües per ales: carener N-S al cos del carrer, ala de l'oest E-O.
+      roof: {type: hip, ridge: across, wings: true, pitch_deg: 22, overhang_m: 0.8, fascia: [226, 220, 206]}
+      openings:
+        - {kind: door, t: 0.22, w: 0.9, h: 2.1, bottom_m: 0.05, color: [150, 100, 52]}
+        - {kind: window, t: 0.74, w: 0.75, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.47, w: 0.75, h: 1.0, sill_m: 0.9, roller: 0.85}
+      chimneys:
+        - {t: 0.2, depth_m: 4.5, size_m: 0.6, above_m: 1.2, color: [214, 204, 186], cap: [180, 90, 70]}
+      facades:
+        # Testera del passatge est: finestreta enreixada a la cantonada i una de dalt.
+        - facade: E
+          openings:
+            - {kind: window, t: 0.12, w: 0.5, h: 0.6, sill_m: 1.4}
+            - {kind: window, floor: 1, t: 0.45, w: 0.6, h: 0.9, sill_m: 0.9, roller: 0.9}
+        # Façana del pati de l'ala oest (la segona S). Dalt, la terrassa amb finestra i porta.
+        - facade: S
+          nth: 2
+          openings:
+            - {kind: window, t: 0.22, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.6}
+            - {kind: door, t: 0.6, w: 0.85, h: 2.05, bottom_m: 0.05, color: [120, 82, 50]}
+          loggia:
+            from: 0.06
+            to: 1.0
+            depth_m: 1.2
+            floor: 1
+            parapet_m: 1.0
+            cap: [214, 206, 190]
+            floor_color: [176, 150, 128]
+            openings:
+              - {kind: window, floor: 1, t: 0.4, w: 1.0, h: 1.1, sill_m: 0.9, roller: 0.85}
+              - {kind: door, floor: 1, t: 0.86, w: 0.8, h: 2.05, bottom_m: 0.02, color: [96, 62, 38], lamp: true}
+          chimneys:
+            - {t: 0.12, depth_m: 2.8, size_m: 0.6, above_m: 1.0, color: [214, 204, 186], cap: [180, 90, 70]}
+        # Costat del pati del cos del carrer (O): la terrassa hi continua fins a 1 m de la cantonada.
+        - facade: O
+          openings:
+            - {kind: window, t: 0.5, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.6}
+          loggia:
+            from: 0.0
+            to: 0.82
+            depth_m: 1.2
+            floor: 1
+            openings:
+              - {kind: window, floor: 1, t: 0.55, w: 1.0, h: 1.1, sill_m: 0.9, roller: 0.85}
+    # Garatge del pati: d'una planta, unit a l'ala oest (el Cadastre hi deixa un buit de ~3,5 m)
+    # i amb terrat a l'altura del pis de dalt. La porta de garatge és davant del portal de la tàpia.
+    part1:
+      floors: 1
+      join: [part2]
+      eave_m: 3.0
+      facade: SO
+      roof: {type: flat, parapet_m: 1.0, cap: [214, 206, 190], floor_color: [176, 150, 128]}
+      openings:
+        - {kind: garage, t: 0.45, w: 2.4, h: 2.4, color: [150, 100, 52], frame: [120, 82, 50], leaves: 2}
+      facades:
+        - {facade: S, openings: []}
+        - {facade: O, openings: []}
+        - {facade: N, openings: []}
+
+# Casa rosa del 1900 (13 C. Santibáñez): cos de dues plantes amb balconet i garatge (part3) i
+# cos baix a l'est amb ampit gris (part4), tots dos sota un teuladí corregut i amb sòcol enrajolat.
+0332501TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 12 i 13 C. Santibáñez (només referència)"
+  facade: N
+  wall: [204, 152, 140]
+  cladding: {color: [176, 146, 126], height_m: 1.0}
+  windows:
+    frame: [116, 100, 92]
+    frame_w: 0.16
+    roller: [226, 214, 176]
+  parts:
+    part3:
+      floors: 2
+      eave_m: 6.0
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [120, 92, 72]}
+      openings:
+        - {kind: garage, t: 0.215, w: 2.1, h: 2.6, color: [52, 40, 34], frame: [110, 96, 88], leaves: 2}
+        - {kind: window, t: 0.455, w: 1.1, h: 1.2, sill_m: 1.05, roller: 0.5}
+        - {kind: window, t: 0.62, w: 1.0, h: 1.2, sill_m: 1.05, roller: 0.5}
+        - {kind: window, floor: 1, t: 0.44, w: 1.0, h: 1.2, sill_m: 0.8, roller: 0.75}
+        - {kind: door, floor: 1, t: 0.535, w: 0.85, h: 2.1, color: [226, 214, 176]}
+        - {kind: window, floor: 1, t: 0.60, w: 0.9, h: 1.2, sill_m: 0.8, roller: 0.75}
+        - {kind: window, floor: 1, t: 0.79, w: 0.4, h: 0.4, sill_m: 1.3, fill: [40, 34, 30]}   # forat de ventilació
+      balconies:
+        - {floor: 1, from: 0.505, to: 0.565, depth_m: 0.45, slab: [190, 176, 164]}
+      canopies:
+        - {from: 0.0, to: 0.28, height_m: 3.1, depth_m: 0.7}
+    part4:
+      floors: 1
+      eave_m: 4.3
+      roof: {type: gable, ridge: along, pitch_deg: 15, overhang_m: 0.2}
+      openings:
+        - {kind: window, t: 0.85, w: 1.0, h: 1.2, sill_m: 1.4, fill: [176, 170, 160]}  # tapiada
+      canopies:
+        - {from: 0.0, to: 1.0, height_m: 3.1, depth_m: 0.7}
+
+# Casa vella emblanquinada (11 C. Santibáñez): mur llarg cec amb dues xemeneies i la porta
+# grisa de dues fulles sota un teuladí. Al tester oest, dues finestretes.
+0332704TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 11, 12 i 13 C. Santibáñez (només referència)"
+  facade: S
+  wall: [226, 222, 210]
+  plinth: [168, 162, 150]
+  plinth_h: 0.6
+  windows:
+    frame: [92, 80, 70]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 4.6
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.25}
+      # Porta gris blava de dues fulles al racó entre el cos petit de l'oest (part3) i el mur del pati.
+      openings:
+        - {kind: door, t: 0.36, w: 1.3, h: 2.2, color: [150, 166, 172]}
+      canopies:
+        - {from: 0.31, to: 0.41, height_m: 2.55, depth_m: 0.6}
+      chimneys:
+        - {t: 0.62, depth_m: 2.5, size_m: 0.75, above_m: 1.6, color: [186, 180, 166], cap: [170, 160, 146]}
+      facades:
+        - facade: O
+          openings:
+            - {kind: window, t: 0.45, w: 0.55, h: 0.7, sill_m: 1.5}
+            - {kind: window, floor: 1, t: 0.5, w: 0.5, h: 0.6, sill_m: 0.8}
+    part2:
+      floors: 1
+      eave_m: 3.3
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.25}
+      openings: []
+      chimneys:
+        - {t: 0.3, depth_m: 3.0, size_m: 0.6, above_m: 1.2, color: [186, 180, 166], cap: [170, 160, 146]}
+      # Racó oest, al costat de la porta: mur cec (Street View, 13 C. Santibáñez, rumb 45).
+      facades:
+        - facade: O
+          openings: []
+    # Cos petit de l'oest, al carrer: cec (només el comptador) i amb una xemeneia alta.
+    part3:
+      floors: 1
+      eave_m: 3.3
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.25}
+      openings: []
+      chimneys:
+        - {t: 0.5, depth_m: 2.0, size_m: 0.75, above_m: 1.8, color: [186, 180, 166], cap: [170, 160, 146]}
+
+# Casa de maó de dues plantes (part2) i cobert blanc amb portal verd fosc (part1), 9 C. Santibáñez.
+0332502TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 9 C. Santibáñez, rumb 200 (només referència)"
+  facade: N
+  cladding: {color: [150, 128, 112], height_m: 1.2}
+  windows:
+    frame: [236, 234, 228]
+    roller: [238, 236, 230]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.6
+      wall: [176, 92, 62]
+      wall_material: brick
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [200, 200, 196]}
+      openings:
+        - {kind: window, t: 0.36, w: 1.05, h: 1.15, sill_m: 1.25, roller: 0.95}
+        - {kind: window, t: 0.645, w: 1.05, h: 1.15, sill_m: 1.25, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.38, w: 1.0, h: 1.05, sill_m: 1.2, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.63, w: 1.0, h: 1.05, sill_m: 1.2, roller: 0.95}
+    part1:
+      floors: 1
+      eave_m: 3.4
+      wall: [232, 230, 222]
+      roof: {type: gable, ridge: along, pitch_deg: 12, overhang_m: 0.3}
+      openings:
+        - {kind: garage, t: 0.33, w: 2.5, h: 2.6, color: [40, 48, 46], frame: [60, 66, 64], leaves: 2}
+        - {kind: window, t: 0.82, w: 0.9, h: 1.0, sill_m: 1.2, fill: [44, 50, 50]}  # persiana metàl·lica tancada
+
+# Casa blanca de dues plantes amb balcó i portal de fusta (7 ZA-P-2547). part1, el cobert gran
+# del darrere, com sempre.
+0332503TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7 ZA-P-2547, rumb 198 (només referència)"
+  facade: N
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.85
+      wall: [226, 224, 216]
+      cladding: {material: stone, color: [176, 166, 150], height_m: 1.0}
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.4, fascia: [140, 96, 64]}
+      windows:
+        frame: [236, 234, 228]
+        roller: [150, 108, 70]
+      openings:
+        - {kind: window, t: 0.12, w: 1.1, h: 1.3, sill_m: 1.1, roller: 0.9}
+        - {kind: door, t: 0.33, w: 1.0, h: 2.2, bottom_m: 0.15, color: [120, 80, 50], steps: 1}
+        - {kind: window, t: 0.57, w: 1.3, h: 1.4, sill_m: 1.2, roller: 0.9}
+        - {kind: garage, t: 0.854, w: 2.6, h: 2.9, color: [146, 104, 72], frame: [120, 84, 58], leaves: 2}
+        - {kind: window, floor: 1, t: 0.12, w: 1.0, h: 1.1, sill_m: 0.9, roller: 0.9}
+        - {kind: door, floor: 1, t: 0.36, w: 0.9, h: 2.1, color: [150, 108, 70]}
+        - {kind: window, floor: 1, t: 0.61, w: 1.0, h: 1.0, sill_m: 1.0, roller: 0.8}
+        - {kind: window, floor: 1, t: 0.806, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.8}
+      balconies:
+        - {floor: 1, from: 0.30, to: 0.42, depth_m: 0.6, slab: [220, 216, 206]}
+
+# Casa crema de dues plantes retirada darrere el jardí (4 C. Santibáñez), amb teuladí a la
+# porta i finestretes de golfa. El mur de pedra i reixa verda del carrer és a walls.yaml.
+0332504TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 4 C. Santibáñez, rumb 205 (només referència)"
+  facade: N
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.4
+      wall: [230, 214, 170]
+      plinth: [200, 180, 140]
+      plinth_h: 0.4
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.6, fascia: [110, 72, 48]}
+      windows:
+        frame: [236, 234, 228]
+        roller: [200, 196, 186]
+      openings:
+        - {kind: window, t: 0.15, w: 1.2, h: 1.1, sill_m: 1.1, roller: 0.4}
+        - {kind: door, t: 0.365, w: 1.0, h: 2.1, color: [214, 206, 190]}
+        - {kind: window, t: 0.52, w: 1.0, h: 1.1, sill_m: 1.1, roller: 0.4}
+        - {kind: window, t: 0.71, w: 0.8, h: 1.1, sill_m: 1.1, roller: 0.4}
+        - {kind: window, t: 0.88, w: 0.85, h: 1.1, sill_m: 1.1, roller: 0.4}
+        - {kind: window, floor: 1, t: 0.365, w: 0.95, h: 0.55, sill_m: 1.4, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.78, w: 0.85, h: 0.55, sill_m: 1.4, roller: 0.9}
+      canopies:
+        - {from: 0.30, to: 0.43, height_m: 2.45, depth_m: 0.6}
+    # Cos baix de l'oest, al carrer: emblanquinat amb sòcol de pedra, una finestreta verda i la
+    # teulada d'una aigua que baixa cap a l'est (5 ZA-P-2547, rumb 180).
+    part1:
+      floors: 1
+      eave_m: 2.4
+      facade: NE
+      wall: [228, 226, 218]
+      cladding: {material: stone, color: [168, 150, 120], height_m: 0.9}
+      roof: {type: shed, toward: E, pitch_deg: 20, overhang_m: 0.15}
+      openings:
+        - {kind: window, t: 0.5, w: 0.4, h: 0.5, sill_m: 1.3, fill: [60, 110, 70]}
+      facades:
+        - {facade: E, openings: []}
+
+# Casa estreta de maó de dues plantes amb portal blau (4 ZA-P-2547). El mur oest, de maó cec,
+# treu per damunt del cobert del costat.
+0332003TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 4 ZA-P-2547, rumb 40 (només referència)"
+  facade: S
+  floors: 2
+  eave_m: 5.7
+  wall: [168, 80, 56]
+  wall_material: brick
+  plinth: [150, 70, 50]
+  roof: {type: gable, ridge: along, pitch_deg: 10, overhang_m: 0.2, fascia: [150, 70, 50]}
+  windows:
+    frame: [236, 234, 228]
+    roller: [238, 236, 230]
+  openings:
+    - {kind: garage, t: 0.5, w: 2.1, h: 2.35, color: [128, 150, 176], frame: [150, 70, 50], leaves: 1}
+    - {kind: window, floor: 1, t: 0.52, w: 1.2, h: 1.1, sill_m: 0.9, roller: 0.95}
+  facades:
+    - facade: O
+      openings: []
+
+# Casa blanca de dues plantes amb sòcol ocre (part2) i garatge d'una planta (part4).
+0332002TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 4 C. Santibáñez i 4 ZA-P-2547 (només referència)"
+  facade: S
+  wall: [234, 232, 226]
+  windows:
+    frame: [236, 234, 228]
+    roller: [200, 150, 84]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.5
+      cladding: {color: [206, 160, 84], height_m: 0.55}
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.3, fascia: [236, 234, 228]}
+      openings:
+        - {kind: window, t: 0.25, w: 0.65, h: 1.0, sill_m: 1.1, roller: 0.7}
+        - {kind: window, t: 0.40, w: 0.65, h: 1.0, sill_m: 1.1, roller: 0.7}
+        - {kind: window, floor: 1, t: 0.25, w: 0.65, h: 1.0, sill_m: 0.9, roller: 0.6}
+        - {kind: window, floor: 1, t: 0.40, w: 0.65, h: 1.0, sill_m: 0.9, roller: 0.6}
+      balconies:
+        - {floor: 1, from: 0.21, to: 0.29, depth_m: 0.25, slab: [220, 216, 206]}
+        - {floor: 1, from: 0.36, to: 0.44, depth_m: 0.25, slab: [220, 216, 206]}
+      chimneys:
+        - {t: 0.7, depth_m: 3.5, size_m: 0.6, above_m: 1.2, color: [236, 234, 228], cap: [200, 190, 180]}
+      # Pis de les cares nord i est, per damunt dels cossos baixos (1 Calle El Cristo, rumb 200):
+      # balcons de ferro amb balconera.
+      facades:
+        - facade: N
+          openings:
+            - {kind: door, floor: 1, t: 0.4, w: 1.4, h: 2.1, bottom_m: 0.05, color: [120, 84, 56]}
+            - {kind: window, floor: 1, t: 0.75, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.3}
+          balconies:
+            - {floor: 1, from: 0.18, to: 0.62, depth_m: 0.8, slab: [220, 216, 206]}
+        - facade: E
+          openings:
+            - {kind: door, floor: 1, t: 0.75, w: 1.0, h: 2.1, bottom_m: 0.05, color: [120, 84, 56]}
+          balconies:
+            - {floor: 1, from: 0.55, to: 1.0, depth_m: 0.8, slab: [220, 216, 206]}
+    part4:
+      floors: 1
+      eave_m: 3.1
+      cladding: {color: [206, 160, 84], height_m: 0.9}
+      roof: {type: gable, ridge: along, pitch_deg: 12, overhang_m: 0.2, fascia: [190, 90, 60]}
+      openings:
+        - {kind: garage, t: 0.52, w: 2.7, h: 2.5, color: [214, 192, 140], frame: [110, 84, 60], leaves: 1}
+
+# Casa groga de dues plantes amb emmarcats ocre (part2) i garatge gris a l'est (part3).
+0332505TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 4 C. Santibáñez, rumb 180 (només referència)"
+  facade: N
+  wall: [232, 206, 140]
+  windows:
+    frame: [214, 166, 80]
+    frame_w: 0.16
+    roller: [236, 232, 222]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.6
+      cladding: {color: [214, 166, 80], height_m: 1.0}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3, fascia: [236, 234, 228]}
+      openings:
+        - {kind: window, t: 0.19, w: 0.95, h: 1.1, sill_m: 1.1}
+        - {kind: door, t: 0.41, w: 0.85, h: 2.1, bottom_m: 0.15, color: [236, 236, 232]}
+        - {kind: window, t: 0.62, w: 0.95, h: 1.1, sill_m: 1.1}
+        - {kind: window, floor: 1, t: 0.2, w: 0.6, h: 1.0, sill_m: 1.0, roller: 0.5}
+        - {kind: window, floor: 1, t: 0.66, w: 0.6, h: 1.0, sill_m: 1.0, roller: 0.5}
+    part3:
+      floors: 1
+      eave_m: 3.2
+      cladding: {color: [214, 166, 80], height_m: 0.6}
+      roof: {type: gable, ridge: along, pitch_deg: 15, overhang_m: 0.3}
+      openings:
+        - {kind: garage, t: 0.53, w: 2.7, h: 2.6, color: [176, 178, 176], frame: [200, 180, 130], leaves: 2}
+
+# --- Final de la Calle Santibáñez i cruïlla amb la Calle el Cristo (set. 2024) ---------------
+
+# Magatzem emblanquinat de dues alçades (1 C. Santibáñez): portal blau i dues finestres verdes.
+0332506TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Santibáñez, rumb 190 (només referència)"
+  facade: N
+  floors: 2
+  eave_m: 5.5
+  wall: [222, 214, 196]
+  plinth: [130, 118, 98]
+  plinth_h: 0.5
+  roof: {type: gable, ridge: along, pitch_deg: 15, overhang_m: 0.35, fascia: [170, 166, 156]}
+  windows:
+    frame: [120, 160, 150]
+  openings:
+    - {kind: garage, t: 0.555, w: 3.4, h: 2.8, color: [150, 168, 186], frame: [130, 140, 150], leaves: 2}
+    - {kind: window, floor: 1, t: 0.215, w: 0.8, h: 1.0, sill_m: 0.9}
+    - {kind: window, floor: 1, t: 0.68, w: 1.0, h: 1.1, sill_m: 0.9}
+  chimneys:
+    - {t: 0.93, depth_m: 2.5, size_m: 0.6, above_m: 1.0, color: [222, 214, 196], cap: [150, 140, 128]}
+  facades:
+    - {facade: "NO", openings: []}
+    - {facade: SO, openings: []}
+
+# Cobert blanc baix amb terrat i barana (part2), a la cantonada de la cruïlla. part1 (dues
+# plantes, darrere) com sempre.
+0332507TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Santibáñez, rumbs 140 i 270 (només referència)"
+  facade: NE
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.0
+      wall: [226, 222, 212]
+      plinth: [150, 150, 150]
+      plinth_h: 0.8
+      # Terrat amb ampit de maó vist i barana de ferro per damunt (1 C. Santibáñez, rumb 240).
+      roof: {type: flat, parapet_m: 0.35, cap: [176, 96, 70], floor_color: [170, 160, 150]}
+      openings:
+        - {kind: garage, t: 0.5, w: 2.0, h: 2.3, color: [190, 192, 190], frame: [170, 172, 170], leaves: 2}
+      balconies:
+        - {floor: 1, from: 0.0, to: 1.0, depth_m: 0.12, slab: [176, 96, 70]}
+      facades:
+        - {facade: SE, openings: []}   # mur blanc amb el comptador
+
+# Casa crema de dues plantes de cara a la placeta del Cristo (part1) i garatge groc amb portal
+# marró de marc vermell al carrer (part2).
+0332508TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Santibáñez i 6 C. El Cristo (només referència)"
+  windows:
+    frame: [236, 234, 228]
+    roller: [238, 236, 230]
+  parts:
+    part1:
+      facade: SE
+      floors: 2
+      eave_m: 5.6
+      wall: [230, 208, 150]
+      plinth: [200, 180, 128]
+      plinth_h: 0.5
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3, fascia: [236, 234, 228]}
+      openings:
+        - {kind: window, t: 0.12, w: 1.0, h: 1.0, sill_m: 1.1, roller: 0.95}
+        - {kind: door, t: 0.40, w: 0.9, h: 2.1, color: [130, 84, 50]}
+        - {kind: window, t: 0.58, w: 1.0, h: 1.0, sill_m: 1.1, roller: 0.95}
+        - {kind: window, t: 0.84, w: 1.0, h: 1.0, sill_m: 1.1, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.17, w: 1.0, h: 1.0, sill_m: 1.0, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.32, w: 1.0, h: 1.0, sill_m: 1.0, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.48, w: 1.0, h: 1.0, sill_m: 1.0, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.84, w: 1.0, h: 1.0, sill_m: 1.0, roller: 0.95}
+      canopies:
+        - {from: 0.33, to: 0.47, height_m: 2.4, depth_m: 0.6}
+      # Testera de la Calle el Cristo: porta i finestra a sobre (foto del Cadastre).
+      facades:
+        - facade: NE
+          openings:
+            - {kind: door, t: 0.5, w: 0.9, h: 2.0, color: [130, 84, 50]}
+            - {kind: window, floor: 1, t: 0.5, w: 0.6, h: 0.8, sill_m: 1.0, roller: 0.6}
+    part2:
+      facade: NE
+      footprint: rect
+      floors: 1
+      eave_m: 3.2
+      wall: [230, 206, 140]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.3}
+      openings:
+        - {kind: garage, t: 0.35, w: 2.6, h: 2.6, color: [96, 52, 40], frame: [170, 40, 40], leaves: 2}
+      chimneys:
+        - {t: 0.7, depth_m: 2.0, size_m: 0.5, above_m: 0.9, color: [200, 190, 170], cap: [120, 110, 100]}
+
+# Casa rosa de la cantonada amb la xemeneia vermella a la façana i el sòcol vermell.
+0432827TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 17 i 6 C. El Cristo (només referència)"
+  facade: N
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.0
+      wall: [236, 198, 180]
+      cladding: {color: [150, 40, 40], height_m: 0.9}
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.4, fascia: [130, 80, 60]}
+      windows:
+        frame: [70, 44, 30]
+      openings:
+        - {kind: window, t: 0.2, w: 0.8, h: 0.9, sill_m: 1.0}
+        - {kind: window, t: 0.53, w: 0.9, h: 0.9, sill_m: 1.0}
+        - {kind: window, floor: 1, t: 0.21, w: 0.55, h: 0.8, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.48, w: 0.55, h: 0.8, sill_m: 0.9}
+      chimneys:
+        - {t: 0.37, depth_m: 0.3, size_m: 0.8, above_m: 1.3, color: [150, 40, 40], cap: [130, 36, 36]}
+      facades:
+        # Capçal oest (23 Calle El Cristo, rumb 90): finestreta al mig de la planta baixa.
+        - facade: O
+          openings:
+            - {kind: window, t: 0.5, w: 0.5, h: 0.6, sill_m: 1.4}
+
+# Centre mèdic i velatori (1978): maó crema amb franges, sòcol groc i torre del rellotge.
+0432601TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 17 C. El Cristo, rumb 100 (només referència)"
+  facade: O
+  floors: 1
+  eave_m: 3.4
+  wall: [218, 186, 128]
+  wall_material: brick
+  cladding: {color: [214, 166, 60], height_m: 0.5}
+  roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.8, fascia: [214, 170, 80]}
+  windows:
+    frame: [236, 234, 228]
+  openings:
+    - {kind: window, t: 0.22, w: 1.9, h: 1.2, sill_m: 1.0}
+    - {kind: window, t: 0.52, w: 1.9, h: 1.2, sill_m: 1.0}
+    - {kind: window, t: 0.75, w: 1.6, h: 1.2, sill_m: 1.0}
+    - {kind: door, t: 0.93, w: 1.0, h: 2.3, bottom_m: 0.3, color: [236, 236, 232], steps: 2, step_color: [214, 166, 60]}
+  # La torre del rellotge (any 1992) es fa com una xemeneia grossa damunt el carener.
+  chimneys:
+    - {t: 0.55, depth_m: 3.6, size_m: 2.2, above_m: 2.8, color: [176, 104, 80], cap: [150, 72, 56]}
+  # Barana de ferro sobre un muret groc davant de les finestres; s'obre a l'entrada (t 0,93).
+  fence: {offset_m: 1.6, from: -0.05, to: 0.85, height_m: 1.0, rail: [40, 40, 42], base: [214, 166, 60]}
+  facades:
+    - facade: S
+      openings:
+        - {kind: door, t: 0.4, w: 1.3, h: 2.3, color: [236, 236, 232]}
+        - {kind: window, t: 0.78, w: 0.6, h: 0.7, sill_m: 1.4}
+
+# Casa de maó de dues plantes amb balcó i teulada a quatre aigües, darrere el jardí de la
+# cruïlla (part4). El mur de bloc del jardí és a walls.yaml.
+0332001TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 3 C. Santibáñez i 17 C. El Cristo (només referència)"
+  parts:
+    part4:
+      facade: NE
+      floors: 2
+      eave_m: 5.8
+      wall: [168, 96, 70]
+      wall_material: brick
+      plinth: [196, 190, 180]
+      plinth_h: 0.5
+      roof: {type: hip, pitch_deg: 22, overhang_m: 0.8, fascia: [236, 234, 228]}
+      windows:
+        frame: [92, 64, 46]
+        roller: [200, 190, 170]
+      openings:
+        - {kind: window, t: 0.15, w: 1.2, h: 1.2, sill_m: 1.0}
+        - {kind: window, t: 0.5, w: 1.0, h: 1.2, sill_m: 1.0}
+        - {kind: window, t: 0.62, w: 1.0, h: 1.2, sill_m: 1.0}
+        - {kind: door, t: 0.85, w: 1.0, h: 2.1, color: [120, 80, 50]}
+        - {kind: window, floor: 1, t: 0.15, w: 1.2, h: 1.2, sill_m: 0.9, roller: 0.3}
+        - {kind: door, floor: 1, t: 0.5, w: 0.9, h: 2.1, color: [120, 80, 50]}
+        - {kind: door, floor: 1, t: 0.62, w: 0.9, h: 2.1, color: [120, 80, 50]}
+        - {kind: window, floor: 1, t: 0.88, w: 1.2, h: 1.2, sill_m: 0.9, roller: 0.3}
+      balconies:
+        - {floor: 1, from: 0.42, to: 0.7, depth_m: 1.0, slab: [236, 234, 228]}
+      facades:
+        - facade: S
+          openings:
+            - {kind: window, t: 0.3, w: 1.2, h: 1.2, sill_m: 1.0}
+            - {kind: window, t: 0.7, w: 1.2, h: 1.2, sill_m: 1.0}
+            - {kind: window, floor: 1, t: 0.3, w: 1.2, h: 1.2, sill_m: 0.9, roller: 0.3}
+            - {kind: window, floor: 1, t: 0.7, w: 1.2, h: 1.2, sill_m: 0.9, roller: 0.3}
+
+# Casa groga d'una planta amb aplacat de pedra (part1) i porta grisa del pati (part2),
+# 6 C. El Cristo. El Cadastre en diu dues plantes; a la foto i a Street View n'és una.
+0431701TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 6 C. El Cristo, rumb 230 (només referència)"
+  wall: [232, 206, 140]
+  cladding: {material: stone, color: [176, 156, 124], height_m: 0.8}
+  windows:
+    frame: [236, 234, 228]
+  parts:
+    part1:
+      facade: SE
+      floors: 1
+      eave_m: 3.3
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [140, 90, 60]}
+      openings:
+        - {kind: door, t: 0.23, w: 0.9, h: 2.1, color: [120, 60, 40]}
+        - {kind: window, t: 0.5, w: 1.6, h: 1.3, sill_m: 1.0}
+      facades:
+        - facade: E
+          openings:
+            - {kind: window, t: 0.5, w: 1.0, h: 1.1, sill_m: 1.0}
+    part2:
+      facade: E
+      floors: 1
+      eave_m: 3.0
+      roof: {type: gable, ridge: along, pitch_deg: 15, overhang_m: 0.2}
+      openings:
+        - {kind: garage, t: 0.5, w: 1.3, h: 2.0, color: [196, 198, 196], frame: [170, 172, 170], leaves: 2}
+
+# Casa de dues plantes amb el pis de maó, balcó corregut i ràfec vermell; planta baixa groga
+# (part3). Els coberts petits (part1, part2) com sempre.
+0431702TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 6 C. El Cristo, rumb 230 (només referència)"
+  parts:
+    part3:
+      facade: NE
+      floors: 2
+      eave_m: 5.8
+      wall: [170, 90, 64]
+      wall_material: brick
+      cladding: [{material: stone, color: [168, 150, 124], height_m: 0.9}, {color: [232, 206, 150], height_m: 3.0}]
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.6, fascia: [150, 40, 40]}
+      windows:
+        frame: [236, 234, 228]
+        roller: [236, 234, 228]
+      openings:
+        - {kind: door, t: 0.1, w: 0.9, h: 2.1, color: [236, 236, 232]}
+        - {kind: window, t: 0.32, w: 1.0, h: 1.1, sill_m: 1.1, roller: 0.9}
+        - {kind: window, t: 0.52, w: 1.0, h: 1.1, sill_m: 1.1, roller: 0.9}
+        - {kind: window, t: 0.7, w: 1.0, h: 1.1, sill_m: 1.1, roller: 0.9}
+        - {kind: door, t: 0.9, w: 1.4, h: 2.2, color: [236, 236, 232]}
+        - {kind: window, floor: 1, t: 0.14, w: 0.9, h: 1.2, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.32, w: 0.9, h: 1.2, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.5, w: 0.9, h: 1.2, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.66, w: 0.9, h: 1.2, sill_m: 0.9}
+        - {kind: door, floor: 1, t: 0.84, w: 0.9, h: 2.1, color: [236, 236, 232]}
+      balconies:
+        - {floor: 1, from: 0.0, to: 1.0, depth_m: 0.8, slab: [232, 206, 150]}
+
+# --- Entrada oest per la ZA-P-2547 --------------------------------------------------------
+
+# Casa vella de dues plantes arrebossada (part2) i garatge amb porta seccional marró (part1).
+002000100TM55D:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (ago. 2015) i Street View set. 2024, ZA-P-2547, rumb 170 (només referència)"
+  facade: N
+  parts:
+    part2:
+      floors: 2
+      eave_m: 4.8
+      wall: [190, 170, 128]
+      plinth: [150, 146, 136]
+      plinth_h: 0.4
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.6, fascia: [160, 90, 60]}
+      windows:
+        frame: [100, 84, 66]
+      openings:
+        - {kind: door, t: 0.19, w: 0.95, h: 2.0, color: [214, 218, 216]}
+        - {kind: door, t: 0.40, w: 1.3, h: 2.1, color: [120, 80, 64]}
+        - {kind: window, t: 0.74, w: 0.45, h: 0.4, sill_m: 2.0}
+        - {kind: window, floor: 1, t: 0.2, w: 0.6, h: 1.2, sill_m: 1.0}
+        - {kind: window, floor: 1, t: 0.39, w: 0.75, h: 1.2, sill_m: 1.0}
+        - {kind: window, floor: 1, t: 0.64, w: 1.0, h: 1.2, sill_m: 1.0}
+      chimneys:
+        - {t: 0.78, depth_m: 3.0, size_m: 0.3, above_m: 0.8, color: [70, 70, 70], cap: [60, 60, 60]}
+      facades:
+        - facade: E
+          openings: []
+    part1:
+      floors: 1
+      eave_m: 3.2
+      wall: [200, 180, 140]
+      roof: {type: gable, ridge: across, pitch_deg: 18, overhang_m: 0.3}
+      openings:
+        - {kind: garage, t: 0.5, w: 3.0, h: 2.6, color: [150, 96, 56], frame: [120, 80, 50], leaves: 1}
+
+# Nau agrícola llarga arrebossada amb coberta de fibrociment (part1) i nau alta de teulada
+# vermella a l'est (part2).
+002000200TM55D:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (ago. 2015) i Street View set. 2024, ZA-P-2547, rumb 200 (només referència)"
+  facade: N
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.0
+      wall: [168, 156, 136]
+      plinth: [140, 132, 116]
+      plinth_h: 0.3
+      roof: {type: gable, ridge: along, pitch_deg: 12, overhang_m: 0.3}
+      windows:
+        frame: [80, 90, 80]
+      openings:
+        - {kind: window, t: 0.06, w: 0.7, h: 0.7, sill_m: 1.5}
+        - {kind: window, t: 0.20, w: 0.7, h: 0.7, sill_m: 1.5}
+        - {kind: window, t: 0.34, w: 0.7, h: 0.7, sill_m: 1.5}
+        - {kind: window, t: 0.48, w: 0.7, h: 0.7, sill_m: 1.5}
+        - {kind: window, t: 0.62, w: 0.7, h: 0.7, sill_m: 1.5}
+        - {kind: window, t: 0.76, w: 0.7, h: 0.7, sill_m: 1.5}
+        - {kind: window, t: 0.90, w: 0.7, h: 0.7, sill_m: 1.5}
+      facades:
+        - facade: O
+          openings:
+            - {kind: garage, t: 0.5, w: 2.8, h: 3.0, color: [216, 218, 216], frame: [190, 190, 186], leaves: 2}
+    part2:
+      floors: 1
+      eave_m: 4.2
+      wall: [196, 180, 150]
+      roof: {type: gable, ridge: across, pitch_deg: 15, overhang_m: 0.3}
+      openings: []
+
+# --- Models propis bàsics (2026-10-09): les tres que quedaven a la C. Santibáñez i la C. de la
+# Iglesia. Fitxa de la façana del carrer, a partir de la foto del Cadastre i del Street View que
+# hi ha; pendents de l'anàlisi detallada (skill casa-a-mida).
+
+# Nau de tova de la C. Santibáñez (18): part3, mur alt arrebossat amb sòcol de pedra i coberta
+# grisa d'una aigua; part1, el paller de tova de la Rinconada; part2, el cos llarg del darrere.
+# La nau grisa de la foto del Cadastre cau fora de les parts (queda com a cobert detectat).
+0232107TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  extra_roofs: false         # la nau és a extra_parts; el cobert detectat a l'ortofoto sobra
+  # La nau grisa del carrer, entre la tàpia alta i la casa 0232108: no és cap part del Cadastre.
+  # Mur arrebossat gris de ~3,5 m al carrer amb un portal metàl·lic gran (porta de vianants a la
+  # fulla esquerra) i teulada d'una aigua que baixa cap al pati (7728 ZA-P-2547, rumb 20).
+  extra_parts:
+    - outline: [[260076.9, 4653005.5], [260084.2, 4653003.2], [260086.3, 4653009.3], [260078.9, 4653011.8]]
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [170, 166, 158]
+      roof: {type: shed, toward: N, pitch_deg: 6, overhang_m: 0.1}
+      openings:
+        - {kind: garage, t: 0.3, w: 3.4, h: 3.0, color: [150, 150, 150], frame: [150, 80, 60], leaves: 2}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 18 C. Santibáñez i Rinconada (només referència)"
+  wall: [200, 184, 150]
+  cladding: {material: stone, color: [150, 130, 100], height_m: 0.5}
+  parts:
+    part3:
+      floors: 1
+      eave_m: 3.2
+      facade: S
+      roof: {type: shed, toward: N, pitch_deg: 10, overhang_m: 0.2}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 3.0
+      wall: [178, 144, 106]   # tova vista
+      facade: E
+      roof: {type: gable, ridge: across, pitch_deg: 24, overhang_m: 0.3}
+      openings: []
+      facades:
+        - {facade: N, openings: []}
+    part2:
+      wall: [190, 160, 124]
+
+# Casa de tova en ruïna de la C. Santibáñez (7 ZA-P-2547): al 2024 només en queda el sòcol de
+# pedra amb bloc al damunt i parets de tova a mig enrunar; el cobert de fibrociment, esfondrat.
+0332004TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Street View set. 2024, 7 i 5 ZA-P-2547 (només referència); la foto del Cadastre és d'abans de la ruïna"
+  wall: [180, 146, 108]
+  cladding: {material: stone, color: [150, 138, 120], height_m: 0.8}
+  parts:
+    part1:
+      floors: 1
+      eave_m: 1.9
+      facade: S
+      roof: {type: none}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 2.4
+      facade: O
+      roof: {type: shed, pitch_deg: 8, overhang_m: 0.2}
+      openings:
+        - {kind: door, t: 0.5, w: 0.9, h: 1.9, color: [112, 96, 78]}
+
+# Casa emblanquinada de la Calle Viriato (sense Street View): testera alta i cega de part1 i
+# costat llarg més baix de part2 amb dues finestretes i la porta (foto del Cadastre de biaix).
+0332703TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (de biaix; la Calle Viriato no té Street View)"
+  wall: [232, 230, 224]
+  plinth: [196, 186, 150]
+  plinth_h: 0.5
+  windows:
+    frame: [120, 110, 96]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.0
+      facade: N
+      roof: {type: gable, ridge: across, pitch_deg: 26, overhang_m: 0.15}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 3.8
+      facade: N
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.35}
+      openings:
+        - {kind: window, t: 0.3, w: 0.5, h: 0.6, sill_m: 1.5}
+        - {kind: window, t: 0.55, w: 0.5, h: 0.6, sill_m: 1.5}
+        - {kind: door, t: 0.85, w: 0.9, h: 2.0, color: [92, 80, 66]}
+
+# C. de la Iglesia, banda oest, de sud a nord. Aquest tram no té Street View: foto del Cadastre.
+# Casa moderna (1998) crema amb ràfec de pissarra, porxo a la cantonada amb pilars de pedra i
+# terrassa al damunt, i galeria vidrada amb el garatge a sota a l'extrem nord.
+0232104TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre, des de la cantonada SE (el tram sud de la C. de la Iglesia no té Street View)"
+  facade: E
+  floors: 2
+  eave_m: 6.0
+  wall: [236, 224, 196]
+  cladding: {material: stone, color: [184, 156, 116], height_m: 0.8}
+  roof: {type: hip, pitch_deg: 28, overhang_m: 0.8, fascia: [52, 60, 84]}   # ràfec folrat de pissarra
+  windows:
+    frame: [62, 62, 66]
+    roller: [200, 196, 186]
+  openings:
+    - {kind: window, t: 0.15, w: 1.0, h: 1.2, sill_m: 1.0, roller: 0.6}
+    - {kind: window, floor: 1, t: 0.15, w: 1.1, h: 1.6, sill_m: 0.05, roller: 0.3}
+    - {kind: window, floor: 1, t: 0.88, w: 1.5, h: 1.6, sill_m: 0.5}          # galeria vidrada
+    - {kind: garage, t: 0.88, w: 2.2, h: 2.3, color: [150, 154, 150], frame: [62, 62, 66], leaves: 1}
+  balconies:
+    - {floor: 1, from: 0.07, to: 0.24, depth_m: 0.6, slab: [236, 230, 214]}
+    - {floor: 1, from: 0.32, to: 0.78, depth_m: 0.3, slab: [236, 230, 214]}   # barana de la terrassa del porxo
+  # Porxo de la cantonada amb terra de rajola vermella; la porta és al fons.
+  loggia:
+    from: 0.32
+    to: 0.78
+    depth_m: 2.0
+    floor: 0
+    parapet_m: 0.0
+    floor_color: [176, 84, 64]
+    openings:
+      - {kind: door, t: 0.5, w: 0.9, h: 2.1, bottom_m: 0.3, color: [120, 84, 56]}
+  facades:
+    # Costat llarg del pas del sud: finestres estretes a les dues plantes.
+    - facade: S
+      openings:
+        - {kind: window, t: 0.3, w: 0.6, h: 1.1, sill_m: 1.0, roller: 0.5}
+        - {kind: window, t: 0.7, w: 0.6, h: 1.1, sill_m: 1.0, roller: 0.5}
+        - {kind: window, floor: 1, t: 0.3, w: 0.6, h: 1.2, sill_m: 0.9, roller: 0.4}
+        - {kind: window, floor: 1, t: 0.7, w: 0.6, h: 1.2, sill_m: 0.9, roller: 0.4}
+
+# Corral de tova emblanquinat («PSOE» a la paret), porta vella de fusta i teulada d'una aigua.
+0232103TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (C. de la Iglesia; sense Street View)"
+  facade: E
+  floors: 1
+  eave_m: 2.9
+  wall: [226, 218, 198]
+  plinth: [180, 160, 124]
+  plinth_h: 0.6
+  roof: {type: shed, pitch_deg: 15, overhang_m: 0.4}
+  openings:
+    - {kind: window, t: 0.3, w: 0.75, h: 0.6, sill_m: 1.6, fill: [36, 32, 28]}   # forat sense fusteria
+    - {kind: door, t: 0.75, w: 0.95, h: 1.9, color: [112, 100, 84]}
+
+# Casa rosa de dues plantes amb emmarcats crema i sòcol de pedra grisa (part1, al carrer).
+0232102TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (C. de la Iglesia; sense Street View)"
+  windows:
+    frame: [232, 214, 160]
+    frame_w: 0.16
+    roller: [110, 90, 70]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: E
+      wall: [228, 170, 150]
+      cladding: {material: stone, color: [176, 172, 166], height_m: 0.8}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.18, w: 0.95, h: 1.1, sill_m: 0.9, roller: 0.9}
+        - {kind: door, t: 0.45, w: 0.85, h: 2.05, bottom_m: 0.15, color: [120, 112, 96], steps: 1}
+        - {kind: window, t: 0.76, w: 1.1, h: 1.1, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.18, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.6}
+        - {kind: window, floor: 1, t: 0.45, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.6}
+        - {kind: window, floor: 1, t: 0.78, w: 1.0, h: 1.0, sill_m: 0.9, roller: 0.6}
+
+# Cantonada de la C. de la Iglesia amb la C. Calzada: la casa groga de la foto del Cadastre, ara
+# beix amb emmarcats i cinta marrons (Street View 2024). part2, dues plantes a la C. Calzada; part3,
+# el cos baix de la cantonada.
+0232101TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 17 C. Iglesia, rumb 200 (només referència)"
+  wall: [224, 194, 156]
+  cladding: {material: stone, color: [170, 140, 104], height_m: 0.85}
+  windows:
+    frame: [110, 76, 56]
+    frame_w: 0.14
+    roller: [110, 76, 56]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.7
+      facade: N
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.3, fascia: [110, 76, 56]}
+      openings:
+        - {kind: window, t: 0.35, w: 0.9, h: 1.1, sill_m: 1.0}
+        - {kind: door, t: 0.6, w: 0.95, h: 2.1, bottom_m: 0.15, color: [96, 70, 50], steps: 1}
+        - {kind: window, t: 0.85, w: 0.9, h: 1.1, sill_m: 1.0}
+        - {kind: window, floor: 1, t: 0.35, w: 0.9, h: 1.0, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.6, w: 0.9, h: 1.0, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.85, w: 0.9, h: 1.0, sill_m: 0.9}
+    part3:
+      floors: 1
+      eave_m: 3.2
+      facade: NE
+      roof: {type: shed, pitch_deg: 14, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.85, w: 0.4, h: 0.5, sill_m: 1.3}
+
+# C. de la Iglesia, banda est. Casa vella emblanquinada de dues plantes (part1); el tram del sud,
+# amb coberta ondulada, darrere un mur de pati de tova.
+0333609TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (C. de la Iglesia; sense Street View)"
+  wall: [234, 232, 226]
+  plinth: [140, 134, 128]
+  plinth_h: 0.5
+  windows:
+    frame: [120, 110, 96]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.3
+      facade: O
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.15, w: 0.6, h: 0.9, sill_m: 1.2}
+        - {kind: door, t: 0.36, w: 0.8, h: 2.0, color: [232, 230, 224]}
+        - {kind: window, t: 0.55, w: 0.6, h: 1.0, sill_m: 1.1}
+        - {kind: window, floor: 1, t: 0.2, w: 0.6, h: 0.8, sill_m: 1.0}
+        - {kind: window, floor: 1, t: 0.55, w: 0.6, h: 0.8, sill_m: 1.0}
+      facades:
+        - {facade: O, nth: 2, openings: []}
+
+# Casa emblanquinada de dues plantes amb sòcol gris blavós i porticons verds (part2); a l'extrem
+# sud es veu la tova sota l'arrebossat caigut.
+0333610TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 17 C. Iglesia, rumb 120 (només referència)"
+  wall: [234, 232, 226]
+  plinth: [96, 106, 118]
+  plinth_h: 0.6
+  windows:
+    frame: [210, 206, 196]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.6
+      facade: O
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.4}
+      openings:
+        - {kind: window, t: 0.28, w: 0.5, h: 0.9, sill_m: 1.2}
+        - {kind: door, t: 0.5, w: 0.8, h: 2.0, color: [184, 160, 120]}
+        - {kind: window, t: 0.72, w: 0.6, h: 1.0, sill_m: 1.1}
+        - {kind: window, floor: 1, t: 0.3, w: 0.5, h: 0.9, sill_m: 0.9, fill: [70, 110, 90]}
+        - {kind: window, floor: 1, t: 0.5, w: 0.55, h: 0.9, sill_m: 0.9, fill: [70, 110, 90]}
+        - {kind: window, floor: 1, t: 0.72, w: 0.5, h: 0.9, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.9, w: 0.6, h: 0.9, sill_m: 0.9, fill: [70, 110, 90]}
+
+# Cantonada de la C. de la Iglesia amb la C. Calzada: el cos d'una planta amb el portal ocre de la
+# foto del Cadastre ja no hi és; al Street View del 2024 és un solar amb murets de runa i un cobert
+# de fusta esfondrat (part3, part5 i part1). Queda dempeus part4, de dues plantes.
+0333611TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Street View set. 2024, 17 C. Iglesia, rumb 40 i 120 (només referència); la foto del Cadastre és d'abans"
+  wall: [214, 206, 190]
+  parts:
+    part3:
+      floors: 1
+      eave_m: 1.5
+      facade: S
+      roof: {type: none}
+      openings: []
+    part5:
+      floors: 1
+      eave_m: 1.3
+      facade: O
+      roof: {type: none}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 1.3
+      facade: O
+      roof: {type: none}
+      openings: []
+    part4:
+      wall: [236, 232, 222]
+
+# --- Calle el Cristo cap al sud i C. Taburete (anàlisi detallada, 2026-10-09) -----------------
+
+# Cos groc d'una planta de la C. el Cristo (14): emmarcats de maó a escacs, sòcol de pedra, portal
+# de fusta al sud i porta amb graons. part1 i part3 (cossos del darrere) com sempre.
+0431703TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 10 Calle El Cristo, rumbs 190, 240 i 250 (només referència)"
+  wall: [228, 190, 80]
+  cladding: {material: stone, color: [176, 156, 124], height_m: 0.9}
+  windows:
+    frame: [168, 100, 60]   # emmarcat de maó a escacs
+    frame_w: 0.18
+    roller: [96, 64, 44]
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.4
+      facade: NE
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.4, fascia: [120, 80, 60]}
+      openings:
+        - {kind: garage, t: 0.13, w: 2.6, h: 2.5, color: [120, 72, 48], frame: [168, 100, 60], leaves: 2}
+        - {kind: window, t: 0.36, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: door, t: 0.5, w: 0.8, h: 2.0, bottom_m: 0.3, color: [230, 230, 226], steps: 2}
+        - {kind: window, t: 0.64, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: window, t: 0.82, w: 1.1, h: 1.1, sill_m: 1.0, roller: 0.9}
+
+# Casa blanca de dues plantes amb terrat i barana de ferro (16): la planta baixa enrajolada, amb
+# finestra, porta, garatge i la porta de reixa de la botiga «Frigo».
+0431704TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 18 Calle El Cristo, rumb 250 (només referència)"
+  wall: [236, 236, 232]
+  cladding: [{color: [150, 150, 154], height_m: 0.9}, {color: [214, 214, 212], height_m: 3.0}]
+  windows:
+    frame: [150, 150, 156]
+    frame_w: 0.14
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.0
+      facade: NE
+      roof: {type: flat, parapet_m: 0.25, cap: [150, 150, 154], floor_color: [176, 160, 140]}
+      openings:
+        - {kind: window, t: 0.2, w: 1.0, h: 1.1, sill_m: 1.0}
+        - {kind: door, t: 0.38, w: 0.8, h: 2.0, color: [60, 62, 66], steps: 1}
+        - {kind: garage, t: 0.6, w: 1.6, h: 2.5, color: [226, 214, 186], frame: [176, 96, 70], leaves: 1}
+        - {kind: garage, t: 0.84, w: 1.2, h: 2.3, color: [190, 190, 186], frame: [150, 150, 154], leaves: 1}
+        - {kind: window, floor: 1, t: 0.2, w: 1.1, h: 1.2, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.45, w: 1.0, h: 1.1, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.84, w: 1.2, h: 1.6, sill_m: 0.6}
+      # Barana del terrat i caseta de l'escala al capdamunt.
+      balconies:
+        - {floor: 2, from: 0.0, to: 1.0, depth_m: 0.1, slab: [150, 150, 154]}
+      chimneys:
+        - {t: 0.08, depth_m: 1.2, size_m: 1.6, above_m: 2.2, color: [236, 236, 232], cap: [150, 150, 154]}
+    part2:
+      floors: 2
+      eave_m: 6.0
+      facade: S
+      roof: {type: flat, parapet_m: 0.25, cap: [150, 150, 154], floor_color: [176, 160, 140]}
+      openings: []
+
+# Casa de maó de dues plantes amb persianes verdes (18) i, al sud, pati tancat amb un mur de maó i
+# una porta de garatge grisa (walls.yaml).
+0431705TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 18 Calle El Cristo i 20 ZA-P-2547 (només referència)"
+  windows:
+    frame: [150, 90, 64]
+    roller: [150, 150, 96]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.7
+      facade: NE
+      wall: [176, 98, 72]
+      wall_material: brick
+      cladding: {material: stone, color: [160, 146, 124], height_m: 0.8}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.4}
+      openings:
+        - {kind: window, t: 0.2, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.95}
+        - {kind: door, t: 0.55, w: 0.9, h: 2.1, color: [150, 150, 96]}
+        - {kind: window, t: 0.85, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.2, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.5, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.95}
+        - {kind: window, floor: 1, t: 0.8, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.95}
+      facades:
+        - {facade: "NO", openings: []}   # testera arrebossada gris per damunt del pati veí
+    part1:
+      floors: 1
+      eave_m: 2.8
+      wall: [176, 98, 72]
+      wall_material: brick
+
+# Casa crema de dues plantes amb emmarcats rosats (part2) i cos salmó d'una planta amb teulada de
+# teula (part1), a la cantonada de la C. el Cristo; el pati del nord, tancat amb un mur alt ocre a
+# la rústica amb remat vermell (walls.yaml).
+0432828TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 10 i 18 Calle El Cristo (només referència)"
+  windows:
+    frame: [186, 140, 120]
+    frame_w: 0.18
+    roller: [120, 80, 56]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.8
+      facade: S
+      wall: [228, 206, 170]
+      plinth: [186, 140, 120]
+      plinth_h: 0.5
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.2, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: door, t: 0.45, w: 0.9, h: 2.1, bottom_m: 0.15, color: [140, 90, 56], steps: 1}
+        - {kind: window, t: 0.76, w: 1.0, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.2, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.76, w: 1.0, h: 1.2, sill_m: 0.9, roller: 0.9}
+    part1:
+      floors: 1
+      eave_m: 2.9
+      facade: SO
+      wall: [214, 160, 140]
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.5}
+      openings: []
+
+# Casa blanca de dues plantes amb rombes grisos (part1, a la C. Taburete) i cossos del carrer del
+# Cristo (part3, crema de dues plantes amb una finestreta; part4, cos baix).
+0432826TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  extra_roofs: false         # davant del capçal hi ha un mur, no el cobert que veia l'ortofoto
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 10 Calle El Cristo, rumbs 30 i 340 (només referència)"
+  wall: [236, 236, 232]
+  plinth: [150, 150, 150]
+  plinth_h: 0.9
+  windows:
+    frame: [230, 230, 226]
+    roller: [236, 236, 232]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: NE
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35}
+      openings:
+        - {kind: window, t: 0.25, w: 0.9, h: 1.2, sill_m: 1.0, roller: 0.9}
+        - {kind: door, t: 0.45, w: 0.85, h: 2.1, color: [226, 228, 230]}
+        - {kind: window, t: 0.72, w: 1.0, h: 1.2, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.25, w: 0.8, h: 1.2, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.45, w: 0.7, h: 2.0, sill_m: 0.05, roller: 0.6}
+        - {kind: window, floor: 1, t: 0.72, w: 1.0, h: 1.3, sill_m: 0.8, roller: 0.9}
+      balconies:
+        - {floor: 1, from: 0.4, to: 0.5, depth_m: 0.3, slab: [236, 236, 232]}
+    part3:
+      floors: 2
+      eave_m: 5.4
+      facade: O
+      wall: [232, 214, 176]
+      roof: {type: gable, ridge: across, pitch_deg: 24, overhang_m: 0.3}
+      openings:
+        - {kind: window, floor: 1, t: 0.5, w: 0.6, h: 0.7, sill_m: 1.0}
+    part4:
+      floors: 1
+      eave_m: 2.3
+      facade: O
+      wall: [214, 196, 160]
+      roof: {type: shed, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Cobert de bloc gris amb portal vell de fusta a la C. Taburete (part2); la casa del darrere
+# (part1, dues plantes) no es veu des del carrer.
+0432829TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Taburete, rumb 10 (només referència)"
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.3
+      facade: S
+      wall: [212, 212, 208]
+      plinth: [150, 150, 146]
+      plinth_h: 0.8
+      roof: {type: gable, ridge: along, pitch_deg: 10, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.55, w: 1.9, h: 2.3, color: [120, 96, 72], frame: [212, 212, 208], leaves: 2}
+    part1:
+      wall: [226, 214, 190]
+
+# Casa groga llarga de dues plantes de la cantonada del Cristo amb la C. Taburete: cornisa i cinta
+# de maó, emmarcats rosats, sòcol de pedra; al capçal del Cristo, escala amb barana i balcó corregut.
+0431101TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 1 C. Taburete, rumb 190 (només referència)"
+  floors: 2
+  eave_m: 5.9
+  wall: [226, 206, 160]
+  cladding: {material: stone, color: [160, 140, 118], height_m: 0.8}
+  roof: {type: hip, pitch_deg: 18, overhang_m: 0.3, fascia: [176, 96, 70]}
+  windows:
+    frame: [196, 136, 110]
+    frame_w: 0.16
+    roller: [176, 166, 150]
+  facade: O
+  openings:
+    - {kind: window, t: 0.3, w: 0.9, h: 1.2, sill_m: 1.2, roller: 0.6}
+    - {kind: door, t: 0.72, w: 1.0, h: 2.2, bottom_m: 0.9, color: [96, 72, 52], steps: 5, step_rail: [right]}
+    - {kind: door, floor: 1, t: 0.3, w: 0.8, h: 2.0, color: [110, 80, 58]}
+    - {kind: door, floor: 1, t: 0.66, w: 0.8, h: 2.0, color: [110, 80, 58]}
+  balconies:
+    - {floor: 1, from: 0.0, to: 1.0, depth_m: 0.8, slab: [214, 196, 160]}
+  facades:
+    # Façana llarga de la C. Taburete: finestres amb emmarcat rosat a les dues plantes.
+    - facade: N
+      openings:
+        - {kind: window, t: 0.2, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: window, t: 0.4, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: window, t: 0.5, w: 0.4, h: 0.5, sill_m: 1.5}
+        - {kind: window, t: 0.6, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: window, t: 0.8, w: 0.9, h: 1.1, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.2, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.4, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.6, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.8, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.9}
+    # Testera de l'est, al carreró (Street View de la C. Taburete est, rumb 320).
+    - facade: E
+      openings:
+        - {kind: window, t: 0.5, w: 0.8, h: 1.2, sill_m: 1.0, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.5, w: 0.8, h: 1.1, sill_m: 1.0, roller: 0.9}
+
+# Paret llarga de tova emblanquinada amb teulada de teula (part3) i caseta blanca amb emmarcats
+# grocs (part2), a la C. Taburete de l'est; part1 (dues plantes, darrere) com sempre.
+0432830TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, C. Taburete est, rumbs 190, 250 i 330 (només referència)"
+  windows:
+    frame: [204, 164, 84]
+    frame_w: 0.16
+    roller: [236, 234, 228]
+  parts:
+    part3:
+      floors: 1
+      eave_m: 3.0
+      facade: E
+      wall: [228, 224, 212]
+      cladding: {color: [176, 160, 126], height_m: 1.1}
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.35}
+      openings: []
+      facades:
+        - {facade: E, nth: 2, openings: []}
+        - {facade: S, openings: []}
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: E
+      wall: [236, 234, 226]
+      cladding: {color: [200, 170, 90], height_m: 0.6}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35}
+      openings:
+        - {kind: window, t: 0.35, w: 0.8, h: 1.0, sill_m: 1.0, roller: 0.9}
+        - {kind: door, t: 0.68, w: 0.8, h: 2.0, color: [52, 50, 48]}
+    part1:
+      wall: [226, 214, 190]
+
+# Casa rosa de dues plantes (1973) a la cantonada del Cristo amb la C. Taburete, sòcol de marbre
+# blanc; part1 és un cobert petit.
+0431001TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 18 Calle El Cristo, rumb 110 (només referència)"
+  windows:
+    frame: [236, 234, 228]
+    roller: [236, 232, 222]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.8
+      facade: O
+      wall: [232, 204, 190]
+      plinth: [230, 230, 226]
+      plinth_h: 0.9
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.35, fascia: [96, 76, 62]}
+      # Al carrer del Cristo: la planta baixa queda darrere el mur i el cobert (part1); al pis, un
+      # finestral doble i una finestreta.
+      openings:
+        - {kind: window, floor: 1, t: 0.35, w: 1.8, h: 1.2, sill_m: 0.9, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.8, w: 0.6, h: 0.7, sill_m: 1.1}
+      facades:
+        # Façana de la foto del Cadastre (esquerra) i de Street View 20 ZA-P-2547, rumb 31.
+        - facade: SO
+          openings:
+            - {kind: door, t: 0.09, w: 0.85, h: 2.1, color: [96, 64, 44]}
+            - {kind: window, t: 0.41, w: 1.0, h: 1.2, sill_m: 0.9, roller: 0.5}
+            - {kind: window, t: 0.73, w: 1.0, h: 1.2, sill_m: 0.9, roller: 0.9}
+            - {kind: window, floor: 1, t: 0.41, w: 1.0, h: 1.1, sill_m: 0.9, roller: 0.9}
+            - {kind: window, floor: 1, t: 0.72, w: 1.0, h: 1.1, sill_m: 0.9, roller: 0.9}
+        # Façana llarga de la dreta a la foto del Cadastre, vista de biaix.
+        - facade: E
+          openings:
+            - {kind: window, t: 0.35, w: 0.8, h: 1.2, sill_m: 1.0, roller: 0.9}
+            - {kind: door, t: 0.65, w: 0.8, h: 2.1, bottom_m: 0.15, color: [96, 76, 62], steps: 1}
+            - {kind: window, t: 0.82, w: 0.6, h: 1.0, sill_m: 1.0, roller: 0.6}
+            - {kind: window, floor: 1, t: 0.35, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.9}
+            - {kind: window, floor: 1, t: 0.58, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.9}
+            - {kind: window, floor: 1, t: 0.78, w: 0.8, h: 1.1, sill_m: 0.9, roller: 0.9}
+    # Cobert de teula vermella al carrer del Cristo, cec.
+    part1:
+      floors: 1
+      eave_m: 2.4
+      facade: O
+      wall: [232, 204, 190]
+      roof: {type: shed, toward: O, pitch_deg: 12, overhang_m: 0.25}
+      openings: []
+      facades:
+        - {facade: S, openings: []}
+        - {facade: N, openings: []}
+
+# Casa vella de tova emblanquinada de la C. el Cristo (sud): capçal al carrer amb porticons blaus
+# (part3) i cos baix amb porta blava al costat. El Cadastre en diu «declined».
+0431706TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7707 Calle El Cristo, rumb 340 (només referència)"
+  wall: [226, 218, 196]
+  plinth: [176, 160, 126]
+  plinth_h: 0.6
+  windows:
+    frame: [214, 206, 186]
+  parts:
+    part3:
+      floors: 2
+      eave_m: 4.2
+      facade: NE
+      roof: {type: gable, ridge: across, pitch_deg: 26, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.55, w: 0.8, h: 1.0, sill_m: 1.0, fill: [96, 140, 170]}
+        - {kind: window, floor: 1, t: 0.55, w: 0.6, h: 0.8, sill_m: 0.8, fill: [96, 140, 170]}
+      facades:
+        - facade: NE
+          nth: 2
+          openings:
+            - {kind: door, t: 0.5, w: 0.8, h: 1.9, color: [96, 140, 170]}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: N
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 2.8
+
+# Paller de tova arrebossat de la cantonada de la C. el Cristo amb el camí de Micereces: costat
+# llarg cec al carrer i finestreta emmarcada de maó al capçal. El Cadastre en diu «declined».
+0431501TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 7707 i 29 Calle El Cristo (només referència)"
+  wall: [222, 212, 186]
+  cladding: {color: [176, 160, 126], height_m: 0.6}
+  windows:
+    frame: [176, 98, 72]
+    frame_w: 0.14
+  parts:
+    part2:
+      floors: 1
+      eave_m: 4.0
+      facade: "NO"
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.4}
+      openings:
+        - {kind: window, t: 0.5, w: 0.6, h: 1.0, sill_m: 0.8, fill: [96, 80, 64]}
+      facades:
+        - {facade: SO, openings: []}
+        - {facade: NE, openings: []}
+    # Cos del carrer amb portal metàl·lic gris de dues fulles (Street View 29 C. el Cristo, rumb 220).
+    part3:
+      floors: 1
+      eave_m: 2.8
+      wall: [214, 200, 170]
+      facade: SE
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3}
+      openings:
+        - {kind: garage, t: 0.6, w: 2.0, h: 2.3, color: [150, 152, 150], frame: [130, 132, 130], leaves: 2}
+      facades:
+        - {facade: SO, openings: []}
+    # Cobert baix de la cantonada del camí: parets cegues.
+    part1:
+      floors: 1
+      eave_m: 2.6
+      facade: SE
+      roof: {type: shed, toward: SE, pitch_deg: 10, overhang_m: 0.2}
+      openings: []
+      facades:
+        - {facade: SO, openings: []}
+        - {facade: NE, openings: []}
+
+# Garatge de maó (1995) de la C. Taburete: portal metàl·lic gris de dues fulles, coberta de
+# fibrociment d'una aigua.
+0432839TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, C. Taburete, rumb 118 (només referència)"
+  facade: "NO"
+  floors: 1
+  eave_m: 3.0
+  wall: [176, 98, 72]
+  wall_material: brick
+  roof: {type: shed, toward: SE, pitch_deg: 8, overhang_m: 0.15}
+  openings:
+    - {kind: garage, t: 0.55, w: 2.8, h: 2.6, color: [176, 178, 178], frame: [140, 140, 140], leaves: 2}
+
+# Cos blanc d'una planta alta amb portal de fusta gran i dues finestretes (part2, a la placeta del
+# Cristo); part1 (cobert petit) com sempre.
+0432824TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  extra_roofs: false         # la placeta i el jardí no tenen coberts (l'ortofoto n'hi veia un)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, placeta de la C. el Cristo, rumb 130 (només referència)"
+  wall: [232, 230, 222]
+  plinth: [176, 160, 126]
+  plinth_h: 0.6
+  windows:
+    frame: [214, 210, 200]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 4.6
+      facade: N
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3}
+      openings:
+        # Mesures de la vista de cara (placeta, rumb 150): portal i finestreta al damunt a t 0,38.
+        - {kind: garage, t: 0.38, w: 2.4, h: 2.7, color: [72, 52, 40], frame: [214, 210, 200], leaves: 2}
+        - {kind: window, floor: 1, t: 0.38, w: 0.6, h: 0.7, sill_m: 0.5, fill: [120, 84, 56]}
+        - {kind: window, floor: 1, t: 0.8, w: 0.6, h: 0.75, sill_m: 0.3, fill: [120, 84, 56]}
+
+# Casa de maó de dues plantes amb cantoneres de pedra i balconets bombats (part1) i cos blanc
+# d'una planta amb porta de garatge de fusta (part2), a la placeta del Cristo.
+0432822TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  extra_roofs: false         # la placeta i el jardí no tenen coberts (l'ortofoto n'hi veia un)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, placeta de la C. el Cristo, rumbs 40 i 70 (només referència)"
+  windows:
+    frame: [236, 234, 228]
+    roller: [236, 232, 222]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: O
+      wall: [168, 96, 72]
+      wall_material: brick
+      cladding: {material: stone, color: [168, 150, 124], height_m: 0.5}
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.2, w: 0.9, h: 1.2, sill_m: 0.9, roller: 0.4}
+        - {kind: door, t: 0.5, w: 0.9, h: 2.1, color: [236, 236, 232]}
+        - {kind: window, t: 0.8, w: 0.9, h: 1.2, sill_m: 0.9, roller: 0.4}
+        - {kind: window, floor: 1, t: 0.2, w: 0.8, h: 1.2, sill_m: 0.5, roller: 0.5}
+        - {kind: window, floor: 1, t: 0.5, w: 0.8, h: 1.2, sill_m: 0.5, roller: 0.5}
+        - {kind: window, floor: 1, t: 0.8, w: 0.8, h: 1.2, sill_m: 0.5, roller: 0.5}
+      balconies:
+        - {floor: 1, from: 0.14, to: 0.26, depth_m: 0.3, slab: [196, 186, 170]}
+        - {floor: 1, from: 0.44, to: 0.56, depth_m: 0.3, slab: [196, 186, 170]}
+        - {floor: 1, from: 0.74, to: 0.86, depth_m: 0.3, slab: [196, 186, 170]}
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: S
+      wall: [236, 234, 228]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.3}
+      openings:
+        - {kind: garage, t: 0.5, w: 2.6, h: 2.4, color: [140, 92, 56], frame: [236, 234, 228], leaves: 1}
+
+# Casa de dues plantes (1973) amb terrassa corrida i barana blanca, panells grisos i franges salmó,
+# sòcol de pedra i garatge de fusta (part1); part2 i part3 (coberts del darrere) com sempre.
+0432821TM6503S:
+  review: {level: full, date: "2026-10-09"}   # anàlisi detallada (skill casa-a-mida)
+  extra_roofs: false         # la placeta i el jardí no tenen coberts (l'ortofoto n'hi veia un)
+  photo: "Foto de façana del Cadastre i Street View set. 2024, placeta de la C. el Cristo, rumb 40 (només referència)"
+  windows:
+    frame: [236, 234, 228]
+    roller: [236, 232, 222]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.8
+      facade: E
+      wall: [150, 152, 156]
+      cladding: {material: stone, color: [168, 150, 124], height_m: 0.8}
+      roof: {type: gable, ridge: along, pitch_deg: 14, overhang_m: 0.7, fascia: [196, 140, 120]}
+      openings:
+        - {kind: garage, t: 0.15, w: 2.6, h: 2.4, color: [168, 120, 70], frame: [196, 140, 120], leaves: 1}
+        - {kind: window, t: 0.42, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.6}
+        - {kind: door, t: 0.58, w: 1.0, h: 2.2, color: [236, 236, 232]}
+        - {kind: window, floor: 1, t: 0.22, w: 0.9, h: 1.2, sill_m: 0.9, roller: 0.6}
+        - {kind: door, floor: 1, t: 0.42, w: 0.9, h: 2.1, color: [236, 236, 232]}
+        - {kind: window, floor: 1, t: 0.8, w: 1.2, h: 1.2, sill_m: 0.9, roller: 0.9}
+      balconies:
+        - {floor: 1, from: 0.0, to: 0.62, depth_m: 1.0, slab: [196, 140, 120], rail: [236, 236, 232]}
+
+# --- Calle el Cristo, tram sud (anàlisi detallada, 2026-10-09) ------------------------------
+# Del 24 cap al sud-est, i la casa de la placeta que el Cadastre marca com a declined.
+
+# 24 C. el Cristo. Casa salmó de dues plantes (part3) amb sòcol de pedra, persianes blanques i
+# balcó de ferro; part2, l'ala baixa del costat; part1, el cos llarg de l'altra banda.
+0530102TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 24 Calle El Cristo, rumb 130 (només referència)"
+  windows:
+    frame: [236, 232, 224]
+    roller: [240, 240, 236]
+  parts:
+    part3:
+      floors: 2
+      eave_m: 6.0
+      facade: "NO"
+      wall: [214, 158, 132]
+      cladding: {material: stone, color: [168, 158, 146], height_m: 0.9}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.35, fascia: [150, 90, 70]}
+      openings:
+        - {kind: window, t: 0.18, w: 0.95, h: 1.15, sill_m: 0.9, roller: 0.15}
+        - {kind: door, t: 0.48, w: 0.9, h: 2.15, color: [236, 232, 224]}
+        - {kind: window, t: 0.76, w: 0.95, h: 1.15, sill_m: 0.9, roller: 0.15}
+        - {kind: window, floor: 1, t: 0.18, w: 0.9, h: 1.15, sill_m: 0.85, roller: 0.2}
+        - {kind: door, floor: 1, t: 0.48, w: 0.85, h: 2.05, color: [236, 232, 224]}
+        - {kind: window, floor: 1, t: 0.78, w: 0.9, h: 1.15, sill_m: 0.85, roller: 0.2}
+      balconies:
+        - {floor: 1, from: 0.38, to: 0.58, depth_m: 0.7, slab: [196, 186, 176], rail: [36, 36, 38]}
+    part2:
+      floors: 1
+      eave_m: 3.3
+      facade: "NO"
+      wall: [206, 170, 146]
+      roof: {type: shed, toward: "NO", pitch_deg: 12, overhang_m: 0.25}
+      openings:
+        - {kind: door, t: 0.55, w: 0.9, h: 2.05, color: [92, 78, 64]}
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: SO
+      wall: [210, 188, 164]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25}
+      openings: []
+
+# 26 C. el Cristo. Cos de maó d'una planta al carrer (part4), darrere d'una reixa; part3, el cos
+# de dues plantes del darrere; part2, la nau del fons.
+0530101TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 26 Calle El Cristo, rumb 40 (només referència)"
+  windows:
+    frame: [176, 150, 120]
+    roller: [230, 226, 216]
+  parts:
+    part4:
+      floors: 1
+      eave_m: 3.4
+      facade: SO
+      wall: [176, 74, 52]
+      wall_material: brick
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.35, fascia: [150, 90, 70]}
+      openings:
+        - {kind: window, t: 0.32, w: 1.15, h: 1.15, sill_m: 0.95, roller: 0.35}
+        - {kind: window, t: 0.62, w: 1.15, h: 1.15, sill_m: 0.95, roller: 0.35}
+    part3:
+      floors: 2
+      eave_m: 5.8
+      facade: S
+      wall: [228, 214, 196]
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: "NO"
+      wall: [210, 196, 176]
+      roof: {type: shed, toward: "NO", pitch_deg: 10, overhang_m: 0.15}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 3.0
+      facade: "NO"
+      wall: [206, 190, 168]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.2}
+      openings: []
+
+# Casa blanca de tres plantes (1997): garatge, balcó de balustres i finestres al terrat.
+# part1, part2 i part4 són cossos petits del davant.
+0530103TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa blanca de tres plantes, balcó i garatge); el tram es veu al Street View set. 2024, 32 Calle El Cristo (només referència)"
+  windows:
+    frame: [230, 226, 218]
+    roller: [236, 234, 228]
+  parts:
+    part3:
+      floors: 3
+      eave_m: 8.6
+      facade: S
+      wall: [236, 230, 220]
+      roof: {type: hip, pitch_deg: 16, overhang_m: 0.35, fascia: [180, 120, 100]}
+      openings:
+        - {kind: window, t: 0.28, w: 0.9, h: 1.05, sill_m: 1.0, roller: 0.4}
+        - {kind: window, floor: 1, t: 0.28, w: 1.0, h: 1.15, sill_m: 0.85, roller: 0.5}
+        - {kind: door, floor: 1, t: 0.62, w: 0.9, h: 2.05, color: [236, 232, 224]}
+        - {kind: window, floor: 2, t: 0.32, w: 0.7, h: 0.55, sill_m: 1.15}
+        - {kind: window, floor: 2, t: 0.62, w: 0.7, h: 0.55, sill_m: 1.15}
+      balconies:
+        - {floor: 1, from: 0.18, to: 0.82, depth_m: 1.0, slab: [230, 226, 216], rail: [236, 234, 226], rail_bar_m: 0.08}
+      chimneys:
+        - {t: 0.15, depth_m: 1.2, size_m: 0.4, above_m: 0.6, color: [200, 196, 188], cap: [180, 176, 168]}
+    part1:
+      floors: 1
+      eave_m: 3.1
+      facade: S
+      wall: [236, 230, 220]
+      roof: {type: flat, parapet_m: 0.15, cap: [200, 196, 188]}
+      openings:
+        - {kind: garage, t: 0.62, w: 2.4, h: 2.15, color: [236, 236, 232], frame: [200, 196, 188], leaves: 1}
+    part2:
+      floors: 1
+      eave_m: 3.1
+      facade: S
+      wall: [236, 230, 220]
+      roof: {type: flat, parapet_m: 0.15, cap: [200, 196, 188]}
+      openings:
+        - {kind: window, t: 0.45, w: 1.1, h: 1.1, sill_m: 0.9, roller: 0.35}
+    part4:
+      floors: 2
+      eave_m: 5.6
+      facade: S
+      wall: [236, 230, 220]
+      roof: {type: flat, parapet_m: 0.3, cap: [200, 196, 188]}
+      openings:
+        - {kind: garage, t: 0.55, w: 2.4, h: 2.2, color: [236, 236, 232], frame: [200, 196, 188], leaves: 1}
+
+# Nau de bloc de la miniplant, al costat de la casa blanca. Porta gran i finestral.
+0530104TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (nau de bloc «miniplant», al costat de 0530103)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 4.2
+      facade: S
+      wall: [206, 204, 198]
+      roof: {type: flat, parapet_m: 0.45, cap: [186, 184, 178]}
+      openings:
+        - {kind: garage, t: 0.32, w: 2.8, h: 2.6, color: [214, 214, 210], frame: [170, 168, 162], leaves: 2}
+        - {kind: window, t: 0.72, w: 2.2, h: 1.0, sill_m: 1.6}
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: S
+      wall: [206, 204, 198]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 3.0
+      facade: N
+      wall: [200, 196, 188]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa blanca d'una planta amb el frontó al carrer (el Cadastre en diu dues). Tanca de pedra i maó.
+0530106TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa blanca «Casa Gracia», frontó al carrer) i ortofoto"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.6
+      facade: S
+      wall: [236, 234, 228]
+      roof: {type: gable, ridge: across, pitch_deg: 24, overhang_m: 0.3, fascia: [150, 96, 76]}
+      openings:
+        - {kind: door, t: 0.55, w: 0.9, h: 2.05, color: [230, 228, 222]}
+      chimneys:
+        - {t: 0.5, depth_m: 2.5, size_m: 0.55, above_m: 0.8, color: [176, 72, 52], cap: [150, 60, 44]}
+
+# Magatzem arrebossat gris, porta de planxa i dues finestretes tapiades amb maó. Al costat, 0530108.
+0530107TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (portal de planxa i finestres tapiades; a la dreta es veu 0530108)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 4.4
+      facade: SO
+      wall: [198, 194, 186]
+      plinth: [150, 140, 124]
+      plinth_h: 0.45
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25, fascia: [150, 90, 70]}
+      openings:
+        - {kind: window, t: 0.32, w: 0.7, h: 0.7, sill_m: 2.7, fill: [176, 78, 58]}
+        - {kind: window, t: 0.68, w: 0.7, h: 0.7, sill_m: 2.7, fill: [176, 78, 58]}
+        - {kind: garage, t: 0.5, w: 2.5, h: 2.45, color: [196, 198, 196], frame: [150, 80, 64], leaves: 2}
+
+# Casa blanca dels arcs: porxo a la planta baixa, balcó de balustres i porta de fusta. part2 al darrere.
+0530108TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, 34 Calle El Cristo mirant al nord-oest (només referència)"
+  windows:
+    frame: [214, 186, 140]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.2
+      facade: SO
+      wall: [238, 234, 224]
+      cladding: {material: stone, color: [176, 156, 124], height_m: 0.85}
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.4, fascia: [160, 100, 80]}
+      openings:
+        - {kind: garage, t: 0.84, w: 2.3, h: 2.35, color: [96, 64, 44], frame: [214, 186, 140], leaves: 1}
+      balconies:
+        - {floor: 1, from: 0.04, to: 0.7, depth_m: 0.9, slab: [230, 222, 200], rail: [236, 232, 214], rail_bar_m: 0.08}
+      loggia:
+        from: 0.04
+        to: 0.68
+        depth_m: 1.8
+        floor: 0
+        parapet_m: 0
+        floor_color: [196, 170, 140]
+        openings:
+          - {kind: window, t: 0.28, w: 0.85, h: 1.05, sill_m: 0.85, fill: [48, 48, 52]}
+          - {kind: window, t: 0.62, w: 0.85, h: 1.05, sill_m: 0.85, fill: [48, 48, 52]}
+      chimneys:
+        - {t: 0.08, depth_m: 1.0, size_m: 0.45, above_m: 0.7, color: [176, 72, 52], cap: [150, 60, 44]}
+    part2:
+      floors: 1
+      eave_m: 3.4
+      facade: NE
+      wall: [232, 220, 200]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25}
+      openings: []
+
+# Casa blanca llarga de dues plantes, sòcol vermell i portal de planxa. Cossos del darrere sense carrer.
+0530111TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (façana blanca, sòcol vermell, portal de planxa)"
+  windows:
+    frame: [200, 196, 188]
+    roller: [230, 226, 216]
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.8
+      facade: SO
+      wall: [168, 166, 160]
+      cladding:
+        - {color: [168, 56, 52], height_m: 0.55}
+        - {color: [236, 234, 228], height_m: 3.15}
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.35, fascia: [150, 90, 70]}
+      openings:
+        - {kind: window, t: 0.12, w: 0.85, h: 0.7, sill_m: 1.5, roller: 0.9}
+        - {kind: window, t: 0.28, w: 0.9, h: 0.85, sill_m: 1.2, roller: 0.7}
+        - {kind: window, t: 0.42, w: 0.85, h: 0.7, sill_m: 1.5, roller: 0.9}
+        - {kind: garage, t: 0.78, w: 2.6, h: 2.5, color: [186, 190, 188], frame: [140, 90, 70], leaves: 2}
+        - {kind: window, floor: 1, t: 0.16, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.85}
+        - {kind: window, floor: 1, t: 0.34, w: 0.9, h: 1.0, sill_m: 0.9, roller: 0.85}
+        - {kind: window, floor: 1, t: 0.55, w: 0.85, h: 0.9, sill_m: 1.0, roller: 0.5}
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: O
+      wall: [220, 210, 196]
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.15}
+      openings: []
+    part3:
+      floors: 2
+      eave_m: 5.6
+      facade: N
+      wall: [220, 210, 196]
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.25}
+      openings: []
+
+# Casa groga de dues plantes al carrer (part2) i cos gran del darrere (part1). El portal de planxa
+# és la tàpia. El cos morat amb balcó de la foto queda a l'extrem oest, tocant 0530111.
+0530112TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa groga i portal de planxa; a l'esquerra, el cos de maó de 0530111)"
+  windows:
+    frame: [230, 220, 200]
+    roller: [236, 230, 210]
+  parts:
+    part2:
+      floors: 2
+      eave_m: 5.8
+      facade: SO
+      wall: [228, 176, 64]
+      cladding: {material: stone, color: [140, 124, 104], height_m: 0.7}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.35, fascia: [160, 100, 80]}
+      openings:
+        - {kind: window, t: 0.22, w: 1.05, h: 1.05, sill_m: 1.0, roller: 0.15}
+        - {kind: window, t: 0.5, w: 0.85, h: 0.85, sill_m: 1.15, roller: 0.2}
+        - {kind: window, t: 0.78, w: 1.05, h: 1.05, sill_m: 1.0, roller: 0.15}
+        - {kind: window, floor: 1, t: 0.22, w: 1.05, h: 1.0, sill_m: 0.95, roller: 0.2}
+        - {kind: window, floor: 1, t: 0.5, w: 0.8, h: 0.8, sill_m: 1.15, roller: 0.3}
+        - {kind: window, floor: 1, t: 0.78, w: 1.0, h: 1.0, sill_m: 0.95, roller: 0.2}
+    part1:
+      floors: 2
+      eave_m: 5.8
+      facade: S
+      wall: [150, 96, 120]
+      cladding: {material: stone, color: [140, 124, 104], height_m: 1.0}
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.3}
+      openings:
+        - {kind: window, t: 0.25, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.3}
+        - {kind: window, t: 0.5, w: 0.9, h: 1.0, sill_m: 1.0, roller: 0.3}
+        - {kind: window, floor: 1, t: 0.3, w: 0.9, h: 1.1, sill_m: 0.8, roller: 0.4}
+        - {kind: door, floor: 1, t: 0.55, w: 0.85, h: 2.0, color: [236, 232, 224]}
+      balconies:
+        - {floor: 1, from: 0.08, to: 0.7, depth_m: 0.9, slab: [150, 146, 140], rail: [180, 184, 188]}
+    part4:
+      floors: 1
+      eave_m: 2.8
+      facade: SO
+      wall: [228, 196, 140]
+      roof: {type: shed, toward: SO, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part5:
+      floors: 1
+      eave_m: 2.6
+      facade: O
+      wall: [210, 190, 160]
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.8
+      facade: O
+      wall: [210, 190, 160]
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa beix amb el frontó al carrer (part4), balcó petit i mur de bloc. La resta són coberts i pati.
+0530501TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (frontó beix, balcó i mur de bloc) i ortofoto"
+  windows:
+    frame: [168, 96, 64]
+    frame_w: 0.12
+  parts:
+    part4:
+      floors: 2
+      eave_m: 5.8
+      facade: NE
+      wall: [214, 176, 132]
+      roof: {type: gable, ridge: across, pitch_deg: 22, overhang_m: 0.25, fascia: [150, 90, 70]}
+      openings:
+        - {kind: door, t: 0.72, w: 0.85, h: 2.05, color: [96, 96, 98]}
+        - {kind: window, floor: 1, t: 0.32, w: 0.85, h: 0.9, sill_m: 0.9, roller: 0.15}
+      balconies:
+        - {floor: 1, from: 0.62, to: 0.82, depth_m: 0.7, slab: [200, 190, 170], rail: [40, 40, 42]}
+    part3:
+      floors: 1
+      eave_m: 2.8
+      facade: NE
+      wall: [206, 186, 156]
+      roof: {type: shed, toward: NE, pitch_deg: 10, overhang_m: 0.15}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 3.0
+      facade: NE
+      wall: [206, 186, 156]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.2}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: "NO"
+      wall: [196, 180, 156]
+      roof: {type: shed, toward: "NO", pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Cobert de bloc amb portal blau de planxa, al carrer.
+0530503TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (mur de bloc i portal blau de planxa)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.3
+      facade: NE
+      wall: [214, 210, 202]
+      roof: {type: shed, toward: NE, pitch_deg: 8, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.32, w: 2.5, h: 2.5, color: [186, 196, 198], frame: [36, 92, 168], leaves: 2}
+
+# Casa blanca de dues plantes (part3) amb porticons foscos, i garatge de fusta (part1).
+0530507TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa blanca, porticons foscos i garatge de fusta) i ortofoto"
+  windows:
+    frame: [210, 206, 198]
+    roller: [48, 52, 56]
+  parts:
+    part3:
+      floors: 2
+      eave_m: 5.8
+      facade: O
+      wall: [236, 234, 228]
+      plinth: [176, 172, 164]
+      plinth_h: 0.4
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.3, fascia: [140, 140, 136]}
+      openings:
+        - {kind: window, t: 0.2, w: 0.75, h: 1.05, sill_m: 1.0, roller: 0.85}
+        - {kind: door, t: 0.48, w: 0.85, h: 2.05, color: [70, 78, 86]}
+        - {kind: window, t: 0.78, w: 0.8, h: 1.05, sill_m: 1.0, roller: 0.7}
+        - {kind: window, floor: 1, t: 0.22, w: 0.7, h: 0.95, sill_m: 0.95, roller: 0.9}
+        - {kind: window, floor: 1, t: 0.72, w: 0.75, h: 0.95, sill_m: 0.95, roller: 0.85}
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: O
+      wall: [230, 226, 216]
+      roof: {type: shed, toward: O, pitch_deg: 10, overhang_m: 0.2}
+      openings:
+        - {kind: garage, t: 0.5, w: 2.8, h: 2.4, color: [150, 110, 72], frame: [120, 96, 72], leaves: 1}
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: N
+      wall: [220, 210, 196]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Placeta del Cristo. El Cadastre la marca declined; al Street View del 2024 encara és la casa
+# emblanquinada amb el cos de tova i els portals de fusta.
+0432825TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre i Street View set. 2024, placeta del Cristo, rumb 150 (només referència). El Cadastre diu declined"
+  windows:
+    frame: [90, 78, 64]
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.5
+      facade: SO
+      wall: [236, 234, 226]
+      plinth: [140, 136, 128]
+      plinth_h: 0.35
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.2}
+      openings:
+        - {kind: garage, t: 0.55, w: 2.2, h: 2.3, color: [110, 72, 48], frame: [90, 70, 52], leaves: 2}
+        - {kind: window, t: 0.2, w: 0.55, h: 0.55, sill_m: 1.7, fill: [120, 84, 56]}
+    part2:
+      floors: 1
+      eave_m: 3.6
+      facade: SO
+      wall: [196, 164, 112]
+      plinth: [150, 146, 136]
+      plinth_h: 0.4
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.42, w: 2.3, h: 2.25, color: [120, 78, 52], frame: [96, 72, 52], leaves: 2}
+        - {kind: window, t: 0.82, w: 0.55, h: 0.5, sill_m: 2.0, fill: [90, 70, 52]}
+    part3:
+      floors: 2
+      eave_m: 5.2
+      facade: E
+      wall: [234, 232, 224]
+      plinth: [150, 146, 136]
+      plinth_h: 0.45
+      roof: {type: gable, ridge: across, pitch_deg: 20, overhang_m: 0.2}
+      openings:
+        - {kind: window, t: 0.45, w: 0.7, h: 1.0, sill_m: 1.1}
+        - {kind: window, floor: 1, t: 0.4, w: 0.6, h: 0.7, sill_m: 1.0, fill: [90, 70, 52]}
+
+
+
+# Cinquena tanda (2026-10-09): el que quedava de la C. el Cristo, Taburete, Iglesia,
+# Santibáñez i la primera de la C. Calzada.
+
+# Casa beix de dues plantes i nau blanca amb dos portals grocs, al sud de la C. el Cristo.
+0530504TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa beix amb sòcol de pedra i nau blanca de dos portals)"
+  parts:
+    part4:
+      floors: 2
+      eave_m: 6.2
+      facade: NE
+      wall: [198, 186, 168]
+      plinth: [168, 152, 128]
+      plinth_h: 0.75
+      roof: {type: hip, pitch_deg: 18, overhang_m: 0.35, fascia: [150, 96, 76]}
+      openings:
+        - {kind: window, t: 0.25, w: 1.15, h: 1.15, sill_m: 1.0}
+        - {kind: door, t: 0.62, w: 0.9, h: 2.1, color: [70, 72, 74]}
+        - {kind: window, t: 0.85, w: 1.05, h: 1.15, sill_m: 1.0}
+        - {kind: window, floor: 1, t: 0.22, w: 1.1, h: 1.15, sill_m: 0.85}
+        - {kind: window, floor: 1, t: 0.5, w: 1.1, h: 1.15, sill_m: 0.85}
+        - {kind: window, floor: 1, t: 0.78, w: 1.1, h: 1.15, sill_m: 0.85}
+      facades:
+        - {facade: E, openings: []}
+        - {facade: O, openings: []}
+    part1:
+      floors: 1
+      eave_m: 3.5
+      facade: E
+      wall: [236, 234, 228]
+      plinth: [150, 96, 72]
+      plinth_h: 0.5
+      roof: {type: flat, parapet_m: 0.4, cap: [210, 208, 202]}
+      openings:
+        - {kind: garage, t: 0.32, w: 3.4, h: 2.55, color: [220, 190, 120], frame: [186, 154, 90], leaves: 2}
+        - {kind: garage, t: 0.72, w: 2.4, h: 2.35, color: [220, 190, 120], frame: [186, 154, 90], leaves: 2}
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: NE
+      wall: [236, 234, 228]
+      roof: {type: flat, parapet_m: 0.2, cap: [210, 208, 202]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 3.0
+      facade: NE
+      wall: [200, 192, 180]
+      roof: {type: shed, toward: NE, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa de pedra amb porxo de balustres i balcó corregut (1971).
+0530506TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (pedra al pis, bloc groc a baix, balcó i porxo)"
+  parts:
+    part4:
+      floors: 2
+      eave_m: 6.4
+      facade: E
+      wall_material: stone
+      wall: [176, 150, 124]
+      cladding:
+        - {material: block, color: [214, 186, 96], height_m: 1.15}
+      roof: {type: hip, pitch_deg: 16, overhang_m: 0.4, fascia: [150, 64, 52]}
+      openings:
+        - {kind: door, t: 0.35, w: 0.9, h: 2.15, color: [236, 232, 220]}
+        - {kind: window, floor: 1, t: 0.38, w: 1.3, h: 1.3, sill_m: 0.35}
+        - {kind: window, floor: 1, t: 0.68, w: 1.3, h: 1.3, sill_m: 0.35}
+      balconies:
+        - {floor: 1, from: 0.22, to: 0.88, depth_m: 1.05, slab: [210, 206, 196], rail: [48, 52, 58]}
+      loggia: {floor: 0, from: 0.15, to: 0.9, depth_m: 2.2, parapet_m: 0, posts: 0.28, post_color: [40, 70, 120]}
+      facades:
+        - {facade: NE, openings: []}
+        - {facade: "NO", openings: []}
+    part3:
+      floors: 2
+      eave_m: 5.8
+      facade: E
+      wall: [236, 214, 150]
+      roof: {type: gable, ridge: across, pitch_deg: 18, overhang_m: 0.2, fascia: [150, 64, 52]}
+      openings:
+        - {kind: window, t: 0.5, w: 0.8, h: 1.1, sill_m: 1.1}
+        - {kind: window, floor: 1, t: 0.5, w: 0.8, h: 1.0, sill_m: 0.9}
+    part1:
+      floors: 1
+      eave_m: 3.0
+      facade: S
+      wall: [220, 200, 150]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: E
+      wall: [220, 200, 150]
+      roof: {type: flat, parapet_m: 0.2, cap: [190, 170, 130]}
+      openings: []
+
+# Casa llarga crema d'una planta, amb el cos del garatge a la dreta.
+0630501TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa crema llarga, porta i garatge de lames al cap)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.6
+      facade: N
+      wall: [228, 190, 152]
+      plinth: [150, 150, 148]
+      plinth_h: 0.7
+      roof: {type: gable, ridge: along, pitch_deg: 20, overhang_m: 0.25, fascia: [160, 100, 80]}
+      openings:
+        - {kind: window, t: 0.12, w: 0.7, h: 0.8, sill_m: 1.5}
+        - {kind: door, t: 0.38, w: 0.9, h: 2.05, color: [120, 78, 52]}
+        - {kind: window, t: 0.55, w: 0.7, h: 0.8, sill_m: 1.6}
+        - {kind: garage, t: 0.86, w: 3.2, h: 2.4, color: [214, 186, 110], frame: [190, 160, 120], leaves: 2}
+      chimneys:
+        - {t: 0.28, depth_m: 2.0, size_m: 0.55, above_m: 1.1, color: [176, 120, 80], cap: [140, 90, 60]}
+      facades:
+        - {facade: SO, openings: []}
+        - {facade: S, openings: []}
+
+# Nau de formigó: un portal blanc i paret alta.
+0630502TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (mur de formigó amb un portal blanc)"
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.8
+      facade: SO
+      wall: [198, 198, 194]
+      plinth: [168, 168, 164]
+      plinth_h: 0.7
+      roof: {type: shed, toward: SO, pitch_deg: 6, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.22, w: 2.6, h: 2.5, color: [230, 230, 226], frame: [180, 180, 176], leaves: 2}
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: S
+      wall: [198, 198, 194]
+      roof: {type: flat, parapet_m: 0.3, cap: [180, 180, 176]}
+      openings: []
+
+# Mur préssec amb portal blau; la casa de dues plantes queda al darrere.
+0630504TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (mur préssec, portal blau; teulada vermella al darrere)"
+  parts:
+    part2:
+      floors: 1
+      eave_m: 2.7
+      facade: O
+      wall: [224, 186, 156]
+      plinth: [206, 170, 140]
+      plinth_h: 0.6
+      roof: {type: flat, parapet_m: 0.25, cap: [176, 96, 76]}
+      openings:
+        - {kind: garage, t: 0.45, w: 2.6, h: 2.15, color: [110, 150, 176], frame: [80, 110, 140], leaves: 2}
+    part4:
+      floors: 1
+      eave_m: 2.6
+      facade: O
+      wall: [224, 186, 156]
+      roof: {type: flat, parapet_m: 0.2, cap: [176, 96, 76]}
+      openings: []
+    part3:
+      floors: 2
+      eave_m: 5.6
+      facade: S
+      wall: [232, 228, 220]
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.3, fascia: [160, 70, 54]}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 2.6
+      facade: E
+      wall: [210, 206, 198]
+      roof: {type: flat, parapet_m: 0.15, cap: [180, 176, 168]}
+      openings: []
+
+# Mur blanc amb sòcol blau i portal blau; la casa queda al darrere.
+0630505TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (mur blanc, sòcol i portal blaus)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: SO
+      wall: [232, 232, 228]
+      plinth: [140, 150, 170]
+      plinth_h: 0.85
+      roof: {type: flat, parapet_m: 0.35, cap: [200, 200, 196]}
+      openings:
+        - {kind: garage, t: 0.48, w: 3.0, h: 2.2, color: [168, 186, 198], frame: [140, 156, 170], leaves: 2}
+    part3:
+      floors: 2
+      eave_m: 5.6
+      facade: O
+      wall: [228, 214, 200]
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.3, fascia: [160, 70, 54]}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: SO
+      wall: [228, 224, 216]
+      roof: {type: flat, parapet_m: 0.15, cap: [190, 186, 178]}
+      openings: []
+    part4:
+      floors: 1
+      eave_m: 2.6
+      facade: SO
+      wall: [228, 224, 216]
+      roof: {type: flat, parapet_m: 0.15, cap: [190, 186, 178]}
+      openings: []
+
+# Mur blanc amb el coronament en pendent i casa rosa al darrere (Calle el Cristo).
+0630506TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (mur blanc en pendent i casa rosa amb porticons)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 2.9
+      facade: SO
+      wall: [232, 230, 224]
+      plinth: [176, 148, 108]
+      plinth_h: 0.7
+      roof: {type: shed, toward: SO, pitch_deg: 12, overhang_m: 0.05}
+      openings: []
+    part3:
+      floors: 2
+      eave_m: 5.8
+      facade: S
+      wall: [214, 156, 156]
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.25, fascia: [150, 70, 60]}
+      openings:
+        - {kind: window, t: 0.35, w: 0.9, h: 1.15, sill_m: 1.05}
+        - {kind: window, t: 0.62, w: 0.9, h: 1.15, sill_m: 1.05}
+        - {kind: window, floor: 1, t: 0.35, w: 0.9, h: 1.05, sill_m: 0.9}
+        - {kind: window, floor: 1, t: 0.62, w: 0.9, h: 1.05, sill_m: 0.9}
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: E
+      wall: [220, 216, 208]
+      roof: {type: flat, parapet_m: 0.15, cap: [190, 186, 178]}
+      openings: []
+
+# Torre de maó del transformador, amb la porta negra i les tres bornes.
+0429498TM6502N:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (torre de maó, porta negra i tres bornes)"
+  parts:
+    part1:
+      floors: 2
+      eave_m: 6.8
+      facade: "NO"
+      wall_material: brick
+      wall: [176, 74, 52]
+      roof: {type: flat, parapet_m: 0.35, cap: [236, 232, 224]}
+      openings:
+        - {kind: door, t: 0.45, w: 0.9, h: 2.05, color: [24, 24, 26]}
+        - {kind: window, floor: 1, t: 0.4, w: 0.9, h: 0.4, sill_m: 1.6, fill: [40, 48, 40]}
+    part4:
+      floors: 1
+      eave_m: 2.4
+      facade: "NO"
+      wall: [214, 206, 190]
+      roof: {type: flat, parapet_m: 0.2, cap: [190, 180, 164]}
+      openings: []
+    part2:
+      floors: 1
+      eave_m: 2.4
+      facade: SO
+      wall: [214, 206, 190]
+      roof: {type: shed, toward: SO, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.6
+      facade: O
+      wall: [200, 192, 176]
+      roof: {type: shed, toward: O, pitch_deg: 10, overhang_m: 0.1}
+      openings: []
+    part6:
+      floors: 1
+      eave_m: 3.2
+      facade: NE
+      wall: [210, 204, 192]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.15}
+      openings: []
+    part5:
+      floors: 1
+      eave_m: 2.4
+      facade: O
+      wall: [176, 74, 52]
+      wall_material: brick
+      roof: {type: flat, parapet_m: 0.15, cap: [160, 60, 44]}
+      openings: []
+
+# Casa crema d'una planta darrere la tanca de gelosia.
+0331103TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (bungalou crema, finestra amb persiana, tanca de gelosia)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: S
+      wall: [220, 196, 176]
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.3, fascia: [150, 80, 64]}
+      openings:
+        - {kind: window, t: 0.55, w: 1.6, h: 1.2, sill_m: 1.0, roller: 0.7}
+    part2:
+      floors: 1
+      eave_m: 2.6
+      facade: S
+      wall: [210, 190, 170]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa ocre amb frontó, porta de fusta i ala baixa (foto del 2015).
+49130A50100371:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre, 21 agost 2015 (casa ocre, frontó i porta de fusta)"
+  parts:
+    part4:
+      floors: 2
+      eave_m: 6.0
+      facade: SO
+      wall: [196, 154, 96]
+      roof: {type: gable, ridge: across, pitch_deg: 22, overhang_m: 0.25, fascia: [120, 70, 54]}
+      openings:
+        - {kind: door, t: 0.72, w: 0.95, h: 2.15, color: [110, 72, 40]}
+        - {kind: window, floor: 1, t: 0.35, w: 0.55, h: 1.3, sill_m: 0.8, roller: 0.4}
+      facades:
+        - {facade: NE, openings: []}
+    part1:
+      floors: 1
+      eave_m: 3.1
+      facade: S
+      wall: [196, 154, 96]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.15}
+      openings:
+        - {kind: window, t: 0.4, w: 0.8, h: 0.7, sill_m: 1.5, roller: 0.5}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: O
+      wall: [190, 170, 140]
+      roof: {type: flat, parapet_m: 0.2, cap: [170, 150, 120]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.8
+      facade: O
+      wall: [190, 170, 140]
+      roof: {type: shed, toward: O, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa nova (2022), encara en obra a la foto: porxo de pilars, porta de vidre.
+0531965TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa de 2022, porxo de pilars; a la foto encara hi ha l'aillant)"
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: S
+      wall: [224, 210, 186]
+      cladding:
+        - {color: [196, 164, 120], height_m: 1.35}
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.55, fascia: [90, 60, 44]}
+      openings:
+        - {kind: window, t: 0.18, w: 0.9, h: 1.0, sill_m: 1.15}
+        - {kind: door, t: 0.48, w: 0.95, h: 2.15, color: [180, 190, 196]}
+        - {kind: window, t: 0.75, w: 1.5, h: 1.15, sill_m: 1.05}
+      canopies:
+        - {from: 0.05, to: 1.05, height_m: 2.7, depth_m: 1.8, posts: true, post_color: [190, 186, 178], post_m: 0.22, color: [150, 64, 48]}
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [224, 210, 186]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.2}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.6
+      facade: E
+      wall: [210, 200, 180]
+      roof: {type: flat, parapet_m: 0.15, cap: [180, 170, 150]}
+      openings: []
+    part4:
+      floors: 1
+      eave_m: 2.6
+      facade: N
+      wall: [210, 200, 180]
+      roof: {type: flat, parapet_m: 0.15, cap: [180, 170, 150]}
+      openings: []
+
+# Casa ocre de 2016 amb porxo, darrere un portal fosc i un mur de bloc.
+0531998TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre, 2 maig 2016 (casa ocre, porxo i portal fosc)"
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.3
+      facade: E
+      wall: [214, 170, 96]
+      roof: {type: hip, pitch_deg: 20, overhang_m: 0.45, fascia: [140, 64, 48]}
+      openings:
+        - {kind: window, t: 0.25, w: 1.1, h: 1.15, sill_m: 1.0}
+        - {kind: door, t: 0.55, w: 0.95, h: 2.15, color: [60, 56, 52]}
+        - {kind: window, t: 0.8, w: 1.1, h: 1.15, sill_m: 1.0}
+      canopies:
+        - {from: 0.15, to: 0.85, height_m: 2.6, depth_m: 1.6, posts: true, post_color: [200, 196, 186], post_m: 0.22, color: [150, 64, 48]}
+      facades:
+        - {facade: O, openings: []}
+    part4:
+      floors: 1
+      eave_m: 2.8
+      facade: N
+      wall: [200, 160, 90]
+      roof: {type: flat, parapet_m: 0.2, cap: [170, 140, 80]}
+      openings: []
+    part1:
+      floors: 1
+      eave_m: 2.4
+      facade: S
+      wall: [190, 170, 130]
+      roof: {type: flat, parapet_m: 0.15, cap: [160, 140, 100]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.6
+      facade: E
+      wall: [190, 170, 130]
+      roof: {type: shed, toward: E, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa de dues plantes vista de garatges: portal ondulat al mig.
+0432823TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (tres portals: ondulat al centre, gris a l'esquerra, fusta a la dreta)"
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: S
+      wall: [236, 234, 228]
+      plinth: [170, 168, 162]
+      plinth_h: 0.4
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.2}
+      openings:
+        - {kind: garage, t: 0.28, w: 2.4, h: 2.5, color: [170, 174, 176], frame: [140, 142, 144], leaves: 1}
+        - {kind: garage, t: 0.72, w: 2.6, h: 2.45, color: [186, 190, 192], frame: [150, 48, 44], leaves: 2}
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: E
+      wall: [228, 224, 216]
+      roof: {type: shed, toward: E, pitch_deg: 10, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.5, w: 2.2, h: 2.3, color: [90, 62, 44], leaves: 1}
+    part4:
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [220, 214, 204]
+      roof: {type: flat, parapet_m: 0.2, cap: [180, 170, 156]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.4
+      facade: S
+      wall: [210, 204, 194]
+      roof: {type: flat, parapet_m: 0.1, cap: [170, 160, 148]}
+      openings: []
+
+# El Cadastre la marca declined; a la foto és la casa crema de dues plantes amb el capçal de maó.
+0432831TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (crema, dues plantes, capçal de maó vist; el Cadastre diu declined)"
+  parts:
+    part1:
+      floors: 2
+      eave_m: 5.8
+      facade: O
+      wall: [228, 214, 186]
+      plinth: [150, 146, 136]
+      plinth_h: 0.6
+      roof: {type: gable, ridge: along, pitch_deg: 22, overhang_m: 0.25, fascia: [150, 70, 54]}
+      openings:
+        - {kind: window, t: 0.35, w: 0.55, h: 0.7, sill_m: 1.3}
+        - {kind: door, t: 0.7, w: 0.85, h: 2.05, color: [200, 196, 188]}
+        - {kind: window, floor: 1, t: 0.4, w: 0.5, h: 0.55, sill_m: 1.4}
+      facades:
+        - facade: S
+          wall_material: brick
+          openings: []
+
+# Casa salmó d'una planta amb frontó, darrere el mur de bloc i la reixa.
+0432832TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (casa salmó, emmarcats vermells, mur de bloc amb reixa)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.3
+      facade: O
+      wall: [196, 112, 90]
+      roof: {type: hip, pitch_deg: 18, overhang_m: 0.35, fascia: [140, 48, 44]}
+      windows: {frame: [150, 48, 48]}
+      openings:
+        - {kind: garage, t: 0.12, w: 2.2, h: 2.1, color: [120, 70, 60], leaves: 1}
+        - {kind: door, t: 0.32, w: 0.9, h: 2.1, color: [90, 50, 46]}
+        - {kind: window, t: 0.5, w: 1.05, h: 1.15, sill_m: 0.95, roller: 0.35}
+        - {kind: window, t: 0.78, w: 1.35, h: 1.15, sill_m: 0.95, roller: 0.3}
+      chimneys:
+        - {t: 0.22, depth_m: 1.5, size_m: 0.45, above_m: 0.9, color: [180, 100, 80], cap: [80, 80, 82]}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [190, 108, 88]
+      roof: {type: flat, parapet_m: 0.2, cap: [150, 60, 52]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.6
+      facade: SO
+      wall: [180, 100, 82]
+      roof: {type: shed, toward: SO, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Cobert amb portal verd i paret de tova, al costat del mur de bloc.
+0432833TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (portal ondulat verd, paret ocre i porta de fusta)"
+  parts:
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: S
+      wall: [186, 96, 72]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.2}
+      openings:
+        - {kind: garage, t: 0.4, w: 2.8, h: 2.4, color: [176, 180, 182], frame: [70, 140, 70], leaves: 2}
+        - {kind: door, t: 0.82, w: 0.85, h: 1.9, color: [140, 110, 70]}
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: "NO"
+      wall: [210, 180, 140]
+      roof: {type: flat, parapet_m: 0.3, cap: [180, 160, 130]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.2
+      facade: S
+      wall: [200, 180, 140]
+      roof: {type: flat, parapet_m: 0.1, cap: [170, 150, 120]}
+      openings: []
+
+# Pallissa de tova i cobert rosa, vistos des del darrere.
+0432835TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (pallissa de tova i cobert de bloc rosa)"
+  parts:
+    part1:
+      floors: 2
+      eave_m: 4.4
+      facade: S
+      wall: [176, 120, 84]
+      wall_material: stone
+      roof: {type: gable, ridge: across, pitch_deg: 24, overhang_m: 0.15, fascia: [140, 70, 54]}
+      openings:
+        - {kind: door, t: 0.55, w: 0.9, h: 1.9, color: [90, 60, 44]}
+    part2:
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [186, 72, 96]
+      roof: {type: flat, parapet_m: 0.4, cap: [160, 60, 80]}
+      openings: []
+    part3:
+      floors: 1
+      eave_m: 2.6
+      facade: E
+      wall: [176, 64, 84]
+      roof: {type: flat, parapet_m: 0.3, cap: [150, 50, 70]}
+      openings: []
+
+# Nau darrere el mur de bloc i el portal verd.
+0432836TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (mur de bloc i portal de reixa verd)"
+  extra_roofs: false
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: O
+      wall: [196, 186, 168]
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.15}
+      openings: []
+
+# Casa amb arc de reixa, terrassa al pis i mur de bloc.
+0432837TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (arc de reixa, casa amb persianes i terrassa)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.4
+      facade: S
+      wall: [214, 186, 130]
+      roof: {type: flat, parapet_m: 0.9, cap: [180, 160, 120], floor_color: [196, 176, 140]}
+      openings:
+        - {kind: window, t: 0.3, w: 1.1, h: 1.15, sill_m: 1.0, roller: 0.85}
+        - {kind: window, t: 0.6, w: 1.1, h: 1.15, sill_m: 1.0, roller: 0.85}
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: S
+      wall: [180, 176, 168]
+      roof: {type: shed, toward: S, pitch_deg: 8, overhang_m: 0.1}
+      openings:
+        - {kind: window, t: 0.3, w: 1.2, h: 1.2, sill_m: 1.0}
+
+# Bar Llamas: planta baixa amb tendal, al costat d'una paret de pedra.
+0432819TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (bar Llamas, tendal i finestrals)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.4
+      facade: SE
+      wall: [214, 186, 160]
+      plinth: [140, 124, 100]
+      plinth_h: 0.35
+      roof: {type: gable, ridge: along, pitch_deg: 18, overhang_m: 0.3, fascia: [150, 70, 54]}
+      openings:
+        - {kind: window, t: 0.28, w: 1.5, h: 1.25, sill_m: 0.85, awning: {depth_m: 0.7, color: [236, 232, 220]}}
+        - {kind: door, t: 0.55, w: 0.9, h: 2.1, color: [210, 206, 196]}
+        - {kind: window, t: 0.78, w: 1.4, h: 1.25, sill_m: 0.85, awning: {depth_m: 0.7, color: [236, 232, 220]}}
+      chimneys:
+        - {t: 0.15, depth_m: 1.2, size_m: 0.4, above_m: 1.3, color: [40, 40, 42], cap: [30, 30, 32]}
+      facades:
+        - facade: O
+          wall_material: stone
+          openings: []
+
+# Casa nova (2026): nau beix amb porxo corregut i dues xemeneies.
+0432384TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (nau beix de 2026, porxo de pilars i dues xemeneies)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.4
+      facade: O
+      wall: [214, 190, 150]
+      roof: {type: shed, toward: O, pitch_deg: 12, overhang_m: 0.45, fascia: [120, 60, 48]}
+      openings:
+        - {kind: door, t: 0.42, w: 0.95, h: 2.15, color: [70, 52, 40]}
+        - {kind: window, t: 0.7, w: 1.2, h: 1.15, sill_m: 1.0}
+      canopies:
+        - {from: 0.2, to: 1.0, height_m: 2.55, depth_m: 2.0, posts: true, post_color: [90, 60, 44], post_m: 0.14, color: [160, 64, 48]}
+      chimneys:
+        - {t: 0.55, depth_m: 2.5, size_m: 0.7, above_m: 1.2, color: [80, 78, 74], cap: [50, 48, 46]}
+        - {t: 0.9, depth_m: 2.5, size_m: 0.6, above_m: 1.0, color: [80, 78, 74], cap: [50, 48, 46]}
+    part2:
+      floors: 1
+      eave_m: 3.2
+      facade: E
+      wall: [214, 190, 150]
+      roof: {type: shed, toward: E, pitch_deg: 8, overhang_m: 0.2}
+      openings: []
+
+# Casa blanca de dues plantes de la Calle Santiago, sòcol gris.
+0333601TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (blanca, Calle Santiago, porta de lamel·les)"
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.0
+      facade: SO
+      wall: [228, 228, 224]
+      plinth: [168, 160, 148]
+      plinth_h: 1.05
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.35, fascia: [150, 70, 58]}
+      openings:
+        - {kind: window, t: 0.18, w: 0.95, h: 1.15, sill_m: 1.15}
+        - {kind: door, t: 0.42, w: 0.95, h: 2.15, color: [236, 236, 232]}
+        - {kind: window, t: 0.72, w: 0.95, h: 1.15, sill_m: 1.15}
+        - {kind: window, floor: 1, t: 0.22, w: 0.9, h: 1.05, sill_m: 1.0}
+        - {kind: window, floor: 1, t: 0.72, w: 0.9, h: 1.05, sill_m: 1.0}
+      facades:
+        - {facade: NE, openings: []}
+        - {facade: "NO", openings: []}
+    part1:
+      floors: 1
+      eave_m: 3.0
+      facade: N
+      wall: [220, 210, 200]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+
+# Casa rosa llarga de dues plantes, emmarcats del mateix color.
+0333602TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (rosa, dues plantes, porta centrada)"
+  parts:
+    part3:
+      floors: 2
+      eave_m: 6.0
+      facade: NE
+      wall: [214, 156, 140]
+      plinth: [206, 150, 140]
+      plinth_h: 1.0
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.3, fascia: [160, 90, 80]}
+      windows: {frame: [196, 140, 128]}
+      openings:
+        - {kind: window, t: 0.18, w: 0.7, h: 0.9, sill_m: 1.35, roller: 0.6}
+        - {kind: window, t: 0.38, w: 1.15, h: 1.15, sill_m: 0.9}
+        - {kind: door, t: 0.55, w: 0.9, h: 2.1, color: [120, 78, 64]}
+        - {kind: window, t: 0.78, w: 1.35, h: 1.2, sill_m: 0.85, roller: 0.55}
+        - {kind: window, floor: 1, t: 0.22, w: 0.85, h: 1.0, sill_m: 1.0, roller: 0.4}
+        - {kind: window, floor: 1, t: 0.48, w: 0.95, h: 1.05, sill_m: 1.0, roller: 0.7}
+        - {kind: window, floor: 1, t: 0.75, w: 1.15, h: 1.05, sill_m: 1.0}
+    part1:
+      floors: 2
+      eave_m: 5.6
+      facade: E
+      wall: [214, 156, 140]
+      plinth: [160, 150, 136]
+      plinth_h: 0.8
+      roof: {type: gable, ridge: along, pitch_deg: 16, overhang_m: 0.2}
+      openings:
+        - {kind: door, t: 0.5, w: 1.0, h: 2.1, color: [140, 136, 128]}
+    part2:
+      floors: 1
+      eave_m: 3.0
+      facade: N
+      wall: [200, 186, 160]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
+      openings: []
+    part4:
+      floors: 1
+      eave_m: 2.8
+      facade: O
+      wall: [200, 180, 160]
+      roof: {type: flat, parapet_m: 0.2, cap: [170, 150, 130]}
+      openings: []
+
+# Nau de bloc, vista a través dels pins. Sense obertures visibles.
+0331111TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (mur de bloc vist entre pins; no s'hi veu cap obertura)"
+  parts:
+    part1:
+      floors: 1
+      eave_m: 3.2
+      facade: O
+      wall_material: block
+      wall: [214, 206, 186]
+      roof: {type: shed, toward: O, pitch_deg: 6, overhang_m: 0.1}
+      openings: []
+
+# Portal de fusta clavat i cos de dues plantes amb balcó, a la C. Calzada.
+0232106TM6503S:
+  review: {level: full, date: "2026-10-09"}
+  photo: "Foto de façana del Cadastre (portal de fusta i cos crema amb balcó de vidre)"
+  parts:
+    part2:
+      floors: 2
+      eave_m: 6.2
+      facade: SE
+      wall: [214, 176, 140]
+      roof: {type: gable, ridge: across, pitch_deg: 20, overhang_m: 0.25, fascia: [140, 70, 56]}
+      openings:
+        - {kind: window, t: 0.3, w: 1.1, h: 1.2, sill_m: 1.0, roller: 0.85}
+        - {kind: window, floor: 1, t: 0.35, w: 1.3, h: 1.3, sill_m: 0.4, roller: 0.3}
+      balconies:
+        - {floor: 1, from: 0.12, to: 0.55, depth_m: 0.9, slab: [60, 64, 68], rail: [40, 44, 48]}
+    part1:
+      floors: 1
+      eave_m: 2.8
+      facade: S
+      wall: [210, 200, 184]
+      roof: {type: shed, toward: S, pitch_deg: 10, overhang_m: 0.15}
+      openings:
+        - {kind: garage, t: 0.55, w: 2.4, h: 2.3, color: [90, 72, 52], frame: [160, 150, 136], leaves: 2}
+    part3:
+      floors: 1
+      eave_m: 2.8
+      facade: N
+      wall: [200, 188, 168]
+      roof: {type: shed, toward: N, pitch_deg: 8, overhang_m: 0.1}
+      openings: []

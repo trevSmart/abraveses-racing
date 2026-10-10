@@ -24,6 +24,7 @@ from shapely.ops import unary_union
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.config import ensure_parent, load_config, utm_origin, wgs84_to_utm  # noqa: E402
+from poles import build_power_poles  # noqa: E402
 from village import concat_tagged, tag_house  # noqa: E402
 
 
@@ -681,7 +682,15 @@ def _build_village(cfg: dict, ground: Ground, ortho, ox: float, oy: float):
     village = build_village(cfg, ground, ortho, ground.road_polys, ox, oy)
     path = ensure_parent(cfg["paths"]["village_json"])
     with path.open("w", encoding="utf-8") as f:
-        json.dump({"trees": village.trees, "plants": village.plants, "parcels": village.parcels}, f)
+        json.dump(
+            {
+                "trees": village.trees,
+                "plants": village.plants,
+                "parcels": village.parcels,
+                "houses": village.houses,
+            },
+            f,
+        )
     print(f"Village → {path}")
     return village
 
@@ -734,12 +743,22 @@ def build_world(use_blender: bool = False) -> Path:
     for name, mesh in road_parts:
         scene.add_geometry(mesh, geom_name=name)
     if water:
-        water_surface, water_volume = water.mesh(ground, meta["elevation_min_m"])
+        water_surface, water_volume, water_tunnel, water_fill, water_cobbles = water.mesh(
+            ground, meta["elevation_min_m"]
+        )
         if water_surface is not None:
             scene.add_geometry(water_surface, geom_name="water")
         if water_volume is not None:
             scene.add_geometry(water_volume, geom_name="water_volume")
+        if water_tunnel is not None:
+            scene.add_geometry(water_tunnel, geom_name="building_tunnel_stone")
+        if water_fill is not None:
+            scene.add_geometry(water_fill, geom_name="greens_tunnel_fill")
+        if water_cobbles is not None:
+            scene.add_geometry(water_cobbles, geom_name="prop_water_cobbles")
     for name, mesh in village.meshes if village else []:
+        scene.add_geometry(mesh, geom_name=name)
+    for name, mesh in build_power_poles(cfg, ground, ox, oy):
         scene.add_geometry(mesh, geom_name=name)
     if building_parts:
         buildings = concat_tagged(building_parts)

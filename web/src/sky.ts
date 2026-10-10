@@ -24,7 +24,7 @@ const CLOUD_HIGH = 0.72;
 const WIND = new THREE.Vector2(0.0022, 0.0009); // unitats de textura per segon
 const NOISE_SIZE = 256;
 /** Radi angular del disc del sol (una mica més gran que el real, 0,27°, perquè es vegi). */
-const SUN_RADIUS_RAD = THREE.MathUtils.degToRad(0.55);
+const SUN_RADIUS_RAD = THREE.MathUtils.degToRad(0.38);
 
 function glslColor(hex: number): string {
   // Colors en sRGB tal qual: el cel i la boira treballen en espai de pantalla.
@@ -58,7 +58,7 @@ vec3 skyBase(vec3 d) {
   // Calitja càlida a l'horitzó del costat del sol i halo de dispersió al voltant del disc.
   float band = 1.0 - smoothstep(0.0, 0.3, abs(d.y));
   col = mix(col, SKY_SUN_HAZE, pow(mu, 4.0) * band * 0.45);
-  col = mix(col, SKY_SUN_GLOW, clamp(pow(mu, 9.0) * 0.28 + pow(mu, 60.0) * 0.45, 0.0, 1.0));
+  col = mix(col, SKY_SUN_GLOW, clamp(pow(mu, 16.0) * 0.18 + pow(mu, 120.0) * 0.35, 0.0, 1.0));
   return col;
 }
 `;
@@ -216,7 +216,7 @@ void main() {
   float disk = smoothstep(${Math.cos(SUN_RADIUS_RAD * 1.25).toFixed(7)}, ${Math.cos(SUN_RADIUS_RAD * 0.8).toFixed(7)}, mu);
   float clear = 1.0 - cover * 0.85;
   col = mix(col, vec3(1.0, 0.995, 0.97), disk * clear);
-  col += SKY_SUN_GLOW * pow(max(mu, 0.0), 1400.0) * 0.6 * clear;
+  col += SKY_SUN_GLOW * pow(max(mu, 0.0), 2200.0) * 0.45 * clear;
   // Tramat d'un bit per evitar bandes al gradient.
   col += (hash12(gl_FragCoord.xy) - 0.5) / 255.0;
   gl_FragColor = vec4(min(col, vec3(1.0)), 1.0);
@@ -422,18 +422,19 @@ export class Sky {
       this.flares.push({ mesh, t, size, opacity, spin });
     };
     // t = 1 és el sol, 0 el centre de la pantalla, negatiu a l'altra banda. Mida en fracció d'alçada.
-    add(glow, 0xfff1d8, 1, 0.5, 0.55);
-    add(glow, 0xffffff, 1, 0.1, 0.9);
-    add(star, 0xfff6e6, 1, 0.42, 0.55, 0.25);
-    add(ring, 0xffd9a8, 1, 0.3, 0.08);
-    add(hex, 0xffb35c, 0.62, 0.045, 0.16);
-    add(glow, 0xffe2a0, 0.42, 0.05, 0.22);
-    add(ring, 0x9fc6ff, 0.28, 0.12, 0.1);
-    add(hex, 0x7fe0c0, -0.18, 0.075, 0.1);
-    add(glow, 0xb59cff, -0.42, 0.18, 0.08);
-    add(hex, 0xffc070, -0.7, 0.04, 0.18);
-    add(hex, 0x8fb4ff, -0.86, 0.11, 0.07);
-    add(ring, 0xffa0d0, -1.12, 0.32, 0.05);
+    add(glow, 0xfff1d8, 1, 0.14, 0.32);
+    add(glow, 0xffffff, 1, 0.045, 0.8);
+    add(star, 0xfff6e6, 1, 0.22, 0.4, 0.25);
+    add(ring, 0xffd9a8, 1, 0.14, 0.06);
+    add(hex, 0xffb35c, 0.7, 0.04, 0.16);
+    add(glow, 0xffe2a0, 0.48, 0.045, 0.2);
+    add(ring, 0x9fc6ff, 0.28, 0.1, 0.1);
+    add(hex, 0x7fe0c0, -0.22, 0.07, 0.1);
+    add(glow, 0xb59cff, -0.55, 0.16, 0.08);
+    add(hex, 0xffc070, -0.9, 0.038, 0.18);
+    add(hex, 0x8fb4ff, -1.15, 0.1, 0.07);
+    add(ring, 0xffa0d0, -1.45, 0.28, 0.05);
+    add(glow, 0xffc090, -1.7, 0.12, 0.04);
   }
 
   /** Mostreig a la CPU de la mateixa densitat de núvols que el shader (filtre bilineal i repetició). */

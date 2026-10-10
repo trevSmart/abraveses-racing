@@ -1,0 +1,9 @@
+== 0331111TM6503S
+   ús 3_industrial · 0 habitatges · 104 m² construïts · construïda 1950 · functional
+-- part1: 1 plantes · 104 m² · centre UTM 260190.5, 4652928.4
+     façana  N:  4.21 m, esquerra (t=0) a 260196.6, 4652939.0 (mitgera: toca una altra part o un altre edifici)
+     façana  O: 24.36 m, esquerra (t=0) a 260192.7, 4652940.5
+     façana  S:  4.62 m, esquerra (t=0) a 260184.2, 4652917.6
+     façana  E: 23.32 m, esquerra (t=0) a 260188.8, 4652917.0
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0331111TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0331111TM6503S/ortofoto.png

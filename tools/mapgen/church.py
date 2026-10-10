@@ -109,10 +109,11 @@ def _gable_volume(f: Frame, u0: float, u1: float, half_w: float, base: float, ea
     return _extrude_profile(f, profile, u0, u1 - u0, color), ridge
 
 
-def _ridge_rgb(f: Frame) -> list[int]:
-    """Direcció del carener al món (x, z) codificada com a color, igual que a les cases."""
+def _ridge_rgb(f: Frame, roof_lin: tuple[int, int, int]) -> list[int]:
+    from village import _roof_vertex_rgba
+
     ux, uy = f.a
-    return [int(round((ux * 0.5 + 0.5) * 255)), int(round((-uy * 0.5 + 0.5) * 255)), 0, 255]
+    return _roof_vertex_rgba(ux, uy, roof_lin)
 
 
 def _roof(
@@ -121,6 +122,7 @@ def _roof(
     u1: float,
     half_w: float,
     eave: float,
+    roof_lin: tuple[int, int, int],
     overhang: float = 0.4,
     extend_side: int = 0,
     extend: float = 0.0,
@@ -142,8 +144,10 @@ def _roof(
         ]
         m = trimesh.Trimesh(vertices=np.array(quad), faces=np.array([[0, 1, 2], [0, 2, 3]]), process=False)
         if m.face_normals[:, 1].mean() < 0:
-            m.invert()
-        m.visual.vertex_colors = np.tile(_ridge_rgb(f), (4, 1)).astype(np.uint8)
+            from village import _flip_faces
+
+            _flip_faces(m)
+        m.visual.vertex_colors = np.tile(_ridge_rgb(f, roof_lin), (4, 1)).astype(np.uint8)
         out.append(m)
     return out
 
@@ -210,7 +214,12 @@ def _stork_nest(f: Frame, u: float, v: float, bottom: float, radius: float = 1.7
     return out
 
 
-def church_meshes(poly: Polygon, ground, toward: tuple[float, float] | None = None) -> tuple[list, list, list]:
+def church_meshes(
+    poly: Polygon,
+    ground,
+    toward: tuple[float, float] | None = None,
+    roof_lin: tuple[int, int, int] | None = None,
+) -> tuple[list, list, list]:
     """(pedra amb col·lisió, teulades, detalls sense col·lisió). `toward`: punt del carrer on dona
     l'entrada; el porxo es fa al costat llarg de la planta que hi mira (per defecte, el nord)."""
     f = Frame(poly)
@@ -229,6 +238,9 @@ def church_meshes(poly: Polygon, ground, toward: tuple[float, float] | None = No
     v_wall = s * half_w  # mur de la nau que dona al porxo
     v_front = s * (half_w + PORCH_DEPTH)  # cara dels arcs, al carrer
 
+    from village import FALLBACK_ROOF_LIN
+
+    lin = roof_lin if roof_lin is not None else FALLBACK_ROOF_LIN
     stone, roofs, details = [], [], []
     west, east = -L / 2 + 0.3, L / 2 - 0.3
     chancel_start = east - min(8.5, L * 0.32)
@@ -238,8 +250,8 @@ def church_meshes(poly: Polygon, ground, toward: tuple[float, float] | None = No
     nave, nave_ridge = _gable_volume(fn, west, chancel_start, half_w, base, nave_eave, STONE)
     chancel, chancel_ridge = _gable_volume(fn, chancel_start, east, half_w + 0.15, base, floor + CHANCEL_EAVE, STONE)
     stone += [nave, chancel]
-    roofs += _roof(fn, west, chancel_start, half_w, nave_eave, extend_side=s, extend=PORCH_DEPTH)
-    roofs += _roof(fn, chancel_start, east, half_w + 0.15, floor + CHANCEL_EAVE)
+    roofs += _roof(fn, west, chancel_start, half_w, nave_eave, lin, extend_side=s, extend=PORCH_DEPTH)
+    roofs += _roof(fn, chancel_start, east, half_w + 0.15, floor + CHANCEL_EAVE, lin)
 
     # Contraforts a les cantonades de la capçalera.
     for v in (-1, 1):
@@ -341,9 +353,11 @@ def church_meshes(poly: Polygon, ground, toward: tuple[float, float] | None = No
     ]
     m = trimesh.Trimesh(vertices=np.array(lean), faces=np.array([[0, 1, 2], [0, 2, 3]]), process=False)
     if m.face_normals[:, 1].mean() < 0:
-        m.invert()
+        from village import _flip_faces
+
+        _flip_faces(m)
     # Les fileres de teules van al llarg de la nau, com a les aigües grans.
-    m.visual.vertex_colors = np.tile(_ridge_rgb(fn), (4, 1)).astype(np.uint8)
+    m.visual.vertex_colors = np.tile(_ridge_rgb(fn, lin), (4, 1)).astype(np.uint8)
     roofs.append(m)
 
     # Finestres espitllerades alts als murs de la nau (la del porxo queda a l'ombra) i a la capçalera.

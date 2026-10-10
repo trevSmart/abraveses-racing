@@ -38,7 +38,7 @@ python tools/mapgen/build_world.py
 `village_detail` a `config.yaml` defineix els carrers (ara `Calle Santibáñez`) i l'amplada de la franja.
 `fetch_cadastre.py` baixa del Cadastre els edificis, les parts d'edifici (amb plantes) i les parcel·les;
 `build_world.py` hi genera cases amb teulada a dues aigües texturada amb l'ortofoto, façanes amb
-finestres i porta cap al carrer, tàpies, i analitza l'ortofoto per classificar cada parcel·la
+finestres i porta cap al carrer, tàpies (només a les vores on l'ortofoto mostra l'ombra d'un mur, `walls.py`), i analitza l'ortofoto per classificar cada parcel·la
 (pati, jardí, hort, arbrat, prat, erm), detectar copes d'arbre i coberts que no surten al Cadastre.
 Els arbres i les plantes d'hort van a `web/public/village.json`.
 

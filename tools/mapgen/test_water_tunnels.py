@@ -1,0 +1,139 @@
+"""Proves de túnels hidràulics: aigua sota un turó sense trinxera oberta."""
+
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+
+import geopandas as gpd
+import numpy as np
+from shapely.geometry import LineString
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from water import (  # noqa: E402
+    TUNNEL_COVER_M,
+    TUNNEL_WATER_M,
+    Waterways,
+    tunnel_mask,
+    water_ref_profile,
+)
+
+
+class TunnelDetectTest(unittest.TestCase):
+    def test_marks_long_hill_cover_as_tunnel(self) -> None:
+        # Vall – turó de 5 m / 20 m de llarg – vall (mostres cada 2 m, sentit aigües avall).
+        step = 2.0
+        smooth = np.concatenate(
+            [
+                np.full(10, 100.0),
+                np.linspace(100.0, 105.0, 5),
+                np.full(10, 105.0),
+                np.linspace(105.0, 99.0, 5),
+                np.full(10, 99.0),
+            ]
+        )
+        tun = tunnel_mask(smooth, step_m=step)
+        self.assertTrue(tun.any())
+        self.assertGreaterEqual(float(tun.sum()) * step, 8.0)
+        self.assertTrue(bool(tun[15:25].all()))
+        self.assertFalse(bool(tun[:8].any()))
+        self.assertFalse(bool(tun[-8:].any()))
+
+    def test_short_bump_is_not_tunnel(self) -> None:
+        step = 2.0
+        smooth = np.concatenate([np.full(8, 100.0), np.full(2, 103.0), np.full(8, 99.5)])
+        tun = tunnel_mask(smooth, step_m=step)
+        self.assertFalse(bool(tun.any()))
+
+    def test_ref_goes_under_hill_when_tunnel(self) -> None:
+        step = 2.0
+        smooth = np.concatenate(
+            [
+                np.full(8, 100.0),
+                np.full(12, 100.0 + TUNNEL_COVER_M + 3.0),
+                np.full(8, 99.0),
+            ]
+        )
+        tun = tunnel_mask(smooth, step_m=step)
+        ref = water_ref_profile(smooth, tun)
+        crest = ref[8:20]
+        self.assertTrue(bool(np.all(crest <= 100.0 + 0.05)))
+
+
+class TunnelCarveTest(unittest.TestCase):
+    def test_carve_skips_tunnel_segments(self) -> None:
+        # Valls llargues perquè el suavitzat del perfil no contaminï el grau ideal.
+        def dem(xs, ys):
+            xs = np.asarray(xs, dtype=np.float64)
+            return np.where((xs >= 40) & (xs <= 60), 106.0, 100.0)
+
+        line = LineString([(0, 0), (100, 0)])
+        gdf = gpd.GeoDataFrame({"kind": ["stream"], "geometry": [line]})
+        cfg = {
+            "waterways": {
+                "stream": {"bed_m": 1.6, "bank_m": 2.6, "depth_m": 1.0, "water_frac": 0.35},
+            }
+        }
+        water = Waterways(gdf, dem, origin=(0.0, 0.0), half=200.0, cfg=cfg)
+        self.assertIsNotNone(water.tree)
+        tunnels = [tun for _, _, _, _, _, tun, _ in water.lines]
+        self.assertTrue(any(bool(t.any()) for t in tunnels))
+
+        xs = np.linspace(0, 100, 101)
+        ys = np.zeros_like(xs)
+        delta = water.carve(xs, ys, dem(xs, ys))
+        crest = (xs >= 42) & (xs <= 58)
+        self.assertTrue(np.allclose(delta[crest], 0.0, atol=1e-6), msg=f"crest delta={delta[crest]}")
+        self.assertTrue(bool(np.any(delta[xs < 20] < -0.05)))
+
+    def test_tunnel_water_is_shallow_with_cobbles(self) -> None:
+        def dem(xs, ys):
+            xs = np.asarray(xs, dtype=np.float64)
+            return np.where((xs >= 40) & (xs <= 60), 106.0, 100.0)
+
+        class FakeGround:
+            z_min = 90.0
+
+            def height(self, xs, ys, raised=True):
+                return np.asarray(dem(xs, ys), dtype=np.float64) - self.z_min
+
+            def road_distance(self, xs, ys):
+                return np.full(np.asarray(xs).shape, 10.0)
+
+        line = LineString([(0, 0), (100, 0)])
+        gdf = gpd.GeoDataFrame({"kind": ["stream"], "geometry": [line]})
+        cfg = {
+            "waterways": {
+                "stream": {"bed_m": 1.6, "bank_m": 2.6, "depth_m": 1.0, "water_frac": 0.35},
+            }
+        }
+        water = Waterways(gdf, dem, origin=(0.0, 0.0), half=200.0, cfg=cfg)
+        surface, volume, structure, fill, cobbles = water.mesh(FakeGround(), FakeGround.z_min)
+        self.assertIsNotNone(surface)
+        self.assertIsNotNone(structure)
+        self.assertIsNotNone(fill)
+        self.assertIsNotNone(cobbles)
+        # Al crest (x≈50) la làmina ha de ser ~3 cm per damunt del grau (ref−z_min).
+        pts, ref, sec, _, _, tun, dem_s = next(L for L in water.lines if L[-2].any())
+        i = int(np.argmax(tun))
+        bed_y = float(ref[i] - FakeGround.z_min)
+        dem_y = float(dem_s[i] - FakeGround.z_min)
+        near = np.abs(surface.vertices[:, 0] - float(pts[i, 0])) < 1.0
+        self.assertTrue(bool(near.any()))
+        water_y = float(np.median(surface.vertices[near, 1]))
+        self.assertAlmostEqual(water_y - bed_y, TUNNEL_WATER_M, delta=0.02)
+        # Volta alta: gairebé arriba al terreny del turó (DEM ~16 m, llit ~10 m).
+        half_w = max(0.85, sec.bed_m * 0.5 + 0.35)
+        self.assertGreater(float(structure.vertices[:, 1].max()), dem_y - 1.5)
+        self.assertGreater(float(fill.vertices[:, 1].max()), dem_y - 0.5)
+        # Murs laterals a ±half_w (en aquest traçat E–O la normal és N → món Z).
+        zs = structure.vertices[:, 2]
+        self.assertTrue(bool(np.any(zs < -half_w * 0.7)))
+        self.assertTrue(bool(np.any(zs > half_w * 0.7)))
+        self.assertGreater(len(cobbles.vertices), 64)
+
+
+if __name__ == "__main__":
+    unittest.main()

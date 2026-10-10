@@ -1,0 +1,41 @@
+== 49130A50100371
+   ús 1_residential · 1 habitatges · 506 m² construïts · construïda 2005 · functional
+-- part1: 1 plantes · 117 m² · centre UTM 260302.3, 4652705.3
+     façana  O: 11.94 m, esquerra (t=0) a 260298.0, 4652711.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9898928,-5.8937778&heading=98&pitch=8&fov=100
+     façana  S:  6.89 m, esquerra (t=0) a 260296.4, 4652699.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9897717,-5.8937994&heading=8&pitch=8&fov=100
+     façana  E:  3.80 m, esquerra (t=0) a 260303.3, 4652698.6
+     façana  S:  4.23 m, esquerra (t=0) a 260303.8, 4652702.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9898072,-5.8937931&heading=8&pitch=8&fov=100
+     façana  E:  8.14 m, esquerra (t=0) a 260308.0, 4652701.8
+     façana  N: 11.12 m, esquerra (t=0) a 260309.0, 4652709.9 (mitgera: toca una altra part o un altre edifici)
+-- part2: 2 plantes · 53 m² · centre UTM 260303.0, 4652713.6
+     façana  O:  5.79 m, esquerra (t=0) a 260298.8, 4652717.1
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9899720,-5.8937636&heading=98&pitch=8&fov=100
+     façana  S:  9.17 m, esquerra (t=0) a 260298.0, 4652711.4 (mitgera: toca una altra part o un altre edifici)
+     façana  E:  5.79 m, esquerra (t=0) a 260307.1, 4652710.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9900543,-5.8933945&heading=278&pitch=8&fov=100
+     façana  N:  9.17 m, esquerra (t=0) a 260307.9, 4652715.9 (mitgera: toca una altra part o un altre edifici)
+-- part3: 1 plantes · 67 m² · centre UTM 260302.8, 4652721.5
+     façana  O:  9.70 m, esquerra (t=0) a 260300.1, 4652726.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9900410,-5.8937512&heading=98&pitch=8&fov=100
+     façana  S:  6.89 m, esquerra (t=0) a 260298.8, 4652717.1 (mitgera: toca una altra part o un altre edifici)
+     façana  E:  9.69 m, esquerra (t=0) a 260305.6, 4652716.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9901005,-5.8934502&heading=278&pitch=8&fov=100
+     façana  N:  6.89 m, esquerra (t=0) a 260306.9, 4652725.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9901589,-5.8937301&heading=188&pitch=8&fov=100
+-- part4: 1 plantes · 216 m² · centre UTM 260326.1, 4652710.3
+     façana NE: 20.68 m, esquerra (t=0) a 260337.9, 4652703.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9899816,-5.8933069&heading=229&pitch=8&fov=100
+     façana NE:  5.27 m, esquerra (t=0) a 260324.4, 4652718.6
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9900664,-5.8934091&heading=231&pitch=8&fov=100
+     façana NO:  8.64 m, esquerra (t=0) a 260321.0, 4652722.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9901386,-5.8934961&heading=140&pitch=8&fov=100
+     façana SO: 18.31 m, esquerra (t=0) a 260314.4, 4652717.1
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9899161,-5.8937736&heading=50&pitch=8&fov=100
+     façana SO:  7.65 m, esquerra (t=0) a 260327.1, 4652703.8
+     façana SE:  7.73 m, esquerra (t=0) a 260332.0, 4652698.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9898579,-5.8931576&heading=320&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/49130A50100371/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/49130A50100371/ortofoto.png

@@ -1,0 +1,11 @@
+== 0530503TM6503S
+   ús 1_residential · 0 habitatges · 105 m² construïts · construïda 2005 · functional
+-- part1: 1 plantes · 105 m² · centre UTM 260371.9, 4652809.2
+     façana  E:  7.37 m, esquerra (t=0) a 260376.8, 4652801.5 (mitgera: toca una altra part o un altre edifici)
+     façana NE: 13.88 m, esquerra (t=0) a 260379.2, 4652808.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9909179,-5.8928457&heading=215&pitch=8&fov=100
+     façana NO:  7.03 m, esquerra (t=0) a 260367.9, 4652816.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9909924,-5.8929943&heading=125&pitch=8&fov=100
+     façana SO: 15.99 m, esquerra (t=0) a 260363.8, 4652810.8
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0530503TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0530503TM6503S/ortofoto.png

@@ -1,0 +1,23 @@
+== 0333609TM6503S
+   ús 1_residential · 1 habitatges · 162 m² construïts · construïda 1900 · functional
+-- part1: 2 plantes · 86 m² · centre UTM 260160.5, 4653031.8
+     façana  S:  4.67 m, esquerra (t=0) a 260157.6, 4653024.1
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926909,-5.8955502&heading=16&pitch=8&fov=100
+     façana  E: 16.10 m, esquerra (t=0) a 260162.1, 4653022.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926713,-5.8954407&heading=278&pitch=8&fov=100
+     façana  N:  5.39 m, esquerra (t=0) a 260164.4, 4653038.8
+     façana  O:  9.83 m, esquerra (t=0) a 260159.1, 4653039.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928248,-5.8956982&heading=105&pitch=8&fov=100
+     façana  S:  2.07 m, esquerra (t=0) a 260156.5, 4653030.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926992,-5.8955965&heading=15&pitch=8&fov=100
+     façana  O:  5.74 m, esquerra (t=0) a 260158.5, 4653029.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9927490,-5.8956822&heading=99&pitch=8&fov=100
+-- part2: 1 plantes · 9 m² · centre UTM 260165.2, 4653036.6
+     façana  N:  2.20 m, esquerra (t=0) a 260166.5, 4653038.3
+     façana  O:  3.98 m, esquerra (t=0) a 260164.4, 4653038.8 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  2.37 m, esquerra (t=0) a 260163.8, 4653034.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926837,-5.8955100&heading=5&pitch=8&fov=100
+     façana  E:  3.74 m, esquerra (t=0) a 260166.1, 4653034.6
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926682,-5.8954238&heading=276&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0333609TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0333609TM6503S/ortofoto.png

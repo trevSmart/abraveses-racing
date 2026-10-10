@@ -1,0 +1,24 @@
+== 0132135TM6503S
+   ús 1_residential · 1 habitatges · 285 m² construïts · construïda 1985 · functional
+-- part1: 2 plantes · 121 m² · centre UTM 259999.4, 4652975.0
+     façana SE: 11.00 m, esquerra (t=0) a 260001.5, 4652967.5
+     façana NE: 11.01 m, esquerra (t=0) a 260006.9, 4652977.1
+     façana NO: 11.00 m, esquerra (t=0) a 259997.4, 4652982.5
+     façana SO: 11.00 m, esquerra (t=0) a 259991.9, 4652973.0
+-- part2: 1 plantes · 15 m² · centre UTM 260017.3, 4653014.7
+     façana NE:  4.77 m, esquerra (t=0) a 260020.1, 4653015.0 (mitgera: toca una altra part o un altre edifici)
+     façana NO:  3.11 m, esquerra (t=0) a 260015.9, 4653017.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9927197,-5.8973090&heading=117&pitch=8&fov=100
+     façana SO:  4.77 m, esquerra (t=0) a 260014.4, 4653014.4
+     façana SE:  3.09 m, esquerra (t=0) a 260018.7, 4653012.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926339,-5.8970865&heading=297&pitch=8&fov=100
+-- part3: 1 plantes · 25 m² · centre UTM 260019.2, 4653018.4
+     façana NE:  4.76 m, esquerra (t=0) a 260022.5, 4653019.6
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926788,-5.8972029&heading=207&pitch=8&fov=100
+     façana NO:  5.19 m, esquerra (t=0) a 260018.2, 4653021.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9927202,-5.8973105&heading=117&pitch=8&fov=100
+     façana SO:  4.77 m, esquerra (t=0) a 260015.9, 4653017.2 (mitgera: toca una altra part o un altre edifici)
+     façana SE:  5.20 m, esquerra (t=0) a 260020.1, 4653015.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926345,-5.8970880&heading=297&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0132135TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0132135TM6503S/ortofoto.png

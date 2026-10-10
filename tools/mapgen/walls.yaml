@@ -1,0 +1,592 @@
+# Tàpies amb fitxa. La llargada és la vora de la parcel·la del Cadastre (o el tram
+# `length_m` centrat a `near`, en UTM 30N). L'alçada és la mesurada a la foto.
+# `along: street` agafa les vores d'aquella parcel·la que donen a un carrer.
+# `material`: brick (totxo) | stone (pedra) | block (bloc de formigó, sense junta de totxo) |
+# none (a la foto no hi ha mur: només treu la tàpia generada). `near` pot ser una llista de punts.
+
+"0132131-carrer":
+  parcel: "0132131TM6503S"
+  along: street
+  height_m: 1.20
+  thick_m: 0.28
+  material: block
+  color: [186, 178, 166]
+  rail_m: 0.9
+  rail: [40, 70, 56]
+  photo: "cadastre_facana.jpg: mur de bloc al carrer, ~1,2 m (la porta de vianants en fa ~1,8); recorregut set. 2024 (p04-p06): malla i reixa verda per damunt, ~0,9 m"
+
+"0132103-carrer":
+  parcel: "0132103TM6503S"
+  along: street
+  height_m: 0.9
+  thick_m: 0.35
+  material: stone
+  color: [168, 150, 124]
+  cap: [182, 168, 146]
+  rail_m: 0.8
+  rail: [32, 32, 34]
+  pillars: {w: 0.5, h: 1.95, color: [170, 152, 126], cap: [186, 150, 120]}
+  gates:
+    - {near: [260030.3, 4653015.54], w: 0.9, h: 1.75, color: [34, 34, 36], leaves: 1, solid_m: 0.9}   # vianants, davant l'entrada
+    - {near: [260034.25, 4653013.5], w: 3.0, h: 1.75, color: [34, 34, 36], leaves: 2, solid_m: 0.7}   # portal, davant el porxo
+  photo: "SV set. 2024, 18 C. Santibáñez rumb 232 i 7748 rumb 203: muret de pedra ~0,9 m, reixa fins a ~1,7 m, pilars de pedra ~1,95 m amb capitell; portals de reixa ~1,75 m"
+
+# Mur de pedra del costat oest (amb la finca del 17), del carrer fins a la façana de la casa.
+"0132103-oest":
+  parcel: "0132103TM6503S"
+  near: [260024.95, 4653012.98]
+  length_m: 9.5
+  height_m: 1.3
+  thick_m: 0.3
+  material: stone
+  color: [176, 160, 134]
+  cap: [182, 168, 146]
+  photo: "SV set. 2024, 7748 est rumb 214 i 7748 rumb 203: mur de pedra ~1,3 m del carrer fins a la casa"
+
+"0132102-oest":
+  parcel: "0132102TM6503S"
+  near: [259910.6, 4653009.8]        # vora oest, de la cantonada sud de l'annex cap al sud
+  length_m: 6.9
+  height_m: 2.3
+  thick_m: 0.25
+  material: block
+  color: [166, 56, 60]
+  plinth: {material: block, color: [204, 170, 104], height_m: 0.35}
+  photo: "SV set. 2024, 7463 ZA-P-2547 rumbs 102 i 130: mur granat ~2,3 m (porta del garatge, 2,25 m, de referència) a continuació de l'annex"
+
+"0332504-carrer":
+  parcel: "0332504TM6503S"
+  along: street
+  height_m: 1.0
+  thick_m: 0.4
+  material: stone
+  color: [168, 150, 120]
+  rail_m: 0.85
+  rail: [44, 62, 50]
+  gates:
+    - {near: [260198.65, 4652970.41], w: 1.0, h: 1.9, color: [44, 62, 50], leaves: 1}     # porta de vianants, davant de la porta de casa
+    - {near: [260187.0, 4652975.15], w: 2.8, h: 1.9, color: [120, 122, 120], leaves: 2}  # portal de vehicles, a l'oest
+  photo: "streetview 2024-09, 4 C. Santibáñez, rumb 205 i 210: mur de pedra ~1,0 m (la porta de vianants en fa ~1,9) i reixa verda fins a ~1,85 m; porta verda i portal gris de dues fulles"
+
+"0332001-carrer":
+  parcel: "0332001TM6503S"
+  # El bloc fa el sud i l'est del jardí; davant de la casa (vora NE) hi ha la tanca de maó i reixa.
+  near: [[260218.65, 4652971.1], [260227.7, 4652970.55], [260237.2, 4652971.75], [260240.25, 4652977.5]]
+  height_m: 1.35
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 166]
+  photo: "streetview 2024-09, 3 C. Santibáñez, rumb 55, i 17 C. El Cristo, rumb 320: mur de bloc ~1,35 m al voltant del jardí"
+
+"0332001-davant":
+  parcel: "0332001TM6503S"
+  near: [[260235.42, 4652989.44], [260231.45, 4652997.35]]
+  height_m: 0.6
+  thick_m: 0.3
+  material: brick
+  color: [168, 96, 70]
+  cap: [196, 190, 180]
+  rail_m: 0.9
+  rail: [40, 40, 42]
+  photo: "streetview 2024-09, 7 Calle El Cristo, rumb 230: sòcol de maó ~0,6 m i reixa de ferro davant de la casa"
+
+# Ruïna del 5 ZA-P-2547: mur de pedra amb bloc al damunt a l'oest i caseta de tova emblanquinada
+# amb porta de fusta (el sostre de fibrociment, esfondrat) al carrer.
+"0332004-oest":
+  parcel: "0332004TM6503S"
+  near: [[260187.7, 4652992.75], [260186.7, 4652989.5]]
+  height_m: 1.7
+  thick_m: 0.45
+  material: block
+  color: [196, 190, 180]
+  plinth: {material: stone, color: [150, 138, 120], height_m: 0.9}
+  photo: "streetview 2024-09, 5 ZA-P-2547, rumb 330: pedra ~0,9 m i bloc fins a ~1,7 m"
+
+"0332004-caseta":
+  parcel: "0332004TM6503S"
+  near: [260189.2, 4652986.15]
+  height_m: 2.3
+  thick_m: 0.4
+  material: block
+  color: [214, 206, 190]
+  plinth: {material: stone, color: [150, 138, 120], height_m: 0.5}
+  gates:
+    - {near: [260191.3, 4652985.5], w: 0.9, h: 1.9, color: [112, 92, 72], leaves: 1}
+  photo: "streetview 2024-09, 5 ZA-P-2547, rumb 40: caseta de tova emblanquinada d'uns 2,3 m amb porta de fusta"
+
+# --- Recorregut de la Calle Santibáñez (Street View set. 2024, cotxe i panorama sincronitzats).
+# Captures a data/carrers/santibanez/ (pNN = parada, de l'oest a l'est); vegeu-ne notes.md.
+
+"santibanez-sud-entrada":
+  parcel: "0132139TM6503S"
+  along: street
+  height_m: 1.05
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 166]
+  photo: "p01 (7463 ZA-P-2547, rumbs 97 i 200): bloc ~1,05 m, gira a la cantonada del camí"
+
+"santibanez-sud-entrada-2":
+  parcel: "0132138TM6503S"
+  along: street
+  height_m: 1.05
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 166]
+  photo: "p01-p02: el mateix mur de bloc continua"
+
+"santibanez-sud-entrada-3":
+  parcel: "0132137TM6503S"
+  along: street
+  height_m: 1.05
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 166]
+  photo: "p01-p02: el mateix mur de bloc fins a la casa granat"
+
+"0032940-carrer":
+  parcel: "0032940TM6503S"
+  along: street
+  height_m: 0.8
+  thick_m: 0.25
+  material: block
+  color: [200, 192, 172]
+  photo: "p02 (7463 ZA-P-2547, rumb 40): muret de bloc ~0,8 m davant l'hort"
+
+"0032941-maó":
+  parcel: "0032941TM6503S"
+  near: [259921.0, 4653025.2]
+  length_m: 12.0
+  height_m: 2.4
+  thick_m: 0.3
+  material: brick
+  color: [196, 112, 82]
+  photo: "p03 (7742 ZA-P-2547, rumb 15): bloc fins a ~1,2 m i maó al damunt, ~2,0 m; acaba a la porta corredissa"
+
+"0032941-baix":
+  parcel: "0032941TM6503S"
+  near: [[259934.5, 4653026.1], [259943.6, 4653027.5]]
+  length_m: 9.5
+  height_m: 1.1
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 166]
+  rail_m: 0.7
+  rail: [40, 80, 60]
+  photo: "p03: a l'est de la porta, bloc ~1,1 m amb malla verda"
+
+"0032942-carrer":
+  parcel: "0032942TM6503S"
+  along: street
+  height_m: 0.8
+  thick_m: 0.25
+  material: block
+  color: [200, 192, 172]
+  photo: "p04 (7742 C. Santibáñez, rumb 69): muret de bloc ~0,8 m amb porteta verda"
+
+"0032944-carrer":
+  parcel: "0032944TM6503S"
+  along: street
+  height_m: 0.8
+  thick_m: 0.25
+  material: block
+  color: [200, 192, 172]
+  photo: "p05 (7736 ZA-P-2547, rumb 120): muret de bloc ~0,8 m"
+
+"0132946-carrer":
+  parcel: "0132946TM6503S"
+  near: [[260017.2, 4653031.2], [260004.2, 4653036.6], [259997.3, 4653038.4]]
+  height_m: 1.0
+  thick_m: 0.25
+  material: block
+  color: [200, 192, 172]
+  photo: "p05-p06 (7748 C. Santibáñez, rumb 110): mur de bloc ~1,0 m davant el camp"
+
+"0132948-carrer":
+  parcel: "0132948TM6503S"
+  along: street
+  height_m: 1.0
+  thick_m: 0.25
+  material: block
+  color: [200, 192, 172]
+  photo: "p07 (18 C. Santibáñez, rumb 115): el mateix mur de bloc ~1,0 m"
+
+"0132130-carrer":
+  parcel: "0132130TM6503S"
+  along: street
+  height_m: 1.0
+  thick_m: 0.25
+  material: block
+  color: [200, 190, 168]
+  cap: [196, 186, 166]
+  photo: "p07: bloc ~1,0 m amb pilars i porta de reixa"
+
+"0132129-carrer":
+  parcel: "0132129TM6503S"
+  near: [[260069.6, 4652998.6]]
+  height_m: 1.1
+  thick_m: 0.25
+  material: block
+  color: [196, 184, 162]
+  photo: "p08 (7728 ZA-P-2547, rumb 105): bloc ~1,1 m davant el blat de moro (només la vora del carrer; el camí del costat no es veu)"
+
+"0331128-carrer":
+  parcel: "0331128TM6503S"
+  near: [[260087.3, 4652997.8]]
+  height_m: 1.1
+  thick_m: 0.25
+  material: block
+  color: [196, 184, 162]
+  photo: "p08: el mateix mur de bloc ~1,1 m"
+
+"0331127-carrer":
+  parcel: "0331127TM6503S"
+  near: [[260100.8, 4652995.6]]
+  height_m: 1.1
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 170]
+  rail_m: 0.5
+  rail: [96, 110, 70]
+  photo: "p10 (7725 C. Santibáñez, rumb 190): bloc ~1,1 m amb portes de reixa verda"
+
+"0331126-carrer":
+  parcel: "0331126TM6503S"
+  along: street
+  height_m: 1.1
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 170]
+  photo: "p10: bloc ~1,1 m"
+
+"0331125-carrer":
+  parcel: "0331125TM6503S"
+  near: [[260114.3, 4652995.2]]
+  height_m: 1.1
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 170]
+  rail_m: 0.5
+  rail: [96, 110, 70]
+  photo: "p10: bloc ~1,1 m i porta de reixa verda"
+
+"0331124-carrer":
+  parcel: "0331124TM6503S"
+  along: street
+  height_m: 1.1
+  thick_m: 0.25
+  material: block
+  color: [196, 186, 170]
+  photo: "p10: bloc ~1,1 m fins a la casa rosa"
+
+# Pati de la casa en L del 12 C. Santibáñez: tàpia arrebossada crema amb sòcol de pedra i
+# albardilla de teula, i portal de fusta de dues fulles amb teuladí a la punta oest.
+"0232302-carrer":
+  parcel: "0232302TM6503S"
+  near: [[260129.0, 4652998.7]]
+  height_m: 2.0
+  thick_m: 0.3
+  material: block
+  color: [222, 212, 192]
+  plinth: {material: stone, color: [176, 146, 104], height_m: 0.8}
+  tiles: {color: [176, 112, 84], height_m: 0.22, over_m: 0.1}
+  gates:
+    - near: [260124.9, 4652999.45]
+      w: 1.8
+      h: 2.05
+      color: [150, 100, 52]
+      leaves: 2
+      canopy: {color: [176, 112, 84], lift_m: 0.3, side_m: 0.25, over_m: 0.25, height_m: 0.3}
+  photo: "SV set. 2024, 14 C. Santibáñez rumb 345 i 60: mur ~2,0 m + teula (porta de 2,1 m), sòcol ~0,8 m, portal ~1,8 × 2,05 m"
+
+# Pati de l'est de la casa de la cantonada (7727 ZA-P-2547 / 3 Rinconada): tàpia salmó al carrer,
+# portal de vianants a la cantonada amb teuladí, i paret vella de tova a la Rinconada.
+"0232108-carrer":
+  parcel: "0232108TM6503S"
+  near: [260096.2, 4653001.25]
+  height_m: 2.0
+  thick_m: 0.3
+  material: block
+  color: [222, 186, 160]
+  plinth: {material: stone, color: [164, 136, 104], height_m: 0.75}
+  tiles: {color: [180, 104, 78], height_m: 0.2, over_m: 0.1}
+  photo: "SV set. 2024, 7726 C. Santibáñez rumb 300: ~2,0 m + teula (porta de vianants de 2,05 m), sòcol ~0,75 m"
+
+"0232108-porta":
+  parcel: "0232108TM6503S"
+  near: [260099.0, 4653001.55]
+  length_m: 1.5
+  height_m: 2.2
+  thick_m: 0.35
+  material: block
+  color: [222, 186, 160]
+  plinth: {material: stone, color: [164, 136, 104], height_m: 0.75}
+  tiles: {color: [180, 104, 78], height_m: 0.2, over_m: 0.1}
+  gates:
+    - near: [260099.0, 4653001.55]
+      w: 0.95
+      h: 2.05
+      color: [130, 80, 46]
+      leaves: 1
+      canopy: {color: [180, 104, 78], lift_m: 0.35, side_m: 0.2, over_m: 0.3, height_m: 0.3}
+  photo: "SV set. 2024, 3 Rinconada de Santibáñez rumb 284: porta de fusta ~0,95 × 2,05 m amb teuladí, fanal i bústia"
+
+"0232108-tova":
+  parcel: "0232108TM6503S"
+  near: [260099.85, 4653004.87]
+  length_m: 5.3
+  height_m: 2.4
+  thick_m: 0.45
+  material: block
+  color: [176, 142, 104]
+  photo: "SV set. 2024, 3 Rinconada rumb 320: paret de tova ~2,4 m (la porta del costat en dona l'escala), capdamunt esfondrat"
+
+# Pati de l'est de la casa rosa del 13 C. Santibáñez: mur emblanquinat alt amb sòcol marró.
+"0332501-carrer":
+  parcel: "0332501TM6503S"
+  near: [260150.8, 4652986.85]
+  height_m: 3.0
+  thick_m: 0.35
+  material: block
+  color: [228, 226, 218]
+  plinth: {material: block, color: [176, 138, 108], height_m: 0.9}
+  photo: "SV set. 2024, 13 C. Santibáñez rumb 215: gairebé tan alt com el ràfec del cos baix (~3 m), sòcol marró ~0,9 m"
+
+# Casa vella emblanquinada de l'11 C. Santibáñez: mur del pati de davant, a l'est de la porta, i
+# murs baixos de l'extrem est.
+"0332704-davant":
+  parcel: "0332704TM6503S"
+  near: [260150.2, 4652993.9]
+  length_m: 2.6
+  height_m: 2.3
+  thick_m: 0.3
+  material: block
+  color: [228, 226, 218]
+  tiles: {color: [170, 110, 84], height_m: 0.2, over_m: 0.1}
+  photo: "SV set. 2024, 13 C. Santibáñez rumb 20: mur blanc amb teula a la dreta de la porta, una mica més alt que la porta"
+
+"0332704-est":
+  parcel: "0332704TM6503S"
+  near: [[260164.2, 4652990.5], [260167.3, 4652992.15]]
+  height_m: 2.2
+  thick_m: 0.3
+  material: block
+  color: [226, 222, 212]
+  plinth: {material: block, color: [170, 166, 156], height_m: 0.4}
+  cap: [200, 196, 186]
+  photo: "SV set. 2024, 11 C. Santibáñez rumb 40: murs blancs més baixos que el ràfec del cos llarg"
+
+# 9 C. Santibáñez: tram del pati a l'oest de la casa de maó, amb portal metàl·lic negre.
+"0332502-portal":
+  parcel: "0332502TM6503S"
+  near: [260156.8, 4652985.65]
+  height_m: 2.2
+  thick_m: 0.3
+  material: block
+  color: [226, 224, 216]
+  plinth: {material: block, color: [150, 146, 138], height_m: 0.3}
+  gates:
+    - {near: [260156.32, 4652985.7], w: 2.5, h: 2.1, color: [40, 42, 44], leaves: 2}
+  photo: "SV set. 2024, 9 C. Santibáñez rumb 200 i 250: portal de reixa negre ~2,5 × 2,1 m entre pilars"
+
+# Façana de la finca del 17 C. Santibáñez, a banda i banda del garatge: pilars de maó a franges
+# amb capitell, porta de vianants i portal de reixa a l'est, i muret amb reixa a l'oest.
+"0132135-carrer":
+  parcel: "0132135TM6503S"
+  near: [[260025.15, 4653018.2], [260016.95, 4653022.45]]   # les dues vores del carrer (s'uneixen)
+  height_m: 0.85
+  thick_m: 0.3
+  material: brick
+  color: [207, 150, 120]           # maó a franges vermelles i crema (mitjana)
+  cap: [214, 210, 200]
+  rail_m: 1.0
+  rail: [36, 36, 38]
+  pillars: {w: 0.45, h: 2.0, color: [207, 150, 120], cap: [200, 194, 182]}
+  gates:
+    - {near: [260023.47, 4653019.07], w: 0.9, h: 1.9, color: [40, 40, 42], leaves: 1, solid_m: 0.85}
+    - {near: [260025.3, 4653018.12], w: 2.3, h: 1.9, color: [40, 40, 42], leaves: 2, solid_m: 0.85}
+  photo: "SV set. 2024, 7748 C. Santibáñez rumb 175 i 207: muret ~0,85 m + reixa fins a ~1,85 m, pilars ~2,0 m, portals ~1,9 m (garatge de 2,55 m de referència)"
+
+# Tàpia alta de bloc gris al costat est de la casa A (0032901), perpendicular al carrer.
+"0032901-est":
+  parcel: "0032901TM6503S"
+  near: [259904.5, 4653030.5]
+  length_m: 8.0
+  height_m: 2.4
+  thick_m: 0.25
+  material: block
+  color: [150, 150, 146]
+  photo: "SV set. 2024, 7463 ZA-P-2547 rumbs 20 i 120: paret de bloc gris ~2,4 m (planta baixa de 3,0 m de referència)"
+
+# Nau de la C. Santibáñez (18): mur alt de tova arrebossat entre la part3 i la nau grisa.
+"0232107-carrer":
+  parcel: "0232107TM6503S"
+  near: [260074.1, 4653006.45]
+  height_m: 3.0
+  thick_m: 0.4
+  material: block
+  color: [196, 184, 156]
+  plinth: {material: stone, color: [150, 130, 100], height_m: 0.6}
+  photo: "SV set. 2024, 18 C. Santibáñez rumb 30: mur arrebossat de ~3 m amb sòcol de pedra"
+
+# --- Calle el Cristo cap al sud (2026-10-09) -----------------------------------------------
+
+# Pati del sud de la casa de maó del 18 C. el Cristo: mur de maó i porta de garatge grisa.
+"0431705-carrer":
+  parcel: "0431705TM6503S"
+  near: [260274.55, 4652883.1]
+  height_m: 2.8
+  thick_m: 0.3
+  material: brick
+  color: [176, 98, 72]
+  gates:
+    - {near: [260275.78, 4652881.29], w: 3.0, h: 2.6, color: [150, 152, 150], leaves: 2}
+  photo: "SV set. 2024, 20 ZA-P-2547 rumb 240: mur de maó una mica més alt que la porta de garatge (~2,6 m)"
+
+# Pati del nord de 0432828: mur alt arrebossat ocre a la rústica amb remat vermell, al Cristo.
+"0432828-pati":
+  parcel: "0432828TM6503S"
+  near: [[260256.4, 4652925.45], [260258.2, 4652921.0], [260259.75, 4652917.75], [260257.35, 4652928.75], [260260.25, 4652930.25]]
+  height_m: 3.6
+  thick_m: 0.3
+  material: block
+  color: [208, 166, 112]
+  cap: [150, 52, 44]
+  photo: "SV set. 2024, 10 Calle El Cristo rumbs 30 i 60: mur ocre de ~3,5 m amb remat vermell"
+
+# --- Calle el Cristo, tram sud (2026-10-09) ------------------------------------------------
+
+# 26 C. el Cristo: reixa sobre muret de maó davant la casa de maó.
+"0530101-reixa":
+  parcel: "0530101TM6503S"
+  near: [[260345.7, 4652843.3], [260351.7, 4652839.1], [260340.2, 4652847.6]]
+  height_m: 0.55
+  thick_m: 0.25
+  material: brick
+  color: [176, 74, 52]
+  rail_m: 0.85
+  rail: [28, 28, 30]
+  pillars: {w: 0.35, h: 1.5, color: [176, 74, 52], cap: [200, 190, 170]}
+  photo: "SV set. 2024, 26 Calle El Cristo rumb 40: reixa negra sobre muret de maó, ~1,4 m en total"
+
+# Casa Gracia: tanca de pedra amb pilars de maó i reixa.
+"0530106-tanca":
+  parcel: "0530106TM6503S"
+  near: [260385.2, 4652814.1]
+  height_m: 0.7
+  thick_m: 0.28
+  material: stone
+  color: [186, 170, 140]
+  rail_m: 0.85
+  rail: [28, 28, 30]
+  pillars: {w: 0.35, h: 1.7, color: [168, 72, 52], cap: [150, 60, 44]}
+  photo: "Foto del Cadastre: sòcol de pedra ~0,7 m, reixa i pilars de maó"
+
+# Casa blanca de tres plantes: muret de pedra amb balustres.
+"0530103-balustres":
+  parcel: "0530103TM6503S"
+  near: [[260356.6, 4652835.8], [260361.1, 4652832.7]]
+  height_m: 0.45
+  thick_m: 0.28
+  material: stone
+  color: [196, 188, 172]
+  rail_m: 0.45
+  rail: [236, 234, 226]
+  pillars: {w: 0.4, h: 1.35, color: [206, 200, 188], cap: [220, 214, 200]}
+  photo: "Foto del Cadastre: muret de pedra amb balustres, ~0,9 m"
+
+# Casa beix del frontó: mur de bloc al carrer.
+"0530501-bloc":
+  parcel: "0530501TM6503S"
+  near: [260339.4, 4652839.8]
+  height_m: 1.35
+  thick_m: 0.25
+  material: block
+  color: [196, 192, 180]
+  photo: "Foto del Cadastre: mur de bloc d'uns 1,3 m al costat del frontó"
+
+# Casa groga: mur i portal de planxa davant el pati.
+"0530112-portal":
+  parcel: "0530112TM6503S"
+  near: [260448.8, 4652776.6]
+  height_m: 1.7
+  thick_m: 0.25
+  material: block
+  color: [228, 186, 110]
+  plinth: {material: stone, color: [140, 124, 104], height_m: 0.55}
+  gates:
+    - {near: [260452.0, 4652774.5], w: 3.2, h: 1.9, color: [176, 180, 182], leaves: 2}
+  photo: "Foto del Cadastre: mur groc amb sòcol de pedra i portal de planxa gris"
+
+
+# Tanca de gelosia davant el bungalou crema. L'alçada és la del mur, sense la gelosia.
+"0331103-tanca":
+  parcel: "0331103TM6503S"
+  near: [260283.9, 4652780.0]
+  height_m: 1.15
+  thick_m: 0.22
+  material: block
+  color: [214, 196, 176]
+  rail_m: 0.45
+  rail: [200, 196, 188]
+  photo: "Foto del Cadastre: tanca baixa amb gelosia, ~1,1 m de mur"
+
+# Mur de bloc i reixa davant la casa salmó.
+"0432832-carrer":
+  parcel: "0432832TM6503S"
+  near: [260305.1, 4652907.0]
+  height_m: 1.15
+  thick_m: 0.25
+  material: block
+  color: [214, 186, 120]
+  rail_m: 0.45
+  rail: [36, 36, 38]
+  photo: "Foto del Cadastre: mur de bloc groc d'~1,1 m i reixa"
+
+# Mur de bloc i portal verd davant la nau.
+"0432836-mur":
+  parcel: "0432836TM6503S"
+  near: [260323.5, 4652875.0]
+  height_m: 1.6
+  thick_m: 0.25
+  material: block
+  color: [186, 180, 164]
+  gates:
+    - {near: [260324.5, 4652876.5], w: 2.6, h: 1.7, color: [36, 48, 36], leaves: 2, solid_m: 0.4}
+  photo: "Foto del Cadastre: mur de bloc d'~1,6 m i portal de reixa verd"
+
+# Mur de bloc groc al costat del portal verd.
+"0432833-mur":
+  parcel: "0432833TM6503S"
+  near: [260312.2, 4652898.7]
+  height_m: 1.3
+  thick_m: 0.25
+  material: block
+  color: [214, 186, 120]
+  photo: "Foto del Cadastre: mur de bloc groc d'~1,3 m"
+
+# Mur de bloc i portal al costat de l'arc de reixa.
+"0432837-mur":
+  parcel: "0432837TM6503S"
+  near: [260306.5, 4652890.4]
+  height_m: 1.5
+  thick_m: 0.25
+  material: block
+  color: [176, 170, 156]
+  gates:
+    - {near: [260310.0, 4652891.0], w: 2.4, h: 1.7, color: [40, 44, 40], leaves: 2, solid_m: 0.5}
+  photo: "Foto del Cadastre: mur de bloc i portal fosc; l'arc de reixa és el de la casa"
+
+# Portal fosc i mur de bloc davant la casa ocre de 2016.
+"0531998-portal":
+  parcel: "0531998TM6503S"
+  near: [260426.1, 4652873.7]
+  length_m: 12
+  height_m: 0.7
+  thick_m: 0.22
+  material: block
+  color: [196, 176, 130]
+  pillars: {w: 0.4, h: 1.7, color: [214, 196, 150], cap: [180, 160, 120]}
+  gates:
+    - {near: [260424.0, 4652876.0], w: 3.4, h: 1.6, color: [70, 52, 40], leaves: 2}
+  photo: "Foto del Cadastre, 2016: mur baix de bloc, pilars i portal fosc"

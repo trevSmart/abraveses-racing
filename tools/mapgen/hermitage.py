@@ -37,15 +37,24 @@ BRICK = (168, 92, 62)
 DARK = (34, 30, 28)
 
 
-def _quad_roof(f: Frame, corners: list[tuple[float, float, float]], ridge_frame: Frame) -> trimesh.Trimesh:
+def _quad_roof(
+    f: Frame,
+    corners: list[tuple[float, float, float]],
+    ridge_frame: Frame,
+    roof_lin: tuple[int, int, int],
+) -> trimesh.Trimesh:
     m = trimesh.Trimesh(vertices=np.array([f.world(u, v, h) for u, v, h in corners]), faces=np.array([[0, 1, 2], [0, 2, 3]]), process=False)
     if m.face_normals[:, 1].mean() < 0:
-        m.invert()
-    m.visual.vertex_colors = np.tile(_ridge_rgb(ridge_frame), (len(m.vertices), 1)).astype(np.uint8)
+        from village import _flip_faces
+
+        _flip_faces(m)
+    m.visual.vertex_colors = np.tile(_ridge_rgb(ridge_frame, roof_lin), (len(m.vertices), 1)).astype(np.uint8)
     return m
 
 
-def _pyramid_roof(f: Frame, u: float, half: float, eave: float, apex: float) -> list[trimesh.Trimesh]:
+def _pyramid_roof(
+    f: Frame, u: float, half: float, eave: float, apex: float, roof_lin: tuple[int, int, int]
+) -> list[trimesh.Trimesh]:
     """Teulada de quatre aigües sobre un cimbori quadrat centrat a (u, 0)."""
     out = []
     h = half + 0.35
@@ -56,10 +65,12 @@ def _pyramid_roof(f: Frame, u: float, half: float, eave: float, apex: float) -> 
         tri = np.array([f.world(u0, v0, eave - drop), f.world(u1, v1, eave - drop), f.world(u, 0, apex)])
         m = trimesh.Trimesh(vertices=tri, faces=np.array([[0, 1, 2]]), process=False)
         if m.face_normals[:, 1].mean() < 0:
-            m.invert()
+            from village import _flip_faces
+
+            _flip_faces(m)
         # Les fileres de teules van paral·leles al ràfec de cada aigua.
         edge_frame = f.sub(0, 0, rotate=(i % 2 == 1))
-        m.visual.vertex_colors = np.tile(_ridge_rgb(edge_frame), (3, 1)).astype(np.uint8)
+        m.visual.vertex_colors = np.tile(_ridge_rgb(edge_frame, roof_lin), (3, 1)).astype(np.uint8)
         out.append(m)
     return out
 
@@ -81,8 +92,13 @@ def _arcade(f: Frame, u0: float, u1: float, v: float, base: float, top: float, n
     return _colored(m, color)
 
 
-def hermitage_meshes(poly: Polygon, ground) -> tuple[list, list, list]:
+def hermitage_meshes(
+    poly: Polygon, ground, roof_lin: tuple[int, int, int] | None = None
+) -> tuple[list, list, list]:
     """(pedra amb col·lisió, teulades, detalls sense col·lisió)."""
+    from village import FALLBACK_ROOF_LIN
+
+    lin = roof_lin if roof_lin is not None else FALLBACK_ROOF_LIN
     f = Frame(poly)
     L, W = f.length, f.width
     g = [float(ground.height(*f.local(u, v))) for u in (-L / 2 - 5, 0, L / 2) for v in (-W / 2, W / 2)]
@@ -107,15 +123,15 @@ def hermitage_meshes(poly: Polygon, ground) -> tuple[list, list, list]:
     tf = f.sub(cross_uc, 0, rotate=True)  # transsepte: el carener va de nord a sud
     transept, _ = _gable_volume(tf, -transept_hw, transept_hw, cross_len / 2 - 0.3, base, eave, RENDER)
     stone += [nave, chancel, transept]
-    roofs += _roof(f, west, cross_u0, nave_hw, eave)
-    roofs += _roof(f, cross_u0 + cross_len, east, chancel_hw, eave - 0.3)
-    roofs += _roof(tf, -transept_hw, transept_hw, cross_len / 2 - 0.3, eave)
+    roofs += _roof(f, west, cross_u0, nave_hw, eave, lin)
+    roofs += _roof(f, cross_u0 + cross_len, east, chancel_hw, eave - 0.3, lin)
+    roofs += _roof(tf, -transept_hw, transept_hw, cross_len / 2 - 0.3, eave, lin)
 
     # Cimbori sobre el creuer (per fora amaga la cúpula) amb teulada de quatre aigües.
     cim_half = 3.4
     cim_top = nave_ridge + 2.2
     stone.append(_box(f, cross_uc, 0, eave, cim_top, cim_half * 2, cim_half * 2, RENDER))
-    roofs += _pyramid_roof(f, cross_uc, cim_half, cim_top, cim_top + np.tan(PITCH) * cim_half)
+    roofs += _pyramid_roof(f, cross_uc, cim_half, cim_top, cim_top + np.tan(PITCH) * cim_half, lin)
 
     # Pòrtic tancat als peus: murs baixos amb un gran arc de rosca de maó a l'oest.
     porch_u0, porch_u1 = west - 5.0, west
@@ -130,7 +146,7 @@ def hermitage_meshes(poly: Polygon, ground) -> tuple[list, list, list]:
     details.append(_extrude_profile(f, ring, porch_u0 - 0.06, 0.62, BRICK))
     for side in (-1, 1):
         stone.append(_box(f, (porch_u0 + porch_u1) / 2, side * (porch_hw - 0.25), base, porch_eave, porch_u1 - porch_u0, 0.5, RENDER))
-    roofs += _roof(f, porch_u0, porch_u1, porch_hw, porch_eave, overhang=0.3)
+    roofs += _roof(f, porch_u0, porch_u1, porch_hw, porch_eave, lin, overhang=0.3)
 
     # Galeria nord: cinc arcs de mig punt de maó sobre pilars, amb teulada d'un aiguavés.
     gal_v = nave_hw + 2.4
@@ -154,7 +170,7 @@ def hermitage_meshes(poly: Polygon, ground) -> tuple[list, list, list]:
             (cross_u0 + 0.1, side * (gal_v + 0.6), gal_eave + 0.1),
             (west - 0.3, side * (gal_v + 0.6), gal_eave + 0.1),
         ]
-        roofs.append(_quad_roof(f, lean, f))
+        roofs.append(_quad_roof(f, lean, f, lin))
         # Murs de tancament dels extrems de les galeries.
         for u in (west + 0.2, cross_u0 - 0.2):
             stone.append(_box(f, u, side * (nave_hw + gal_v) / 2, base, gal_eave, 0.4, gal_v - nave_hw, RENDER))

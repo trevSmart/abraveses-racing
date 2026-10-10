@@ -1,0 +1,43 @@
+== 0232107TM6503S
+   ús 3_industrial · 0 habitatges · 505 m² construïts · construïda 1900 · functional
+-- part1: 1 plantes · 93 m² · centre UTM 260098.4, 4653014.3
+     façana  O:  4.14 m, esquerra (t=0) a 260096.0, 4653021.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9927050,-5.8963142&heading=109&pitch=8&fov=100
+     façana  S:  2.54 m, esquerra (t=0) a 260094.6, 4653017.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9924691,-5.8963687&heading=22&pitch=8&fov=100
+     façana  O:  6.03 m, esquerra (t=0) a 260094.7, 4653015.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9927050,-5.8963142&heading=111&pitch=8&fov=100
+     façana  S:  8.38 m, esquerra (t=0) a 260092.5, 4653010.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9924644,-5.8963327&heading=18&pitch=8&fov=100
+     façana  E:  8.87 m, esquerra (t=0) a 260100.5, 4653007.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9925818,-5.8962024&heading=286&pitch=8&fov=100
+     façana  E:  3.03 m, esquerra (t=0) a 260103.7, 4653016.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926603,-5.8961177&heading=266&pitch=8&fov=100
+     façana  N:  2.30 m, esquerra (t=0) a 260103.5, 4653019.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926913,-5.8962526&heading=180&pitch=8&fov=100
+     façana  N:  5.66 m, esquerra (t=0) a 260101.2, 4653019.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926934,-5.8962621&heading=202&pitch=8&fov=100
+-- part2: 2 plantes · 149 m² · centre UTM 260081.0, 4653024.2
+     façana NE: 22.80 m, esquerra (t=0) a 260092.8, 4653022.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9927050,-5.8963142&heading=204&pitch=8&fov=100
+     façana  O:  6.70 m, esquerra (t=0) a 260071.9, 4653031.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9925586,-5.8967953&heading=105&pitch=8&fov=100
+     façana  S:  5.59 m, esquerra (t=0) a 260070.1, 4653025.3 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  8.81 m, esquerra (t=0) a 260074.8, 4653021.9
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9925051,-5.8965846&heading=19&pitch=8&fov=100
+     façana  S:  7.71 m, esquerra (t=0) a 260083.9, 4653020.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9924820,-5.8964664&heading=20&pitch=8&fov=100
+     façana  E:  5.38 m, esquerra (t=0) a 260091.1, 4653017.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926901,-5.8962472&heading=289&pitch=8&fov=100
+-- part3: 1 plantes · 114 m² · centre UTM 260069.9, 4653015.9
+     façana  E:  7.70 m, esquerra (t=0) a 260071.3, 4653007.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9924879,-5.8965111&heading=292&pitch=8&fov=100
+     façana  E:  8.56 m, esquerra (t=0) a 260072.4, 4653015.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9924952,-5.8965454&heading=291&pitch=8&fov=100
+     façana  N:  5.59 m, esquerra (t=0) a 260075.4, 4653023.4 (mitgera: toca una altra part o un altre edifici)
+     façana NO: 16.22 m, esquerra (t=0) a 260070.1, 4653025.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9925593,-5.8967981&heading=115&pitch=8&fov=100
+     façana  S:  8.52 m, esquerra (t=0) a 260063.4, 4653010.6
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9925258,-5.8966662&heading=22&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0232107TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0232107TM6503S/ortofoto.png

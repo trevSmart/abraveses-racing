@@ -4,11 +4,14 @@
 import * as THREE from "three";
 
 const BIRD_COLOR = 0x1a1816;
-const ALTITUDE_M = 95;
-const ALTITUDE_JITTER = 18;
-const CRUISE_SPEED = 38;
-const WING_SPAN_M = 2.1;
-const WING_FLAP_HZ = 2.4;
+/** Altura sobre la càmera (no Y absoluta del món). */
+const ALTITUDE_ABOVE_CAM_M = 55;
+const ALTITUDE_JITTER = 22;
+const CRUISE_SPEED = 32;
+/** Envergadura exagerada perquè es llegeixin a distància de joc. */
+const WING_SPAN_M = 4.2;
+const WING_FLAP_HZ = 2.2;
+const DESPAWN_DIST_M = 420;
 
 type Flock = {
   root: THREE.Group;
@@ -40,57 +43,85 @@ function craneSilhouette(): THREE.BufferGeometry {
 }
 
 const craneGeo = craneSilhouette();
-const craneMat = new THREE.LineBasicMaterial({ color: BIRD_COLOR, transparent: true, opacity: 0.82 });
+// Sense boira: si no, a 150–300 m es fonen amb el color del cel i desapareixen.
+const craneMat = new THREE.LineBasicMaterial({
+  color: BIRD_COLOR,
+  transparent: true,
+  opacity: 0.9,
+  fog: false,
+  depthWrite: false,
+});
 
 function makeBird(offset: THREE.Vector3, lag: number): THREE.LineSegments {
   const mesh = new THREE.LineSegments(craneGeo, craneMat);
   mesh.position.copy(offset);
   mesh.userData.lag = lag;
+  mesh.frustumCulled = false;
   return mesh;
-}
-
-function randomFlockDirection(): THREE.Vector3 {
-  const angle = Math.random() * Math.PI * 2;
-  const dir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)).normalize();
-  // Lleuger rumb cap al nord oest, com les migracions cap a Gallocanta / la plana.
-  dir.x += 0.12;
-  dir.z -= 0.08;
-  return dir.normalize();
 }
 
 export class CraneFlocks {
   private readonly scene: THREE.Scene;
   private readonly flocks: Flock[] = [];
+  private readonly forward = new THREE.Vector3();
+  private readonly right = new THREE.Vector3();
+  private readonly up = new THREE.Vector3(0, 1, 0);
+  private readonly nose = new THREE.Vector3(1, 0, 0);
   private elapsed = 0;
-  private nextSpawn = 55 + Math.random() * 90;
+  private nextSpawn = 18 + Math.random() * 28;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
   }
 
   private spawn(camera: THREE.PerspectiveCamera): void {
-    const count = 5 + Math.floor(Math.random() * 9);
-    const dir = randomFlockDirection();
-    const right = new THREE.Vector3(-dir.z, 0, dir.x);
+    camera.getWorldDirection(this.forward);
+    this.forward.y = 0;
+    if (this.forward.lengthSq() < 1e-6) {
+      this.forward.set(0, 0, -1);
+    } else {
+      this.forward.normalize();
+    }
+    this.right.crossVectors(this.forward, this.up).normalize();
+
+    // Travessen el camp de visió: entren per un costat i surten per l'altre.
+    const across = Math.random() < 0.5 ? 1 : -1;
+    const dir = this.right.clone().multiplyScalar(across);
+    dir.addScaledVector(this.forward, 0.15 + Math.random() * 0.25);
+    // Lleuger rumb cap al nord-oest, com les migracions cap a Gallocanta / la plana.
+    dir.x += 0.08;
+    dir.z -= 0.05;
+    dir.normalize();
+
+    const pathRight = new THREE.Vector3(-dir.z, 0, dir.x);
+    const count = 6 + Math.floor(Math.random() * 8);
     const root = new THREE.Group();
-    const y = ALTITUDE_M + (Math.random() - 0.5) * ALTITUDE_JITTER;
-    const ahead = 280 + Math.random() * 120;
-    const lateral = (Math.random() - 0.5) * 180;
+    const y = camera.position.y + ALTITUDE_ABOVE_CAM_M + (Math.random() - 0.5) * ALTITUDE_JITTER;
+    const ahead = 90 + Math.random() * 70;
+    const lateral = across * -(70 + Math.random() * 50);
     root.position
       .copy(camera.position)
-      .addScaledVector(dir, ahead)
-      .addScaledVector(right, lateral);
+      .addScaledVector(this.forward, ahead)
+      .addScaledVector(this.right, lateral);
     root.position.y = y;
 
     const birds: THREE.LineSegments[] = [];
     for (let i = 0; i < count; i++) {
-      const along = (i - (count - 1) * 0.5) * (WING_SPAN_M * 1.35 + Math.random() * 0.4);
-      const side = (Math.random() - 0.5) * 4;
-      const bird = makeBird(new THREE.Vector3(-dir.x * along + right.x * side, (Math.random() - 0.5) * 2, -dir.z * along + right.z * side), i * 0.37);
+      const along = (i - (count - 1) * 0.5) * (WING_SPAN_M * 1.15 + Math.random() * 0.5);
+      const side = (Math.random() - 0.5) * 5;
+      const bird = makeBird(
+        new THREE.Vector3(
+          -dir.x * along + pathRight.x * side,
+          (Math.random() - 0.5) * 2.5,
+          -dir.z * along + pathRight.z * side,
+        ),
+        i * 0.37,
+      );
       root.add(bird);
       birds.push(bird);
     }
-    root.lookAt(root.position.clone().add(dir));
+    // El cos de la silueta va sobre +X: l'alineem amb el rumb de vol.
+    root.quaternion.setFromUnitVectors(this.nose, dir);
     this.scene.add(root);
     this.flocks.push({
       root,
@@ -106,7 +137,7 @@ export class CraneFlocks {
     if (this.flocks.length === 0 && this.elapsed >= this.nextSpawn) {
       this.spawn(camera);
       this.elapsed = 0;
-      this.nextSpawn = 70 + Math.random() * 130;
+      this.nextSpawn = 45 + Math.random() * 80;
     }
 
     const cam = camera.position;
@@ -116,10 +147,9 @@ export class CraneFlocks {
       f.phase += dt * WING_FLAP_HZ * Math.PI * 2;
       for (const bird of f.birds) {
         const lag = (bird.userData.lag as number) ?? 0;
-        const flap = Math.sin(f.phase + lag) * 0.35;
-        bird.rotation.z = flap;
+        bird.rotation.z = Math.sin(f.phase + lag) * 0.35;
       }
-      if (f.root.position.distanceTo(cam) > 520) {
+      if (f.root.position.distanceTo(cam) > DESPAWN_DIST_M) {
         this.scene.remove(f.root);
         this.flocks.splice(i, 1);
       }

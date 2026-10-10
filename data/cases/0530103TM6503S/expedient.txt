@@ -1,0 +1,24 @@
+== 0530103TM6503S
+   ús 1_residential · 1 habitatges · 337 m² construïts · construïda 1997 · functional
+-- part1: 2 plantes · 9 m² · centre UTM 260362.0, 4652840.8
+     façana  N:  6.04 m, esquerra (t=0) a 260365.1, 4652840.7 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  6.10 m, esquerra (t=0) a 260358.9, 4652841.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9910331,-5.8930754&heading=17&pitch=8&fov=100
+-- part2: 2 plantes · 7 m² · centre UTM 260357.0, 4652842.3
+     façana  S:  4.42 m, esquerra (t=0) a 260354.7, 4652842.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9910581,-5.8931254&heading=17&pitch=8&fov=100
+     façana  N:  4.47 m, esquerra (t=0) a 260359.3, 4652842.4 (mitgera: toca una altra part o un altre edifici)
+-- part3: 3 plantes · 95 m² · centre UTM 260361.0, 4652848.2
+     façana  E:  6.19 m, esquerra (t=0) a 260366.3, 4652845.2 (mitgera: toca una altra part o un altre edifici)
+     façana  N: 10.49 m, esquerra (t=0) a 260367.8, 4652851.2
+     façana  O: 10.92 m, esquerra (t=0) a 260357.8, 4652854.2 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  6.40 m, esquerra (t=0) a 260355.0, 4652843.7 (mitgera: toca una altra part o un altre edifici)
+     façana  E:  4.66 m, esquerra (t=0) a 260361.2, 4652841.8 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  3.98 m, esquerra (t=0) a 260362.5, 4652846.3 (mitgera: toca una altra part o un altre edifici)
+-- part4: 2 plantes · 19 m² · centre UTM 260363.7, 4652843.5
+     façana  E:  4.63 m, esquerra (t=0) a 260365.1, 4652840.7 (mitgera: toca una altra part o un altre edifici)
+     façana  N:  3.98 m, esquerra (t=0) a 260366.3, 4652845.2 (mitgera: toca una altra part o un altre edifici)
+     façana  O:  4.66 m, esquerra (t=0) a 260362.5, 4652846.3 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  4.11 m, esquerra (t=0) a 260361.2, 4652841.8 (mitgera: toca una altra part o un altre edifici)
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0530103TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0530103TM6503S/ortofoto.png
