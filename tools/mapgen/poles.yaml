@@ -1,0 +1,57 @@
+# Postes de formigó de la xarxa de baixa tensió. Situats a Street View (set. 2024):
+# la càmera del panorama, el costat del carrer i la distància, i després enganxats al
+# voral del carrer de l'OSM (a 4,15 m de l'eix) perquè no quedin dins la calçada del joc.
+# `at` és UTM (EPSG:25830). Els de la mateixa `line` s'uneixen amb cables si el tram fa
+# menys de 72 m. `lamp` hi afegeix un braç de fanal cap al carrer.
+- id: sb-01
+  at: [259909.0, 4653019.5]
+  line: santibanez
+  photo: "7463 ZA-P-2547, rumb 94: pal al voral sud, arran de la càmera"
+- id: sb-02
+  at: [259954.4, 4653030.9]
+  line: santibanez
+  lamp: true
+  photo: "7742 ZA-P-2547, rumb 50: fanal al voral nord"
+- id: sb-03
+  at: [260027.4, 4653026.3]
+  line: santibanez
+  photo: "7748 C. Santibáñez, rumb 105: pal al voral nord, uns 35 m endavant"
+- id: sb-04
+  at: [260038.9, 4653011.8]
+  line: santibanez
+  photo: "18 C. Santibáñez, rumb 190: pal davant la casa de maó del porxo"
+- id: sb-05
+  # A 4,15 m de l'eix de Santibáñez queia al mig de la Rinconada. És a la cantonada
+  # oest de la boca, arran de la tàpia del pati (fora de les dues calçades).
+  at: [260097.9, 4653000.8]
+  line: santibanez
+  lamp: true
+  photo: "7727 ZA-P-2547, rumb 80: fanal a la cantonada oest de la Rinconada, al voral nord"
+- id: sb-06
+  at: [260143.5, 4652996.3]
+  line: santibanez
+  photo: "12 C. Santibáñez, rumb 100: pal al voral nord, en primer terme"
+- id: sb-07
+  at: [260162.9, 4652991.7]
+  line: santibanez
+  lamp: true
+  photo: "12 C. Santibáñez, rumb 100: fanal més enllà, al mateix voral"
+- id: sb-08
+  at: [260165.3, 4652982.6]
+  line: santibanez
+  photo: "9 C. Santibáñez, rumb 100: pal al voral sud, arran de la càmera"
+- id: sb-10
+  at: [260204.6, 4652967.6]
+  line: santibanez
+  photo: "4 C. Santibáñez, rumb 110: pal al voral sud, arran de la càmera"
+- id: sb-09
+  # A la cruïlla l'eix de l'OSM el deixava dins la calçada. Va al voral, 1,2 m davant
+  # de la façana nord del cobert (fora de la calçada del joc).
+  at: [260234.5, 4652959.5]
+  line: [santibanez, cristo]
+  lamp: true
+  photo: "1 C. Santibáñez, rumb 120: fanal davant el cobert beix, al voral i no a la cruïlla"
+- id: cr-01
+  at: [260252.7, 4652956.4]
+  line: cristo
+  photo: "C. el Cristo, rumb 160: pal arran, a la dreta de la casa rosa"

@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from "three-mesh-bvh";
 import { addWorldDetail } from "./detail";
 import {
-  asphaltDetail,
+  asphaltMaps,
   barkMap,
   dirtDetail,
   foliageMap,
@@ -131,12 +131,22 @@ const SUN_AZIMUTH = { x: 80, z: 40 };
 const sky = new Sky(sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, SUN_VISUAL_ELEVATION_DEG), DETAIL_LAYER);
 scene.add(sky.dome);
 const craneFlocks = new CraneFlocks(scene);
-const airParticles = new AirParticles(scene, sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, SUN_VISUAL_ELEVATION_DEG));
 
 // La boira tapa del tot a 560 m: més enllà no cal dibuixar res.
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 600);
 camera.layers.enable(DETAIL_LAYER);
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+const airParticles = new AirParticles(
+  scene,
+  camera,
+  sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, SUN_VISUAL_ELEVATION_DEG),
+  DETAIL_LAYER,
+);
+const renderer = new THREE.WebGLRenderer({
+  // Sense MSAA: a 1,5× ja hi ha prou píxels, i així es pot copiar el canvas a mitja
+  // resolució pel desenfoc (un blit des d'un framebuffer multisample no pot escalar).
+  antialias: false,
+  powerPreference: "high-performance",
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.info.autoReset = false;
@@ -155,10 +165,13 @@ renderer.domElement.addEventListener("pointerdown", () => {
 // Menys ambient pla: deixa que l'hemisferi doni color diferent segons la normal (cel vs terra) a l'ombra.
 scene.add(new THREE.AmbientLight(0xe8eef2, 0.34));
 scene.add(new THREE.HemisphereLight(0x88b8e8, 0x6a9468, 0.5));
-// Ombres només al voltant del cotxe: el mapa d'ombres el segueix (vegeu followSun), i així
-// amb 2048 px cobreix 100 m amb ~5 cm per texel en lloc de 240 m borrosos.
+// El mapa d'ombres segueix el cotxe, desplaçat cap on mira la càmera (vegeu followSun).
+// La caixa fa els mateixos 100 m que abans (2048 px, ~5 cm per texel): eixamplar-la
+// omplia el mapa amb les choperes i es menjava els FPS. En canvi, posar-la més endavant
+// fa que els arbres que es veuen davant hi entrin sense dibuixar-ne més.
 const SUN_OFFSET = sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, 34).multiplyScalar(160);
 const SHADOW_HALF_M = 50;
+const SHADOW_AHEAD_M = 30;
 const SUN_INTENSITY = 1.32;
 const sun = new THREE.DirectionalLight(0xfff0dc, SUN_INTENSITY);
 sun.position.copy(SUN_OFFSET);
@@ -170,6 +183,7 @@ sun.shadow.camera.left = -SHADOW_HALF_M;
 sun.shadow.camera.right = SHADOW_HALF_M;
 sun.shadow.camera.top = SHADOW_HALF_M;
 sun.shadow.camera.bottom = -SHADOW_HALF_M;
+sun.shadow.camera.updateProjectionMatrix();
 sun.shadow.bias = -0.00035;
 sun.shadow.normalBias = 0.025;
 sun.shadow.radius = 2.8;
@@ -261,15 +275,23 @@ function camPresetPitch(preset: CameraPreset = camPreset()): number {
 }
 
 /** Textures de detall procedurals, generades un sol cop (vegeu textures.ts). */
+const asphalt = asphaltMaps();
 const detailTextures = {
   ground: groundDetail(),
-  asphalt: asphaltDetail(),
+  asphalt: asphalt.albedo,
+  asphaltSurface: asphalt.surface,
   dirt: dirtDetail(),
   plaster: plasterDetail(),
   stone: stoneDetail(),
   brick: brickDetail(),
   roofTiles: roofTileDetail(),
 };
+// Les teulades i l'asfalt es veuen de biaix: amb poca anisotropia el mipmap els esborra el gra.
+const detailAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
+for (const tex of [detailTextures.roofTiles, detailTextures.asphalt, detailTextures.asphaltSurface]) {
+  tex.anisotropy = detailAniso;
+  tex.needsUpdate = true;
+}
 
 const raycaster = new THREE.Raycaster();
 raycaster.firstHitOnly = true;
@@ -281,6 +303,8 @@ const roadMeshes: THREE.Object3D[] = [];
 /** Terra on es pot circular: calçada i terreny. Les col·lisions són només contra models 3D. */
 const groundMeshes: THREE.Object3D[] = [];
 const wallMeshes: THREE.Object3D[] = [];
+/** Cases, tàpies i teulades: la càmera orbital s'hi atura. Els pals no: són prims i la farien saltar. */
+const cameraBlockers: THREE.Object3D[] = [];
 
 /** Graella (x, z) de les malles de terra: un raig vertical només prova els trossos que té a sota
  *  (2–6) en lloc dels ~400 de calçada i terreny. Es fan uns 17 raigs així per fotograma. */
@@ -1132,11 +1156,15 @@ const worldMaterials = {
   building: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.02 }),
   tapia: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 }),
   stone: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 }),
-  prop: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.05 }),
+  // Barrots i marcs. Amb reflex (rugositat 0,6) el sol recorre la barana i es llegeix com un arc,
+  // encara que cada cara tingui una sola normal.
+  prop: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
+  // Formigó llis: l'arrebossat de les cases, a 2,5 m, es veia a un pal de 30 cm.
+  pole: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.02 }),
   window: createWindowGlassMaterial(worldSunDir),
   green: new THREE.MeshStandardMaterial({ color: 0x62c872, roughness: 0.92 }),
   // Color per vèrtex: asfalt o terra segons l'ortofoto (vegeu _road_surface al pipeline).
-  road: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }),
+  road: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84 }),
   // El camí de terra mostra la mateixa ortofoto que el terreny (la rep a sharedTerrainMaterials):
   // un color pla feia una taca uniforme amb la vora tallada en sec contra la foto del voltant.
   roadDirt: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.97 }),
@@ -1148,8 +1176,27 @@ addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "tr
 addWorldDetail(worldMaterials.tapia, { map: detailTextures.brick, mode: "triplanar", scaleM: 3.15, strength: 1, fade: [30, 120], secondScale: 0.13, mortar: new THREE.Color(0xe2dccd) });
 addWorldDetail(worldMaterials.stone, { map: detailTextures.stone, mode: "triplanar", scaleM: 3, strength: 1, fade: [30, 120], secondScale: 0.12 });
 addWorldDetail(worldMaterials.green, { map: detailTextures.ground, mode: "top", scaleM: 3, strength: 0.8, secondScale: 0.11 });
-addWorldDetail(worldMaterials.road, { map: detailTextures.asphalt, mode: "top", scaleM: 1.5, strength: 0.9, secondScale: 0.15, fade: [35, 130] });
+addWorldDetail(worldMaterials.road, {
+  map: detailTextures.asphalt,
+  surface: detailTextures.asphaltSurface,
+  mode: "top",
+  scaleM: 4,
+  strength: 0.82,
+  relief: 0.85,
+  fade: [45, 170],
+});
 addWorldDetail(worldMaterials.roadDirt, { map: detailTextures.dirt, mode: "top", scaleM: 2.2, strength: 1, secondScale: 0.12, fade: [40, 150] });
+
+/** Normal de la cara a cada triangle. Les caixes (barrots, marcs) comparteixen els vuit vèrtexs
+ *  i la normal de la cantonada és la mitjana de les tres cares: la llum pinta el barrot com un
+ *  cilindre i, en una barana, els reflexos s'alineen en un arc. `flatShading` del material no
+ *  serveix: la normal surt de derivades de pantalla i, en un barrot d'un píxel, el bloc de 2×2
+ *  barreja el veí. */
+function flatFaceNormals(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  const geom = geometry.index ? geometry.toNonIndexed() : geometry;
+  geom.computeVertexNormals();
+  return geom;
+}
 
 function tintWorld(root: THREE.Object3D): void {
   root.traverse((obj) => {
@@ -1169,6 +1216,11 @@ function tintWorld(root: THREE.Object3D): void {
     if (kind === "building") {
       wallMeshes.push(mesh);
       computeOwnBoundsTree(mesh.geometry);
+      if (mesh.name.toLowerCase().includes("pole")) {
+        mesh.material = worldMaterials.pole;
+        return;
+      }
+      cameraBlockers.push(mesh);
       mesh.material = !mesh.geometry.attributes.color
         ? new THREE.MeshStandardMaterial({ color: 0xd9a088, roughness: 0.78 })
         : /tapia|brick/.test(mesh.name.toLowerCase())
@@ -1179,6 +1231,11 @@ function tintWorld(root: THREE.Object3D): void {
       return;
     }
     if (kind === "prop") {
+      const flat = flatFaceNormals(mesh.geometry);
+      if (flat !== mesh.geometry) {
+        mesh.geometry.dispose();
+        mesh.geometry = flat;
+      }
       mesh.material = mesh.name.toLowerCase().includes("windows") ? worldMaterials.window : worldMaterials.prop;
       mesh.layers.set(DETAIL_LAYER);
       return;
@@ -1206,6 +1263,9 @@ function tintWorld(root: THREE.Object3D): void {
     if (kind === "terrain") {
       groundMeshes.push(mesh);
       mesh.userData.lazyBvh = true;
+    } else if (kind === "roof") {
+      cameraBlockers.push(mesh);
+      computeOwnBoundsTree(mesh.geometry);
     }
     applyTerrainMaterial(mesh, kind === "roof" ? "roof" : "terrain");
   });
@@ -1427,7 +1487,6 @@ function disposeChunk(obj: THREE.Object3D): void {
 }
 
 const treeTrunkGeo = new THREE.CylinderGeometry(0.1, 0.16, 1, 6).translate(0, 0.5, 0);
-const treeCrownGeo = new THREE.IcosahedronGeometry(1, 1);
 const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: barkMap(), roughness: 0.95 });
 // El fullatge multiplica el color de la foto de cada arbre (mitjana ~0,85): fulles clares i fosques.
 const treeCrownMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: foliageMap(), roughness: 0.85, flatShading: true });
@@ -1462,11 +1521,12 @@ const plantMat = new THREE.MeshStandardMaterial({
 
 // --- Espècies d'arbres ------------------------------------------------------------------------
 //
-// L'arbre típic del poble és el chopo (pollancre): les choperes en fileres de la vega del Tera.
-// Es reconeixen per formar grups grans d'arbres atapeïts (més fàcilment a l'est del terme). Les
-// encines són arbres solitaris de copa fosca fora del poble; la resta, frondosos i fruiters.
+// Street View, set. 2024: al fons de la vega, fileres de chopos alts i estrets (es queden).
+// Als horts i patis, els altres arbres no són boles: fruiters baixos i oberts, amb el brancam
+// a la vista, i algun frondós gran de copa irregular (noguer, freixe). Fora del poble, les
+// copes fosques i aïllades són encines, amples i aixafades.
 
-type TreeSpecies = "chopo" | "encina" | "frondos";
+type TreeSpecies = "chopo" | "encina" | "frondos" | "fruiter";
 type VillageTree = VillageFile["trees"][number];
 
 const GROVE_LINK_M = 7;
@@ -1476,6 +1536,8 @@ const GROVE_MIN_TREES_EAST = 6;
 const EAST_FROM_X = 150;
 const VILLAGE_RADIUS_M = 300;
 const ENCINA_MAX_LUMINANCE = 44;
+// Per sota d'aquest radi de copa, l'arbre solitari del poble és un fruiter d'hort, no un frondós.
+const FRUITER_MAX_RADIUS_M = 2.55;
 
 /** Mida del grup de cada arbre (arbres enllaçats a menys de GROVE_LINK_M), amb una graella i union-find. */
 function groveSizes(trees: VillageTree[]): number[] {
@@ -1522,22 +1584,107 @@ function classifyTrees(trees: VillageTree[]): TreeSpecies[] {
     if (Math.hypot(t.x, t.z) > VILLAGE_RADIUS_M && lum < ENCINA_MAX_LUMINANCE) {
       return "encina";
     }
+    if (t.r < FRUITER_MAX_RADIUS_M) {
+      return "fruiter";
+    }
     return "frondos";
   });
 }
 
-/** Copa d'encina: tres lòbuls arrodonits, ampla i aixafada. */
+/** Massa de fulles a l'espai de la copa (la bola unitat va de -1 a 1; el tronc hi arriba a y ≈ -0,2). */
+function foliageLobe(radius: number, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1): THREE.BufferGeometry {
+  const g = new THREE.IcosahedronGeometry(radius, radius > 0.36 ? 1 : 0);
+  g.scale(sx, sy, sz);
+  g.translate(x, y, z);
+  return g;
+}
+
+/** Branca al mateix espai que la copa, perquè s'escali amb ella. */
+function treeBranch(
+  r0: number,
+  r1: number,
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number,
+): THREE.BufferGeometry {
+  const dir = new THREE.Vector3(bx - ax, by - ay, bz - az);
+  const len = dir.length();
+  const g = new THREE.CylinderGeometry(Math.max(0.012, r1), r0, len, 5);
+  g.translate(0, len / 2, 0);
+  dir.multiplyScalar(1 / len);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir));
+  g.translate(ax, ay, az);
+  return g;
+}
+
+/** Encina: paraigua fosc, més ample que alt, amb la vora desigual. El tronc curt queda a sota. */
 function encinaCrownGeometry(): THREE.BufferGeometry {
-  const lobes = [
-    new THREE.IcosahedronGeometry(1, 1).scale(1, 0.75, 1),
-    new THREE.IcosahedronGeometry(0.72, 1).translate(0.55, -0.12, 0.25),
-    new THREE.IcosahedronGeometry(0.75, 1).translate(-0.5, -0.08, -0.3),
-  ];
-  return mergeGeometries(lobes)!;
+  return mergeGeometries([
+    foliageLobe(0.78, 0, 0.05, 0, 1.2, 0.38, 1.12),
+    foliageLobe(0.48, 0.55, -0.02, 0.18, 1.05, 0.42, 0.9),
+    foliageLobe(0.5, -0.5, 0.0, -0.25, 1.08, 0.4, 0.95),
+    foliageLobe(0.42, 0.05, -0.04, 0.55, 0.95, 0.4, 1.05),
+    foliageLobe(0.4, -0.15, 0.02, -0.52, 1, 0.42, 0.9),
+    foliageLobe(0.3, 0.2, 0.22, 0.02, 0.9, 0.45, 0.85),
+    foliageLobe(0.24, -0.32, 0.12, 0.28, 1, 0.38, 0.8),
+  ])!;
+}
+
+/** Frondós de pati (noguer, freixe): una sola massa irregular, enganxada al tronc, no una bola. */
+function frondosCrownGeometry(): THREE.BufferGeometry {
+  return mergeGeometries([
+    foliageLobe(0.62, 0.0, 0.12, 0.0, 1.15, 0.85, 1.05),
+    foliageLobe(0.4, -0.38, 0.32, 0.08, 1, 0.9, 0.9),
+    foliageLobe(0.42, 0.42, 0.08, 0.1, 1.05, 0.75, 0.95),
+    foliageLobe(0.32, 0.08, 0.48, -0.06, 0.9, 0.85, 0.85),
+    foliageLobe(0.34, 0.12, -0.08, 0.38, 1, 0.7, 0.9),
+    foliageLobe(0.3, -0.15, 0.02, -0.4, 0.95, 0.75, 1),
+    foliageLobe(0.26, -0.48, -0.05, 0.15, 0.9, 0.65, 0.85),
+  ])!;
+}
+
+/** Branques del frondós: surten del capdamunt del tronc (y ≈ -0,2) i es fiquen a la copa. */
+function frondosBranchGeometry(): THREE.BufferGeometry {
+  return mergeGeometries([
+    treeBranch(0.045, 0.028, 0, -0.42, 0, 0.02, 0.22, 0),
+    treeBranch(0.03, 0.016, 0.0, -0.05, 0, -0.32, 0.48, 0.06),
+    treeBranch(0.028, 0.014, 0.02, -0.02, 0, 0.42, 0.22, 0.08),
+    treeBranch(0.022, 0.012, 0, 0.05, 0, 0.08, 0.62, -0.04),
+    treeBranch(0.02, 0.01, 0.02, -0.08, 0.02, 0.14, 0.08, 0.38),
+    treeBranch(0.02, 0.01, -0.02, 0.0, 0, -0.08, 0.32, -0.32),
+  ])!;
+}
+
+/** Fruiter d'hort: baix i obert, amb les masses juntes però amb forats, com a la foto. */
+function fruiterCrownGeometry(): THREE.BufferGeometry {
+  return mergeGeometries([
+    foliageLobe(0.38, 0.28, 0.22, 0.05, 1, 0.8, 0.9),
+    foliageLobe(0.34, -0.32, 0.32, -0.08, 0.95, 0.85, 0.85),
+    foliageLobe(0.28, 0.02, 0.48, -0.22, 0.85, 0.75, 0.8),
+    foliageLobe(0.26, -0.05, 0.08, 0.36, 0.9, 0.7, 0.95),
+    foliageLobe(0.22, 0.4, 0.12, -0.28, 0.85, 0.65, 0.75),
+    foliageLobe(0.18, -0.22, 0.42, 0.22, 0.8, 0.7, 0.75),
+  ])!;
+}
+
+function fruiterBranchGeometry(): THREE.BufferGeometry {
+  return mergeGeometries([
+    treeBranch(0.055, 0.03, 0, -0.72, 0, 0, 0.08, 0),
+    treeBranch(0.032, 0.016, 0, -0.02, 0, 0.4, 0.32, 0.08),
+    treeBranch(0.03, 0.014, 0, 0.0, 0, -0.36, 0.4, -0.1),
+    treeBranch(0.026, 0.012, 0, 0.02, 0, 0.0, 0.52, -0.28),
+    treeBranch(0.024, 0.012, 0, -0.08, 0, -0.06, 0.14, 0.38),
+    treeBranch(0.02, 0.01, 0.04, 0.02, -0.02, 0.22, 0.22, -0.3),
+  ])!;
 }
 
 type SpeciesLook = {
   crownGeo: THREE.BufferGeometry;
+  /** Branques al mateix espai que la copa; escorça, sense el color de la foto. */
+  branchGeo?: THREE.BufferGeometry;
   trunkMat: THREE.Material;
   colorGain: number;
   /** Mides de tronc i copa a partir del radi de copa vist a la foto. */
@@ -1557,22 +1704,50 @@ const SPECIES: Record<TreeSpecies, SpeciesLook> = {
       return { height, girth: THREE.MathUtils.clamp(height / 9, 1.6, 2.6), crownR, crownH: height * 0.33, trunkR: 0.25 };
     },
   },
-  // Encina: baixa, tronc curt i fosc, copa ampla i densa.
+  // Encina: tronc curt i fosc; la copa és un paraigua ample, no una bola.
   encina: {
     crownGeo: encinaCrownGeometry(),
     trunkMat: new THREE.MeshStandardMaterial({ color: 0x8a7a68, map: barkTexture, roughness: 0.95 }),
     colorGain: 1.45,
     shape: (r) => {
-      const height = THREE.MathUtils.clamp(2.5 + r * 1.3, 4, 9);
-      return { height, girth: THREE.MathUtils.clamp(r * 0.45, 1.2, 2.6), crownR: r * 0.85, crownH: r * 0.55, trunkR: 0.3 };
+      const crownR = Math.max(2.2, r * 1.05);
+      const crownH = crownR * 0.48;
+      const height = 1.7 + 1.2 * crownH;
+      return { height, girth: THREE.MathUtils.clamp(1.1 + r * 0.22, 1.3, 2.4), crownR, crownH, trunkR: 0.28 };
     },
   },
-  // Frondosos i fruiters dels patis i horts: copa arrodonida.
+  // Frondós de pati: el tronc només es veu uns 2 m; la copa baixa fins a les branques.
   frondos: {
-    crownGeo: treeCrownGeo,
+    crownGeo: frondosCrownGeometry(),
+    branchGeo: frondosBranchGeometry(),
     trunkMat: treeTrunkMat,
     colorGain: 1.55,
-    shape: (r, h) => ({ height: h, girth: THREE.MathUtils.clamp(r * 0.3, 0.7, 2), crownR: r, crownH: r * 0.85, trunkR: 0.16 * THREE.MathUtils.clamp(r * 0.3, 0.7, 2) }),
+    shape: (r) => {
+      const crownR = r * 1.08;
+      const crownH = crownR * 0.95;
+      const trunkClear = THREE.MathUtils.clamp(1.5 + r * 0.18, 1.7, 2.6);
+      const height = trunkClear + 1.2 * crownH;
+      const girth = THREE.MathUtils.clamp(1.05 + r * 0.16, 1.25, 2.4);
+      return { height, girth, crownR, crownH, trunkR: 0.22 };
+    },
+  },
+  // Fruiter: més baix que l'alçada detectada, que allargava el tronc fins a fer una bola sobre un pal.
+  fruiter: {
+    crownGeo: fruiterCrownGeometry(),
+    branchGeo: fruiterBranchGeometry(),
+    trunkMat: treeTrunkMat,
+    colorGain: 1.5,
+    shape: (r) => {
+      const height = THREE.MathUtils.clamp(2.6 + r * 0.85, 3.2, 5.4);
+      const crownR = Math.max(1.35, r * 1.05);
+      return {
+        height,
+        girth: THREE.MathUtils.clamp(0.75 + r * 0.12, 0.85, 1.45),
+        crownR,
+        crownH: crownR * 0.78,
+        trunkR: 0.14,
+      };
+    },
   },
 };
 
@@ -1585,16 +1760,21 @@ function buildTreeChunk(look: SpeciesLook, chunk: VillageTree[]): THREE.Object3D
   const color = new THREE.Color();
   const trunks = new THREE.InstancedMesh(treeTrunkGeo, look.trunkMat, chunk.length);
   const crowns = new THREE.InstancedMesh(look.crownGeo, treeCrownMat, chunk.length);
+  const branches = look.branchGeo ? new THREE.InstancedMesh(look.branchGeo, look.trunkMat, chunk.length) : null;
   chunk.forEach((t, i) => {
     const sh = look.shape(t.r, t.h);
     quat.setFromAxisAngle(up, (t.x * 7.1 + t.z * 3.7) % (Math.PI * 2));
     const trunkH = Math.max(1, sh.height - sh.crownH * 1.2);
     trunks.setMatrixAt(i, m.compose(pos.set(t.x, t.y, t.z), quat, scale.set(sh.girth, trunkH, sh.girth)));
     crowns.setMatrixAt(i, m.compose(pos.set(t.x, t.y + sh.height - sh.crownH, t.z), quat, scale.set(sh.crownR, sh.crownH, sh.crownR)));
+    branches?.setMatrixAt(i, m);
     crowns.setColorAt(i, photoColor(t.c, look.colorGain, color));
   });
   const group = new THREE.Group();
-  for (const mesh of [trunks, crowns]) {
+  for (const mesh of [trunks, crowns, branches]) {
+    if (!mesh) {
+      continue;
+    }
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.instanceMatrix.needsUpdate = true;
@@ -1608,7 +1788,7 @@ function buildTreeChunk(look: SpeciesLook, chunk: VillageTree[]): THREE.Object3D
  * deixa les malles per construir zona a zona quan la càmera s'hi acosti. */
 function registerVillageTrees(trees: VillageFile["trees"]): void {
   const species = classifyTrees(trees);
-  const counts: Record<TreeSpecies, number> = { chopo: 0, encina: 0, frondos: 0 };
+  const counts: Record<TreeSpecies, number> = { chopo: 0, encina: 0, frondos: 0, fruiter: 0 };
   species.forEach((s) => counts[s]++);
   console.info("[arbres]", counts);
   trees.forEach((t, i) => addTreeTrunk(t.x, t.z, SPECIES[species[i]].shape(t.r, t.h).trunkR));
@@ -1686,11 +1866,21 @@ async function loadVillage(): Promise<void> {
   worldRoot.add(vegetationRoot);
 }
 
-/** El mapa d'ombres segueix el cotxe, ajustat a la mida del texel perquè les vores no tremolin. */
+const shadowLook = new THREE.Vector3();
+
+/** El mapa d'ombres segueix el cotxe, una mica endavant d'on mira la càmera, i ajustat a la
+ * mida del texel perquè les vores no tremolin. */
 function followSun(): void {
   const texel = (2 * SHADOW_HALF_M) / sun.shadow.mapSize.x;
-  const x = Math.round(kart.position.x / texel) * texel;
-  const z = Math.round(kart.position.z / texel) * texel;
+  camera.getWorldDirection(shadowLook);
+  shadowLook.y = 0;
+  if (shadowLook.lengthSq() < 1e-4) {
+    shadowLook.set(Math.sin(state.heading), 0, Math.cos(state.heading));
+  } else {
+    shadowLook.normalize();
+  }
+  const x = Math.round((kart.position.x + shadowLook.x * SHADOW_AHEAD_M) / texel) * texel;
+  const z = Math.round((kart.position.z + shadowLook.z * SHADOW_AHEAD_M) / texel) * texel;
   const y = kart.position.y;
   sun.target.position.set(x, y, z);
   sun.position.set(x + SUN_OFFSET.x, y + SUN_OFFSET.y, z + SUN_OFFSET.z);
@@ -3051,12 +3241,12 @@ function approach(value: number, target: number, maxStep: number): number {
 function updateCameraOrbit(dt: number, throttle: number): void {
   const left = keys.has("k");
   const right = keys.has("ñ") || keys.has("semicolon");
-  const up = keys.has("o");
-  const lower = keys.has("l");
+  const up = keys.has("l");
+  const lower = keys.has("o");
   // K porta la càmera cap a la dreta del cotxe (yaw positiu) i Ñ cap a l'esquerra.
   if (left) cameraOrbit.yaw += CAM_KEY_YAW_RATE * dt;
   if (right) cameraOrbit.yaw -= CAM_KEY_YAW_RATE * dt;
-  // O baixa la càmera cap a arran de terra (la vista "puja" cap a l'horitzó); L la puja cap a zenital.
+  // L baixa la càmera cap a arran de terra (la vista "puja" cap a l'horitzó); O la puja cap a zenital.
   if (up) cameraOrbit.pitch -= CAM_KEY_PITCH_RATE * dt;
   if (lower) cameraOrbit.pitch += CAM_KEY_PITCH_RATE * dt;
   cameraOrbit.pitch = THREE.MathUtils.clamp(cameraOrbit.pitch, CAM_MIN_PITCH, CAM_MAX_PITCH);
@@ -3084,6 +3274,42 @@ function cameraOffset(heading: number, out: THREE.Vector3): THREE.Vector3 {
 
 const camOffset = new THREE.Vector3();
 const camLook = new THREE.Vector3();
+/** Més que el pla proper (0,2 m): si la càmera el travessa, es veu l'interior sense parets. */
+const CAM_SOLID_MARGIN = 0.6;
+
+/**
+ * Si el segment del cotxe a `pos` talla una casa o una teulada, acosta el punt fins just
+ * davant del primer sòlid. Les façanes només tenen cara exterior: des de dins es descarten
+ * i els accessoris (finestres, portes, teuladins) queden flotant.
+ */
+function pullCameraOutside(pos: THREE.Vector3): void {
+  if (cameraBlockers.length === 0) {
+    return;
+  }
+  rayOrigin.set(kart.position.x, kart.position.y + 1.0, kart.position.z);
+  rayDir.subVectors(pos, rayOrigin);
+  const dist = rayDir.length();
+  if (dist < 0.05) {
+    return;
+  }
+  rayDir.multiplyScalar(1 / dist);
+  raycaster.set(rayOrigin, rayDir);
+  // El raig passa una mica més enllà del punt: si ja és a tocar de la façana, també el retira.
+  raycaster.far = dist + CAM_SOLID_MARGIN;
+  const hits = raycaster.intersectObjects(cameraBlockers, false);
+  if (hits.length === 0) {
+    return;
+  }
+  const hit = hits[0].distance;
+  // Si la paret és més a prop que el marge, queda arran seu sense travessar-la.
+  let stop = hit - CAM_SOLID_MARGIN;
+  if (stop < 0.2) {
+    stop = Math.max(0.05, hit - 0.12);
+  }
+  if (stop < dist) {
+    pos.copy(rayOrigin).addScaledVector(rayDir, stop);
+  }
+}
 
 function applyCamBlend(dt: number, snap = false): void {
   const preset = camPreset();
@@ -3134,6 +3360,7 @@ function placeCameraBehindKart(): void {
   cameraOrbit.pitch = camPresetPitch();
   applyCamBlend(0, true);
   camera.position.copy(kart.position).add(cameraOffset(state.heading, camOffset));
+  pullCameraOutside(camera.position);
   aimCamera(state.heading);
   motionBlur.reset();
 }
@@ -3290,11 +3517,15 @@ function update(dt: number): void {
   // La càmera segueix la marxa, no el morro: derrapant es veu el cotxe creuat.
   const travel = state.heading + state.driftAngle;
   const camPos = kart.position.clone().add(cameraOffset(travel, camOffset));
+  pullCameraOutside(camPos);
   camera.position.lerp(camPos, 1 - Math.exp(-4 * dt));
+  // El tram recte de la interpolació pot tallar una cantonada.
+  pullCameraOutside(camera.position);
   // Darrere d'un turó la càmera no pot quedar enterrada.
   const camGround = groundY(camera.position.x, camera.position.z);
   if (camGround !== null && camera.position.y < camGround + 1.5) {
     camera.position.y = camGround + 1.5;
+    pullCameraOutside(camera.position);
   }
   aimCamera(travel);
   updateMinimapCamera(dt, forward);
@@ -3434,29 +3665,39 @@ window.addEventListener("keyup", (e) => trackKey(e, false));
 // --- Rendiment: indicador de FPS i resolució adaptativa ---
 
 const perfEl = document.getElementById("perf");
-const MAX_PIXEL_RATIO = Math.min(window.devicePixelRatio, 2);
+// 1,5× és el sostre: a 2× (retina nativa) el fotograma passa del refresc de 120 Hz i es nota
+// l'estrebada, encara que la mitjana superi els 50 FPS. Per sota es baixa si cal.
+const MAX_PIXEL_RATIO = Math.min(window.devicePixelRatio, 1.5);
 const MIN_PIXEL_RATIO = 0.6;
 let perfFrames = 0;
 let perfElapsed = 0;
 let slowSamples = 0;
 let fastSamples = 0;
+/** Fotogrames de la finestra de mig segon, per mirar el pitjor i no només la mitjana. */
+const perfTimes: number[] = [];
+/** Període del refresc (ms). 8,33 a 120 Hz, 16,67 a 60 Hz; es dedueix dels fotogrames. */
+let refreshMs = 16.67;
+/** La compilació de shaders i la vegetació inicial fan fotogrames lents que no representen el joc. */
+const ADAPT_WARMUP_MS = 5000;
+let adaptWarmupUntil = 0;
 /** Després de baixar, no es torna a pujar per sobre d'aquest sostre durant un temps: cada canvi
  *  realoca el framebuffer (una estrebada) i, sense això, la resolució oscil·la entre dos valors. */
 let prCeiling = MAX_PIXEL_RATIO;
 let prCeilingUntil = 0;
 const PR_CEILING_MS = 20000;
 
-/** Baixa la resolució interna si no arriba a ~50 FPS i la recupera a poc a poc quan sobra marge. */
-function adaptResolution(fps: number): void {
+/** Baixa la resolució si el fotograma pitjor no entra al refresc, i la recupera quan hi cap. */
+function adaptResolution(fps: number, p95: number): void {
   const pr = renderer.getPixelRatio();
   const now = performance.now();
   if (now > prCeilingUntil) {
     prCeiling = MAX_PIXEL_RATIO;
   }
-  if (fps < 50) {
+  // Un fotograma que es passa del refresc es veu com una estrebada, encara que la mitjana sigui alta.
+  if (p95 > refreshMs * 1.35) {
     slowSamples++;
     fastSamples = 0;
-  } else if (fps > 57) {
+  } else if (p95 <= refreshMs * 1.08 && fps >= (1000 / refreshMs) * 0.96) {
     fastSamples++;
     slowSamples = 0;
   } else {
@@ -3465,12 +3706,12 @@ function adaptResolution(fps: number): void {
   }
   let next = pr;
   if (slowSamples >= 2 && pr > MIN_PIXEL_RATIO) {
-    next = Math.max(MIN_PIXEL_RATIO, pr - 0.15);
+    next = Math.max(MIN_PIXEL_RATIO, Math.round((pr - 0.15) * 20) / 20);
     slowSamples = 0;
-    prCeiling = pr - 0.05;
+    prCeiling = next;
     prCeilingUntil = now + PR_CEILING_MS;
   } else if (fastSamples >= 6 && pr < Math.min(MAX_PIXEL_RATIO, prCeiling)) {
-    next = Math.min(MAX_PIXEL_RATIO, prCeiling, pr + 0.1);
+    next = Math.min(MAX_PIXEL_RATIO, prCeiling, Math.round((pr + 0.1) * 20) / 20);
     fastSamples = 0;
   }
   if (next !== pr) {
@@ -3481,8 +3722,21 @@ function adaptResolution(fps: number): void {
 }
 
 function updatePerf(frameMs: number): void {
+  if (adaptWarmupUntil === 0) {
+    adaptWarmupUntil = performance.now() + ADAPT_WARMUP_MS;
+  }
   perfFrames++;
   perfElapsed += frameMs;
+  // Una estrebada de compilació (desenes de ms) no és el refresc: no entra a la mostra.
+  const sampleCap = Math.max(40, refreshMs * 3);
+  if (frameMs < sampleCap) {
+    perfTimes.push(frameMs);
+    if (frameMs > 7.2 && frameMs < 9.4) {
+      refreshMs = 1000 / 120;
+    } else if (frameMs > 15.2 && frameMs < 18.2 && refreshMs > 12) {
+      refreshMs = 1000 / 60;
+    }
+  }
   if (perfElapsed < 500) {
     return;
   }
@@ -3490,16 +3744,21 @@ function updatePerf(frameMs: number): void {
   const ms = perfElapsed / perfFrames;
   perfFrames = 0;
   perfElapsed = 0;
+  const sorted = perfTimes.slice().sort((a, b) => a - b);
+  perfTimes.length = 0;
   if (ms > 200) {
     return; // pestanya en segon pla: la mostra no és representativa
   }
-  adaptResolution(fps);
+  const p95 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] : ms;
+  if (performance.now() >= adaptWarmupUntil) {
+    adaptResolution(fps, p95);
+  }
   if (perfEl) {
     const info = renderer.info.render;
     perfEl.textContent =
       `${Math.round(fps)} FPS · ${ms.toFixed(1)} ms · ${renderer.getPixelRatio().toFixed(2)}× · ` +
       `${info.calls} draws · ${Math.round(info.triangles / 1000)}k tri`;
-    perfEl.classList.toggle("slow", fps < 45);
+    perfEl.classList.toggle("slow", fps < (1000 / refreshMs) * 0.9);
   }
 }
 
@@ -3520,6 +3779,7 @@ function loop(now: number): void {
     waterTime.value = now / 1000;
     sky.update(dt, camera, sunOccluded);
     craneFlocks.update(dt, camera);
+    airParticles.syncFog(scene.fog);
     airParticles.update(dt, camera, {
       position: kart.position,
       heading: state.heading,

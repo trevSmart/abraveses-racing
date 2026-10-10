@@ -1,4 +1,4 @@
-# 0232107TM6503S — nau agrícola (sense fitxa)
+# 0232107TM6503S — nau agrícola (model propi bàsic)
 
 Fitxa: `tools/mapgen/cases.yaml` · dades i enllaços de Street View: `expedient.txt`.
 Fitxa feta el 2026-10-08.
@@ -19,3 +19,21 @@ Fitxa feta el 2026-10-08.
 ## Dubtes i decisions
 
 - **Per què no té fitxa:** la nau grisa de la foto del Cadastre cau entre part3 i 0232108, en un cobert de coberta grisa que no és dins de cap `BuildingPart` de 0232107 (a l'ortofoto queda fora de les vores grogues). Les parts cadastrals són cossos de tova mig enrunats, vistos només de biaix. Cal decidir abans com es modela la nau (com a coberta detectada o amb una part nova).
+
+## Model propi bàsic (2026-10-09)
+
+- **Model propi bàsic** (2026-10-09). part3 és el mur alt arrebossat (~3,2 m) amb sòcol de pedra i coberta grisa d'una aigua. part1 és el paller de tova amb frontó, i part2, el cos llarg del darrere amb color de tova.
+- La nau grisa de la foto del Cadastre continua fora de les parts: queda com a cobert detectat.
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- **Anàlisi detallada** (2026-10-09). La façana del carrer té tres trams, d'oest a est:
+  1. part3, el mur alt de tova;
+  2. una tàpia alta arrebossada de ~3 m amb sòcol de pedra (`walls.yaml`, `0232107-carrer`);
+  3. **la nau grisa**, que no surt al Cadastre i ara és un volum de la fitxa (`extra_parts`, nou). Fa uns 7,6 m de façana, amb un mur gris de ~3,5 m, un portal metàl·lic de 3,4 × 3,0 m i la teulada d'una aigua cap al pati.
+- `extra_roofs: false` treu el cobert que l'ortofoto hi detectava.
+- El contorn de la nau surt de l'ortofoto (amb la seva perspectiva) i de les vores de la parcel·la: és aproximat.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

@@ -1,7 +1,8 @@
 // Textures procedurals generades al navegador (sense recursos externs).
 //
-// - Textures de *detall* (grises, mitjana ≈ 0,5): modulen el color que ja hi ha (ortofoto, color de
+// - Textures de *detall* (mitjana ≈ 0,5): modulen el color que ja hi ha (ortofoto, color de
 //   vèrtex) a escala del món; vegeu detail.ts. Es creen en espai lineal (no són colors).
+//   Gairebé totes són grises; l'asfalt porta un pèl de color per còdol.
 // - Textures de *color* (fullatge, escorça, pneumàtic, matrícula): mapes normals en sRGB.
 
 import * as THREE from "three";
@@ -136,15 +137,182 @@ export function groundDetail(): THREE.DataTexture {
   return grayTexture(size, normalizeDetail(v, 0.16));
 }
 
-/** Asfalt: àrid fi molt atapeït, taques de pedaços i pedretes clares. ~1,5 m per repetició. */
-export function asphaltDetail(): THREE.DataTexture {
-  const size = DETAIL_SIZE;
-  const grain = fbm(size, 256, 2, 21);
-  const patches = fbm(size, 4, 3, 22);
-  const v = new Float32Array(size * size);
-  for (let i = 0; i < v.length; i++) v[i] = grain[i] * 0.7 + patches[i] * 0.3;
-  speckles(v, size, Math.round(2500 * K * K), Math.max(0.5, 0.5 * K), 1.3 * K, 0.25, 23);
-  return grayTexture(size, normalizeDetail(v, 0.14));
+function cellHash(ix: number, iy: number, seed: number): number {
+  let n = (Math.imul(ix, 374761393) + Math.imul(iy, 668265263) + Math.imul(seed, 1442695041)) >>> 0;
+  n = Math.imul(n ^ (n >>> 13), 1274126177) >>> 0;
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+
+/** Voronoi enrajolable: distància a la vora (F2−F1, en unitats de cel·la) i id de la cel·la. */
+function voronoi(size: number, cells: number, seed: number, jitter: number): { edge: Float32Array; id: Int32Array } {
+  const jx = new Float32Array(cells * cells);
+  const jy = new Float32Array(cells * cells);
+  for (let y = 0; y < cells; y++) {
+    for (let x = 0; x < cells; x++) {
+      const i = y * cells + x;
+      jx[i] = (cellHash(x, y, seed) - 0.5) * jitter;
+      jy[i] = (cellHash(x, y, seed + 17) - 0.5) * jitter;
+    }
+  }
+  const edge = new Float32Array(size * size);
+  const id = new Int32Array(size * size);
+  const cs = size / cells;
+  for (let y = 0; y < size; y++) {
+    const cy = Math.floor(y / cs);
+    const row = y * size;
+    for (let x = 0; x < size; x++) {
+      const cx = Math.floor(x / cs);
+      let f1 = 1e9;
+      let f2 = 1e9;
+      let best = 0;
+      for (let oy = -1; oy <= 1; oy++) {
+        const iy = cy + oy;
+        const ny = iy < 0 ? iy + cells : iy >= cells ? iy - cells : iy;
+        for (let ox = -1; ox <= 1; ox++) {
+          const ix = cx + ox;
+          const nx = ix < 0 ? ix + cells : ix >= cells ? ix - cells : ix;
+          const pi = ny * cells + nx;
+          const dx = x - (ix + jx[pi]) * cs;
+          const dy = y - (iy + jy[pi]) * cs;
+          const d = Math.hypot(dx, dy);
+          if (d < f1) {
+            f2 = f1;
+            f1 = d;
+            best = pi;
+          } else if (d < f2) {
+            f2 = d;
+          }
+        }
+      }
+      edge[row + x] = (f2 - f1) / cs;
+      id[row + x] = best;
+    }
+  }
+  return { edge, id };
+}
+
+function cellTones(cells: number, seed: number): { tone: Float32Array; tint: Float32Array; h: Float32Array } {
+  const n = cells * cells;
+  const tone = new Float32Array(n);
+  const tint = new Float32Array(n);
+  const h = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = i % cells;
+    const y = (i / cells) | 0;
+    const hv = cellHash(x, y, seed);
+    const u = cellHash(x, y, seed + 4);
+    h[i] = hv;
+    tint[i] = (cellHash(x, y, seed + 8) - 0.5) * 0.04;
+    // Gairebé el mateix gris: uns pocs còdols clars i algun de fosc. Un mosaic de colors
+    // es llegeix com a terratzo, no com a asfalt.
+    tone[i] = hv < 0.06 ? 0.66 + u * 0.16 : hv > 0.94 ? 0.42 + u * 0.04 : 0.5 + (u - 0.5) * 0.045;
+  }
+  return { tone, tint, h };
+}
+
+function faceMask(edge: number): number {
+  const t = Math.min(1, Math.max(0, (edge - 0.012) / 0.055));
+  return t * t * (3 - 2 * t);
+}
+
+function blurWrap(src: Float32Array, size: number): Float32Array {
+  const out = new Float32Array(src.length);
+  for (let y = 0; y < size; y++) {
+    const y0 = (y + size - 1) % size;
+    const y1 = (y + 1) % size;
+    for (let x = 0; x < size; x++) {
+      const x0 = (x + size - 1) % size;
+      const x1 = (x + 1) % size;
+      out[y * size + x] =
+        (src[y0 * size + x0] + src[y0 * size + x] + src[y0 * size + x1] +
+          src[y * size + x0] + src[y * size + x] + src[y * size + x1] +
+          src[y1 * size + x0] + src[y1 * size + x] + src[y1 * size + x1]) / 9;
+    }
+  }
+  return out;
+}
+
+export type AsphaltMaps = {
+  /** Color lineal, mitjana ≈ 0,5: multiplica el gris de la calçada. */
+  albedo: THREE.DataTexture;
+  /** RGB = normal tangent (128, 128, 255 pla); A = rugositat. */
+  surface: THREE.DataTexture;
+};
+
+/** Asfalt gastat de carrer: àrid fi atapeït, alguns còdols més grossos, junta de betum i relleu
+ * a la vora de cada pedra. ~4 m per repetició (vegeu `scaleM` a main.ts). Les esquerdes i les
+ * taques grosses les posa el shader, en coordenades del món, perquè no es repeteixin amb la rajola. */
+export function asphaltMaps(): AsphaltMaps {
+  const size = 1024;
+  const coarseCells = 70;
+  const fineCells = 210;
+  const coarse = voronoi(size, coarseCells, 21, 0.9);
+  const fine = voronoi(size, fineCells, 44, 0.92);
+  const grit = fbm(size, 64, 2, 7);
+  const cTone = cellTones(coarseCells, 3);
+  const fTone = cellTones(fineCells, 19);
+  const r = new Float32Array(size * size);
+  const g = new Float32Array(size * size);
+  const b = new Float32Array(size * size);
+  const height = new Float32Array(size * size);
+  const rough = new Float32Array(size * size);
+  let lumSum = 0;
+  for (let i = 0; i < r.length; i++) {
+    const cid = coarse.id[i];
+    const isCoarse = cTone.h[cid] < 0.28 && coarse.edge[i] > 0.03;
+    const tone = isCoarse ? cTone.tone[cid] : fTone.tone[fine.id[i]];
+    const tint = isCoarse ? cTone.tint[cid] : fTone.tint[fine.id[i]];
+    const face = faceMask(isCoarse ? coarse.edge[i] : fine.edge[i]);
+    const mineral = 0.96 + (grit[i] - 0.5) * 0.08;
+    // La junta enfosqueix poc: si baixa gaire, la xarxa entre còdols es veu com línies negres.
+    const ao = 0.84 + 0.16 * face;
+    r[i] = (tone + tint) * mineral * ao;
+    g[i] = tone * mineral * ao;
+    b[i] = (tone - tint * 0.65) * mineral * ao;
+    lumSum += 0.299 * r[i] + 0.587 * g[i] + 0.114 * b[i];
+    const top = isCoarse ? 0.55 + 0.4 * cTone.h[cid] : 0.35 + 0.4 * fTone.h[fine.id[i]];
+    height[i] = Math.min(1, Math.max(0, top * (0.62 + 0.38 * face) + (grit[i] - 0.5) * 0.04));
+    rough[i] = 0.46 + 0.42 * face;
+  }
+  const shift = 0.5 - lumSum / r.length;
+  for (let i = 0; i < r.length; i++) {
+    r[i] = Math.min(1, Math.max(0, r[i] + shift));
+    g[i] = Math.min(1, Math.max(0, g[i] + shift));
+    b[i] = Math.min(1, Math.max(0, b[i] + shift));
+  }
+  const rb = blurWrap(r, size);
+  const gb = blurWrap(g, size);
+  const bb = blurWrap(b, size);
+  r.set(rb);
+  g.set(gb);
+  b.set(bb);
+  const h = blurWrap(height, size);
+  const albedo = new Uint8Array(size * size * 4);
+  const surface = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    const y0 = (y + size - 1) % size;
+    const y1 = (y + 1) % size;
+    for (let x = 0; x < size; x++) {
+      const x0 = (x + size - 1) % size;
+      const x1 = (x + 1) % size;
+      const i = y * size + x;
+      const dx = (h[y * size + x0] - h[y * size + x1]) * 1.15;
+      const dy = (h[y0 * size + x] - h[y1 * size + x]) * 1.15;
+      const len = Math.hypot(dx, dy, 1);
+      albedo[i * 4] = Math.round(r[i] * 255);
+      albedo[i * 4 + 1] = Math.round(g[i] * 255);
+      albedo[i * 4 + 2] = Math.round(b[i] * 255);
+      albedo[i * 4 + 3] = 255;
+      surface[i * 4] = Math.round((dx / len * 0.5 + 0.5) * 255);
+      surface[i * 4 + 1] = Math.round((dy / len * 0.5 + 0.5) * 255);
+      surface[i * 4 + 2] = Math.round((1 / len * 0.5 + 0.5) * 255);
+      surface[i * 4 + 3] = Math.round(Math.min(1, Math.max(0, rough[i])) * 255);
+    }
+  }
+  return {
+    albedo: finishTexture(new THREE.DataTexture(albedo, size, size), false),
+    surface: finishTexture(new THREE.DataTexture(surface, size, size), false),
+  };
 }
 
 /** Camí de terra: sorra fina, grava i algun còdol. ~2 m per repetició. Sense franges: la textura

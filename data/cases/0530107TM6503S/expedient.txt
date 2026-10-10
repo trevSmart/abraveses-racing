@@ -1,0 +1,12 @@
+== 0530107TM6503S
+   ús 3_industrial · 0 habitatges · 65 m² construïts · construïda 1975 · functional
+-- part1: 1 plantes · 73 m² · centre UTM 260396.3, 4652813.6
+     façana  N:  7.03 m, esquerra (t=0) a 260401.4, 4652817.4
+     façana  O: 10.55 m, esquerra (t=0) a 260394.8, 4652820.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9908836,-5.8927770&heading=109&pitch=8&fov=100
+     façana SO:  6.73 m, esquerra (t=0) a 260391.4, 4652810.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9908142,-5.8926385&heading=26&pitch=8&fov=100
+     façana  E:  4.04 m, esquerra (t=0) a 260397.5, 4652807.0 (mitgera: toca una altra part o un altre edifici)
+     façana  E:  7.10 m, esquerra (t=0) a 260398.7, 4652810.8 (mitgera: toca una altra part o un altre edifici)
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0530107TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0530107TM6503S/ortofoto.png

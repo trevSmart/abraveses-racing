@@ -19,3 +19,19 @@ Fitxa feta el 2026-10-08.
 ## Dubtes i decisions
 
 - part1 (cos baix a l'oest, al carrer) com sempre: només es veu de biaix.
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- Fonts noves: `streetview/2024-09_4-C-Santibanez_rumb210.jpg` (la casa i la tanca) i `2024-09_5-ZA-P-2547_rumb180.jpg` (el cos baix de l'oest).
+- **Nou, part1** (cos baix de l'oest, al carrer):
+  - emblanquinat amb sòcol de pedra i una finestreta verda;
+  - teulada d'una aigua que baixa cap a l'est (`type: shed` amb `toward: E`, nou);
+  - ràfec a 2,4 m, que puja fins a la casa del costat.
+- **Tàpia** `0332504-carrer`, ara amb els dos portals:
+  - porta de vianants verda (1,0 × 1,9 m), davant de la porta de casa;
+  - portal gris de dues fulles (2,8 × 1,9 m), a l'oest.
+  La reixa ja no passa per damunt dels portals.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

@@ -19,3 +19,13 @@ Fitxa feta el 2026-10-08.
 ## Dubtes i decisions
 
 - part1 (cos llarg d'1 planta al sud) no dona al carrer: com sempre.
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- Fonts noves: `streetview/2024-09_3-C-Santibanez_rumb230.jpg` (la façana N i el garatge gris).
+- La fitxa quadra amb les fotos; no hi ha canvis.
+- part1 (el cos llarg del sud) no dona a cap carrer vist: es fa com sempre.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

@@ -23,3 +23,15 @@ Fitxa feta el 2026-10-08.
 
 - Les dues captures del mateix panell no quadren exactament (rumb del panorama incert): s'ha fet la mitjana. Si cal, refer amb un panell més lluny.
 - part1 (cos oest d'1 planta) i part2 (pati) com sempre: el carrer no els veu bé.
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- Fonts noves: `streetview/2024-09_14-C-Santibanez_rumb170.jpg` (panell 14, l'extrem oest del cos de dues plantes) i les captures de l'expedient.
+- **Volums**: el cos de dues plantes és la meitat oest de la part3. El tram del portal (t 0–0,29) té un ampit gris alt i, amb la part4, queda sota el teuladí corregut. part1 i part2 (al sud) no es veuen des del carrer.
+- **Canvis**: finestreta quadrada al pis, a t 0,79 (forat de ventilació).
+- **Tàpia** `0332501-carrer`: el mur emblanquinat del pati de l'est (vora N de 7,2 m), de ~3 m amb sòcol marró de 0,9 m. Surt a `13 C. Santibáñez rumb 215`.
+- **Dubte**: la porta fosca que es veu a l'oest de la casa, sota un teuladí, sembla d'una tàpia de la parcel·la veïna. No l'he modelat.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

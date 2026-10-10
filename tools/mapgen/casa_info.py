@@ -139,11 +139,23 @@ Fitxa: `tools/mapgen/cases.yaml` · dades i enllaços de Street View: `expedient
 - Foto de façana del Cadastre: `cadastre_facana.jpg` (data de la foto: …)
 - Street View (data del panell, adreça, enllaç i rumb de cada captura de `streetview/`):
   - …
+- Vista zenital: `satellit/google_satellit.jpg` (enllaç) i `ortofoto.png`.
+- Correccions de l'usuari: …
+
+## Volums
+
+Cada part del Cadastre i com és de debò: plantes, ràfec, forma de la teulada, si està unida a
+una altra (`join`), terrasses (`loggia`, terrat), coberts del pati que no hi surten o que hi
+surten de més.
 
 ## Façanes
 
 Per a cada façana vista des d'un carrer: orientació, llargada cadastral, materials, i cada
 obertura amb la seva `t`, mides i alçades, i d'on surt cada mesura.
+
+## Tàpies
+
+Vora de la parcel·la, alçada (i referència per mesurar-la), material, sòcol, albardilla i portals.
 
 ## Dubtes i decisions
 

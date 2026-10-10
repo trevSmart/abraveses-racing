@@ -1,0 +1,18 @@
+== 002000200TM55D
+   ús 3_industrial · 0 habitatges · 471 m² construïts · construïda 1973 · functional
+-- part1: 1 plantes · 351 m² · centre UTM 259587.0, 4653053.0
+     façana  E:  9.00 m, esquerra (t=0) a 259606.3, 4653047.5 (mitgera: toca una altra part o un altre edifici)
+     façana  N: 38.96 m, esquerra (t=0) a 259606.7, 4653056.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928985,-5.9024589&heading=183&pitch=8&fov=100
+     façana  O:  9.00 m, esquerra (t=0) a 259567.8, 4653058.6
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928085,-5.9028050&heading=93&pitch=8&fov=100
+     façana  S: 39.00 m, esquerra (t=0) a 259567.3, 4653049.6
+-- part2: 1 plantes · 120 m² · centre UTM 259612.5, 4653051.1
+     façana  O: 10.00 m, esquerra (t=0) a 259606.7, 4653056.5 (mitgera: toca una altra part o un altre edifici)
+     façana  S: 12.00 m, esquerra (t=0) a 259606.2, 4653046.5
+     façana  E: 10.00 m, esquerra (t=0) a 259618.2, 4653045.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928870,-5.9019807&heading=273&pitch=8&fov=100
+     façana  N: 12.04 m, esquerra (t=0) a 259618.7, 4653055.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928911,-5.9021514&heading=183&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/002000200TM55D/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/002000200TM55D/ortofoto.png

@@ -1,0 +1,20 @@
+== 0432837TM6503S
+   ús 3_industrial · 0 habitatges · 113 m² construïts · construïda 1900 · functional
+-- part1: 1 plantes · 55 m² · centre UTM 260319.9, 4652887.0
+     façana  E:  7.83 m, esquerra (t=0) a 260322.9, 4652884.7 (mitgera: toca una altra part o un altre edifici)
+     façana  N:  2.89 m, esquerra (t=0) a 260322.7, 4652892.5
+     façana NO: 10.15 m, esquerra (t=0) a 260319.8, 4652892.7 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  5.15 m, esquerra (t=0) a 260314.9, 4652883.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9913715,-5.8935757&heading=14&pitch=8&fov=100
+     façana  S:  2.70 m, esquerra (t=0) a 260319.9, 4652882.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9913850,-5.8935313&heading=9&pitch=8&fov=100
+     façana  E:  2.58 m, esquerra (t=0) a 260322.5, 4652882.1 (mitgera: toca una altra part o un altre edifici)
+-- part2: 1 plantes · 53 m² · centre UTM 260313.1, 4652891.4
+     façana  N: 11.40 m, esquerra (t=0) a 260319.8, 4652892.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9917060,-5.8938184&heading=189&pitch=8&fov=100
+     façana NO:  4.66 m, esquerra (t=0) a 260308.6, 4652894.6 (mitgera: toca una altra part o un altre edifici)
+     façana  S: 10.98 m, esquerra (t=0) a 260306.5, 4652890.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9913956,-5.8937299&heading=13&pitch=8&fov=100
+     façana SE:  5.37 m, esquerra (t=0) a 260317.2, 4652888.0 (mitgera: toca una altra part o un altre edifici)
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432837TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432837TM6503S/ortofoto.png

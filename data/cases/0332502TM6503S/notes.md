@@ -19,3 +19,14 @@ Fitxa feta el 2026-10-08.
 ## Dubtes i decisions
 
 - La testera oest de maó dona a un pati tancat amb portal: no es veu i es fa amb finestres generades.
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- Fonts noves: `streetview/2024-09_9-C-Santibanez_rumb200b.jpg`, `_rumb250.jpg` i `2024-09_7-ZA-P-2547_rumb220.jpg`.
+- Les façanes de la fitxa quadren amb les fotos.
+- **Tàpia** `0332502-portal`: el tram de 4,4 m del pati a l'oest de la casa de maó. Tàpia blanca de 2,2 m amb un portal de reixa negre de dues fulles (~2,5 × 2,1 m).
+- **Dubte**: per damunt del cobert blanc (part1) treu el cap la testera E de part2, que és de tova i no de maó. La fitxa no pot canviar el material d'una sola façana.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

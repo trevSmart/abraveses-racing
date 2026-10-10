@@ -19,3 +19,15 @@ Fitxa feta el 2026-10-08.
 ## Dubtes i decisions
 
 - L'entrada del pati (portes beix entre part2 i part4) és la vora de part1 i no es modela a part.
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- Fonts noves: `streetview/2024-09_4-C-Santibanez_rumb20.jpg` (la façana S, amb les reixes bombades) i `2024-09_1-Calle-El-Cristo_rumb200.jpg` (la banda nord).
+- **Nou**: el pis de les cares N i E de part2, que treu per damunt dels cossos baixos. Té balconeres i balcons de ferro: a la N, un balcó de t 0,18 a 0,62 i una finestra a t 0,75; a la E, un balcó de t 0,55 a 1,0.
+- **Dubtes**:
+  - Des del nord, el pis de dalt és de **maó vist**, mentre que la façana S és blanca. La fitxa només admet un material per part i l'he deixat blanc.
+  - El portal negre i de fusta que es veu al nord no l'he modelat: no és clar sobre quina vora cau.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

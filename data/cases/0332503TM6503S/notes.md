@@ -18,3 +18,14 @@ Fitxa feta el 2026-10-08.
 
 - La meitat est surt de la foto del Cadastre (de biaix): les `t` d'aquella banda són aproximades.
 - part1 (cobert gran del darrere) com sempre.
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- Fonts noves: `streetview/2024-09_7-ZA-P-2547_rumb198b.jpg`, `2024-09_5-ZA-P-2547_rumb250.jpg` (la façana de biaix des de l'est) i `_rumb180.jpg`.
+- Les obertures de la fitxa quadren amb les fotos.
+- La banda est la tapa el cos baix de la 0332504 i no té façana pròpia al carrer.
+- part1 (el cobert gran del darrere) no es veu des del carrer: es fa com sempre.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

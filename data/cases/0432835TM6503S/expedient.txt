@@ -1,0 +1,26 @@
+== 0432835TM6503S
+   ús 1_residential · 1 habitatges · 138 m² construïts · construïda 2002 · functional
+-- part1: 2 plantes · 52 m² · centre UTM 260329.7, 4652890.7
+     façana  S: 14.71 m, esquerra (t=0) a 260322.8, 4652888.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9914270,-5.8933931&heading=356&pitch=8&fov=100
+     façana  E:  2.98 m, esquerra (t=0) a 260337.5, 4652889.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9914877,-5.8931985&heading=266&pitch=8&fov=100
+     façana  N: 14.59 m, esquerra (t=0) a 260337.3, 4652892.5
+     façana  O:  4.12 m, esquerra (t=0) a 260322.7, 4652892.5 (mitgera: toca una altra part o un altre edifici)
+-- part2: 1 plantes · 20 m² · centre UTM 260336.1, 4652881.0
+     façana  N:  3.82 m, esquerra (t=0) a 260337.9, 4652883.6
+     façana  O:  4.67 m, esquerra (t=0) a 260334.0, 4652883.5 (mitgera: toca una altra part o un altre edifici)
+     façana  S:  3.78 m, esquerra (t=0) a 260334.3, 4652878.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9914278,-5.8933906&heading=9&pitch=8&fov=100
+     façana  E:  4.19 m, esquerra (t=0) a 260338.1, 4652879.4
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9914779,-5.8932296&heading=266&pitch=8&fov=100
+-- part3: 1 plantes · 14 m² · centre UTM 260336.1, 4652887.1
+     façana  E:  4.65 m, esquerra (t=0) a 260337.8, 4652884.9
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9914838,-5.8932110&heading=266&pitch=8&fov=100
+     façana  N:  3.14 m, esquerra (t=0) a 260337.5, 4652889.5 (mitgera: toca una altra part o un altre edifici)
+     façana  O:  4.61 m, esquerra (t=0) a 260334.4, 4652889.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9914199,-5.8934163&heading=84&pitch=8&fov=100
+     façana  S:  2.92 m, esquerra (t=0) a 260334.9, 4652884.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9914416,-5.8933454&heading=356&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432835TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432835TM6503S/ortofoto.png

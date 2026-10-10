@@ -248,6 +248,93 @@ def _parcel_geom(parcels, ref: str):
     return rows.geometry.unary_union
 
 
+def _merge_straight(edges: list[LineString], max_turn_deg: float = 15.0) -> list[LineString]:
+    """Uneix les vores triades que van seguides i gairebé alineades (el Cadastre parteix una
+    façana en dos trams amb un vèrtex quasi pla): un sol mur, sense junta on hi pot caure un
+    portal. Les cantonades de veritat continuen sent murs separats."""
+    from shapely.ops import linemerge
+
+    out = []
+    for line in getattr(linemerge(edges), "geoms", [linemerge(edges)]) if edges else []:
+        if not isinstance(line, LineString):
+            continue
+        out += _straight_pieces_deg(line, max_turn_deg)
+    return out
+
+
+def _straight_pieces_deg(line: LineString, max_deg: float) -> list[LineString]:
+    pts = np.array(line.coords)
+    if len(pts) < 3:
+        return [line]
+    d = np.diff(pts, axis=0)
+    ang = np.arctan2(d[:, 1], d[:, 0])
+    turn = np.abs((np.diff(ang) + np.pi) % (2 * np.pi) - np.pi)
+    cuts = [0, *(np.flatnonzero(turn > np.radians(max_deg)) + 1), len(pts) - 1]
+    return [LineString(pts[a : b + 1]) for a, b in zip(cuts[:-1], cuts[1:]) if b > a]
+
+
+# Un mur es treu de la calçada si la major part del tram hi és, de mitjana, més d'un metre.
+# Un solapament petit (la vorera) es deixa: el carrer del joc ja és més estret que el real.
+ROAD_CLEAR_FRAC = 0.7
+ROAD_CLEAR_MEAN_M = 1.0
+ROAD_CLEAR_MARGIN_M = 0.25
+# Més enllà d'això, el punt no creua la calçada: segueix un camí que entra a la parcel·la.
+ROAD_CLEAR_CAP_M = 4.0
+
+
+def _exit_distance(point: Point, inward: np.ndarray, roads, limit: float = ROAD_CLEAR_CAP_M) -> float | None:
+    """Metres al llarg de `inward` fins a sortir de la calçada.
+
+    0 si el punt ja és a fora. None si en aquesta direcció no se'n surt.
+    """
+    if roads is None or roads.is_empty or not roads.covers(point):
+        return 0.0
+    end = Point(point.x + float(inward[0]) * limit, point.y + float(inward[1]) * limit)
+    if roads.covers(end):
+        return None
+    lo, hi = 0.0, limit
+    for _ in range(18):
+        mid = (lo + hi) / 2
+        q = Point(point.x + float(inward[0]) * mid, point.y + float(inward[1]) * mid)
+        if roads.covers(q):
+            lo = mid
+        else:
+            hi = mid
+    return hi
+
+
+def _clear_of_road(edge: LineString, inward: np.ndarray, roads) -> LineString | None:
+    """Treu de la calçada un mur que hi queda ben endins.
+
+    La cara de fora segueix la vora del Cadastre. En algun tram (el camp del sud de la
+    Calle Santibáñez) aquesta vora travessa el carrer de l'OSM i el mur queda al mig de
+    la carretera. Si la major part del tram hi és més d'un metre, es desplaça sencer cap
+    a la parcel·la fins a sortir-ne. Si el tram va al llarg d'un camí i no en pot sortir,
+    se'n talla la part que és dins la calçada. None vol dir que no en queda.
+    """
+    if roads is None or getattr(roads, "is_empty", True) or edge.length < 0.8:
+        return edge
+    samples = [edge.interpolate(t, normalized=True) for t in np.linspace(0.0, 1.0, 12)]
+    depths = [roads.boundary.distance(p) for p in samples if roads.covers(p)]
+    if len(depths) / len(samples) < ROAD_CLEAR_FRAC or float(np.mean(depths)) < ROAD_CLEAR_MEAN_M:
+        return edge
+    exits = [d for d in (_exit_distance(p, inward, roads) for p in samples) if d is not None and d > 0.05]
+    if len(exits) >= len(samples) * 0.5:
+        shift = max(exits) + ROAD_CLEAR_MARGIN_M
+        cleared = affinity.translate(edge, xoff=float(inward[0]) * shift, yoff=float(inward[1]) * shift)
+        # Un camí lateral pot deixar-ne la punta a dins: es talla només aquesta punta.
+        if cleared.intersects(roads):
+            rest = cleared.difference(roads.buffer(ROAD_CLEAR_MARGIN_M))
+            pieces = [g for g in getattr(rest, "geoms", [rest]) if isinstance(g, LineString) and g.length > edge.length * 0.7]
+            if pieces:
+                cleared = max(pieces, key=lambda g: g.length)
+        return cleared
+    # El mur segueix el camí: no es pot apartar. Es deixa només el tros de fora.
+    rest = edge.difference(roads.buffer(ROAD_CLEAR_MARGIN_M))
+    pieces = [g for g in getattr(rest, "geoms", [rest]) if isinstance(g, LineString) and g.length > 0.8]
+    return max(pieces, key=lambda g: g.length) if pieces else None
+
+
 def resolve_wall_specs(specs: dict, parcels, roads, ox: float, oy: float) -> list[tuple[LineString, dict]]:
     """Línies locals de cada fitxa, amb la cara de fora sobre la vora cadastral.
 
@@ -271,24 +358,55 @@ def resolve_wall_specs(specs: dict, parcels, roads, ox: float, oy: float) -> lis
             if not chosen:
                 print(f"Tàpies: {key} no té cap vora de carrer")
         else:
-            e, n = spec["near"]
-            pt = Point(float(e) - ox, float(n) - oy)
-            edge = min(edges, key=lambda ln: ln.distance(pt), default=None)
-            if edge is None or edge.distance(pt) > 4.0:
-                print(f"Tàpies: {key} no encaixa amb cap vora (a menys de 4 m de near)")
-                continue
-            if spec.get("length_m"):
-                half = float(spec["length_m"]) / 2
-                at = edge.project(pt)
-                edge = substring(edge, max(0.0, at - half), min(edge.length, at + half))
-            chosen.append(edge)
-        for edge in chosen:
+            # `near` és un punt o una llista de punts (una vora per punt, per als murs que en
+            # segueixen unes quantes).
+            near = spec["near"]
+            points = near if isinstance(near[0], (list, tuple)) else [near]
+            for e, n in points:
+                pt = Point(float(e) - ox, float(n) - oy)
+                edge = min(edges, key=lambda ln: ln.distance(pt), default=None)
+                if edge is None or edge.distance(pt) > 4.0:
+                    print(f"Tàpies: {key} no encaixa amb cap vora (a menys de 4 m de {e}, {n})")
+                    continue
+                if spec.get("length_m"):
+                    half = float(spec["length_m"]) / 2
+                    at = edge.project(pt)
+                    edge = substring(edge, max(0.0, at - half), min(edge.length, at + half))
+                chosen.append(edge)
+        if spec.get("gates"):
+            # Portals: el punt UTM (`near`) passa a local; tapia_meshes el projecta sobre el mur.
+            spec = {**spec, "gates": [{**g, "at": (float(g["near"][0]) - ox, float(g["near"][1]) - oy)} for g in spec["gates"]]}
+        half = float(spec.get("thick_m", 0.28)) / 2
+        for edge in _merge_straight(chosen):
             if edge.length < 0.8:
                 continue
-            n = _inward(edge, poly)
-            half = float(spec.get("thick_m", 0.28)) / 2
             # La cara exterior queda sobre la línia del Cadastre; el gruix entra a la parcel·la.
-            jobs.append((affinity.translate(edge, xoff=n[0] * half, yoff=n[1] * half), spec))
+            # Si la vora talla la calçada, primer es tira cap a dins de la parcel·la.
+            a, b = np.array(edge.coords[0]), np.array(edge.coords[-1])
+            n = _inward(LineString([a, b]), poly)
+            cleared = _clear_of_road(edge, n, roads)
+            if cleared is None:
+                print(f"Tàpies: {key} tret de la calçada ({edge.length:.0f} m)")
+                continue
+            spec_e = spec
+            if not cleared.equals(edge):
+                shift = max(Point(p).distance(Point(q)) for p, q in zip(edge.coords, cleared.coords))
+                print(f"Tàpies: {key} enretirat de la calçada ({shift:.1f} m)")
+                if spec.get("gates"):
+                    gates = []
+                    for g in spec["gates"]:
+                        at = Point(g["at"])
+                        if edge.distance(at) <= 2.0:
+                            q = cleared.interpolate(cleared.project(at))
+                            gates.append({**g, "at": (q.x, q.y)})
+                        else:
+                            gates.append(g)
+                    spec_e = {**spec, "gates": gates}
+            a, b = np.array(cleared.coords[0]), np.array(cleared.coords[1])
+            left = np.array([-(b - a)[1], (b - a)[0]])
+            side = 1.0 if float(np.dot(left, n)) > 0 else -1.0
+            jobs.append((cleared.offset_curve(side * half, join_style="mitre") if len(cleared.coords) > 2
+                         else affinity.translate(cleared, xoff=n[0] * half, yoff=n[1] * half), spec_e))
         if chosen:
             print(f"Tàpies: fitxa {key}, {sum(e.length for e in chosen):.0f} m")
     return jobs

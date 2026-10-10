@@ -18,3 +18,4 @@ web/dist/
 # Captures de Street View de les fitxes de casa: només referència (termes de Google)
 data/cases/*/streetview/
 data/cases/*/satellit/
+data/carrers/*/streetview/

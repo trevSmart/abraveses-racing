@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ca"><head><meta charset="utf-8"><title>Previsualització de casa</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html,body{margin:0;height:100%;background:#d4d9de}canvas{display:block}
+#info{position:fixed;left:8px;bottom:8px;font:12px monospace;color:#333;background:#fffc;padding:4px 6px;border-radius:4px}</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.171.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.171.0/examples/jsm/"}}</script>
+</head><body>
+<div id="info">arrossega: gira · roda: zoom · botó dret: desplaça</div>
+<script type="module">
+// Previsualització de tools/mapgen/preview_casa.py: ?glb=casa_<ref>.glb&cam=x,y,z&target=x,y,z&fov=65
+// Coordenades del món de la previsualització: x = est, y = alçada, z = −nord (origen al centre de la casa).
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+const r = new THREE.WebGLRenderer({ antialias: true });
+r.setSize(innerWidth, innerHeight); r.setPixelRatio(devicePixelRatio);
+r.shadowMap.enabled = true;
+document.body.appendChild(r.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xd4d9de);
+scene.add(new THREE.HemisphereLight(0xeef2f6, 0x8a8070, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(-20, 30, -25); sun.castShadow = true;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -30; sun.shadow.camera.right = sun.shadow.camera.top = 30;
+sun.shadow.bias = -0.0005;
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ color: 0x7d8a5a }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const params = new URLSearchParams(location.search);
+const cam = new THREE.PerspectiveCamera(Number(params.get("fov") || 60), innerWidth / innerHeight, 0.1, 500);
+cam.position.set(...(params.get("cam") || "-12,8,14").split(",").map(Number));
+const controls = new OrbitControls(cam, r.domElement);
+controls.target.set(...(params.get("target") || "0,3,0").split(",").map(Number));
+new GLTFLoader().load(params.get("glb"), (g) => {
+  g.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = o.receiveShadow = true;
+    if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+    const n = o.name.toLowerCase();
+    o.material = n.includes("roof")
+      ? new THREE.MeshStandardMaterial({ color: 0x8a8173, roughness: 0.9, side: THREE.DoubleSide })
+      : n.includes("windows")
+        ? new THREE.MeshStandardMaterial({ color: 0x55606c, roughness: 0.2, metalness: 0.3 })
+        : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 });
+  });
+  scene.add(g.scene);
+  window.ready = true;
+});
+addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); r.setSize(innerWidth, innerHeight); });
+(function loop() { controls.update(); r.render(scene, cam); requestAnimationFrame(loop); })();
+</script></body></html>

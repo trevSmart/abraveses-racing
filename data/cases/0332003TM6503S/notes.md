@@ -18,3 +18,12 @@ Fitxa feta el 2026-10-08.
 ## Dubtes i decisions
 
 - La coberta és d'un sol vessant; es fa a dues aigües molt baixa (10°).
+
+## Anàlisi detallada (2026-10-09, skill casa-a-mida)
+
+- Fonts noves: `streetview/2024-09_5-ZA-P-2547-oest_rumb60.jpg` (la testera oest de maó, cega, darrere un cobert en ruïna de la parcel·la veïna) i `2024-09_4-C-Santibanez_rumb20.jpg`.
+- La fitxa quadra amb les fotos; no hi ha canvis.
+
+## Correccions de l'usuari
+
+- Cap, de moment.

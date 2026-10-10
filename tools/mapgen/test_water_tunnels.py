@@ -78,7 +78,7 @@ class TunnelCarveTest(unittest.TestCase):
         }
         water = Waterways(gdf, dem, origin=(0.0, 0.0), half=200.0, cfg=cfg)
         self.assertIsNotNone(water.tree)
-        tunnels = [tun for _, _, _, _, _, tun in water.lines]
+        tunnels = [tun for _, _, _, _, _, tun, _ in water.lines]
         self.assertTrue(any(bool(t.any()) for t in tunnels))
 
         xs = np.linspace(0, 100, 101)
@@ -110,19 +110,29 @@ class TunnelCarveTest(unittest.TestCase):
             }
         }
         water = Waterways(gdf, dem, origin=(0.0, 0.0), half=200.0, cfg=cfg)
-        surface, volume, props = water.mesh(FakeGround(), FakeGround.z_min)
+        surface, volume, structure, fill, cobbles = water.mesh(FakeGround(), FakeGround.z_min)
         self.assertIsNotNone(surface)
-        self.assertIsNotNone(props)
+        self.assertIsNotNone(structure)
+        self.assertIsNotNone(fill)
+        self.assertIsNotNone(cobbles)
         # Al crest (x≈50) la làmina ha de ser ~3 cm per damunt del grau (ref−z_min).
-        pts, ref, _, _, _, tun = next(L for L in water.lines if L[-1].any())
+        pts, ref, sec, _, _, tun, dem_s = next(L for L in water.lines if L[-2].any())
         i = int(np.argmax(tun))
         bed_y = float(ref[i] - FakeGround.z_min)
+        dem_y = float(dem_s[i] - FakeGround.z_min)
         near = np.abs(surface.vertices[:, 0] - float(pts[i, 0])) < 1.0
         self.assertTrue(bool(near.any()))
         water_y = float(np.median(surface.vertices[near, 1]))
         self.assertAlmostEqual(water_y - bed_y, TUNNEL_WATER_M, delta=0.02)
-        # Els còdols (més de 16 vèrtexs de bocas) formen part del prop del túnel.
-        self.assertGreater(len(props.vertices), 64)
+        # Volta alta: gairebé arriba al terreny del turó (DEM ~16 m, llit ~10 m).
+        half_w = max(0.85, sec.bed_m * 0.5 + 0.35)
+        self.assertGreater(float(structure.vertices[:, 1].max()), dem_y - 1.5)
+        self.assertGreater(float(fill.vertices[:, 1].max()), dem_y - 0.5)
+        # Murs laterals a ±half_w (en aquest traçat E–O la normal és N → món Z).
+        zs = structure.vertices[:, 2]
+        self.assertTrue(bool(np.any(zs < -half_w * 0.7)))
+        self.assertTrue(bool(np.any(zs > half_w * 0.7)))
+        self.assertGreater(len(cobbles.vertices), 64)
 
 
 if __name__ == "__main__":
