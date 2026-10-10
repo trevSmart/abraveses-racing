@@ -1,0 +1,23 @@
+== 0233405TM6503S
+   ús 1_residential · 1 habitatges · 257 m² construïts · construïda 1900 · functional
+-- part1: 2 plantes · 119 m² · centre UTM 260079.1, 4653082.8
+     façana SE:  7.98 m, esquerra (t=0) a 260070.7, 4653075.1 (mitgera: toca una altra part o un altre edifici)
+     façana SE: 13.24 m, esquerra (t=0) a 260077.7, 4653079.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9930694,-5.8964770&heading=333&pitch=8&fov=100
+     façana NE:  5.74 m, esquerra (t=0) a 260089.5, 4653085.0 (mitgera: toca una altra part o un altre edifici)
+     façana NO: 13.21 m, esquerra (t=0) a 260087.1, 4653090.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9932774,-5.8965254&heading=154&pitch=8&fov=100
+     façana NO:  8.03 m, esquerra (t=0) a 260075.2, 4653084.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9932307,-5.8966501&heading=145&pitch=8&fov=100
+     façana SO:  4.98 m, esquerra (t=0) a 260068.7, 4653079.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9931651,-5.8967549&heading=66&pitch=8&fov=100
+-- part2: 1 plantes · 19 m² · centre UTM 260074.2, 4653075.3
+     façana SE:  5.78 m, esquerra (t=0) a 260073.2, 4653072.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9930802,-5.8965202&heading=320&pitch=8&fov=100
+     façana NE:  2.73 m, esquerra (t=0) a 260077.7, 4653076.0
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9932721,-5.8965376&heading=230&pitch=8&fov=100
+     façana NO:  6.00 m, esquerra (t=0) a 260075.9, 4653078.0 (mitgera: toca una altra part o un altre edifici)
+     façana SO:  3.78 m, esquerra (t=0) a 260070.7, 4653075.1
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9931212,-5.8966481&heading=49&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0233405TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0233405TM6503S/ortofoto.png

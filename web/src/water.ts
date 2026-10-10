@@ -172,8 +172,8 @@ function createVolumeMaterial(): THREE.ShaderMaterial {
   });
 }
 
-export const waterSurfaceMaterial = createSurfaceMaterial();
-export const waterVolumeMaterial = createVolumeMaterial();
+const waterSurfaceMaterial = createSurfaceMaterial();
+const waterVolumeMaterial = createVolumeMaterial();
 
 export function setWaterEnvironment(envMap: THREE.Texture, _intensity = 0.5): void {
   // ShaderMaterial sense PBR: el cel ja entra per uWaterSky animat.

@@ -527,20 +527,71 @@ export function barkMap(): THREE.CanvasTexture {
   });
 }
 
-/** Banda de rodolament del pneumàtic (u = al voltant, v = amplada) i flanc. */
+/** Banda de rodolament del pneumàtic (u = al voltant, v = amplada) i flanc.
+ *  Els blocs són grossos i contrastats: un dibuix fi i fosc, en girar, es veu igual. */
 export function tyreMap(): THREE.CanvasTexture {
   return canvasTexture(256, (ctx) => {
-    ctx.fillStyle = "#1c1c1f";
+    ctx.fillStyle = "#2c2c30";
     ctx.fillRect(0, 0, 256, 256);
-    ctx.fillStyle = "#0d0d0f";
-    // Dibuix en V: blocs alternats a banda i banda d'un solc central.
-    for (let i = 0; i < 32; i++) {
-      const x = i * 8;
-      ctx.fillRect(x, 20, 4, 90);
-      ctx.fillRect(x + 4, 146, 4, 90);
+    // Marques del flanc, curtes, perquè es vegi que la goma també gira.
+    ctx.fillStyle = "#8a8680";
+    for (let i = 0; i < 8; i++) {
+      ctx.fillRect(i * 32 + 4, 16, 16, 7);
+      ctx.fillRect(i * 32 + 16, 233, 16, 7);
     }
-    ctx.fillRect(0, 122, 256, 12);
+    ctx.fillStyle = "#141416";
+    ctx.fillRect(0, 40, 256, 176);
+    const n = 8;
+    const w = 256 / n;
+    for (let i = 0; i < n; i++) {
+      const x = i * w;
+      // Un bloc més clar fa de referència: es pot seguir amb la vista.
+      const block = i === 0 ? "#b4b4bc" : "#72727c";
+      const lip = i === 0 ? "#e4e4ea" : "#a0a0a8";
+      ctx.fillStyle = block;
+      ctx.fillRect(x + 4, 50, w * 0.46, 72);
+      ctx.fillStyle = lip;
+      ctx.fillRect(x + 4, 50, w * 0.46, 10);
+      ctx.fillStyle = block;
+      ctx.fillRect(x + w * 0.52, 134, w * 0.46, 72);
+      ctx.fillStyle = lip;
+      ctx.fillRect(x + w * 0.52, 134, w * 0.46, 10);
+    }
+    ctx.fillStyle = "#0a0a0c";
+    ctx.fillRect(0, 118, 256, 18);
   });
+}
+
+/** Flanc del pneumàtic, vist de cara: marques que donen la volta, fora del tapacubos. */
+export function tyreSidewallMap(): THREE.CanvasTexture {
+  const size = 256;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d")!;
+  const mid = size / 2;
+  ctx.fillStyle = "#1c1c1e";
+  ctx.fillRect(0, 0, size, size);
+  ctx.strokeStyle = "#8e8a84";
+  ctx.lineWidth = 16;
+  ctx.lineCap = "butt";
+  const n = 8;
+  const r = mid * 0.78;
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI * 2 + 0.2;
+    ctx.beginPath();
+    ctx.arc(mid, mid, r, a0, a0 + 0.38);
+    ctx.stroke();
+  }
+  // Una de més clara, per poder seguir el gir.
+  ctx.strokeStyle = "#f4f1ea";
+  ctx.lineWidth = 18;
+  ctx.beginPath();
+  ctx.arc(mid, mid, r, -0.05, 0.42);
+  ctx.stroke();
+  const tex = finishTexture(new THREE.CanvasTexture(c), true);
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
 }
 
 /** Matrícula espanyola de l'època (província de Zamora), amb la proporció real de 520 × 110 mm. */

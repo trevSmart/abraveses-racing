@@ -1,0 +1,25 @@
+== 0233401TM6503S
+   ús 1_residential · 0 habitatges · 250 m² construïts · construïda 1980 · functional
+-- part1: 2 plantes · 78 m² · centre UTM 260109.2, 4653093.3
+     façana  E: 14.25 m, esquerra (t=0) a 260113.5, 4653087.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9934498,-5.8961325&heading=256&pitch=8&fov=100
+     façana NO:  5.76 m, esquerra (t=0) a 260110.1, 4653101.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9934109,-5.8962212&heading=154&pitch=8&fov=100
+     façana  O: 13.64 m, esquerra (t=0) a 260104.9, 4653098.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9933533,-5.8963525&heading=76&pitch=8&fov=100
+     façana  S:  5.62 m, esquerra (t=0) a 260108.2, 4653085.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9932135,-5.8958847&heading=340&pitch=8&fov=100
+-- part2: 1 plantes · 94 m² · centre UTM 260120.1, 4653092.4
+     façana  S:  9.74 m, esquerra (t=0) a 260114.5, 4653086.3
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9932230,-5.8958859&heading=339&pitch=8&fov=100
+     façana NE:  2.70 m, esquerra (t=0) a 260123.6, 4653089.8
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9933399,-5.8959000&heading=247&pitch=8&fov=100
+     façana  S:  6.65 m, esquerra (t=0) a 260122.5, 4653092.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9932644,-5.8958909&heading=344&pitch=8&fov=100
+     façana  E:  4.54 m, esquerra (t=0) a 260128.9, 4653094.1
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9933732,-5.8959041&heading=257&pitch=8&fov=100
+     façana  N: 16.80 m, esquerra (t=0) a 260127.9, 4653098.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9934546,-5.8961215&heading=159&pitch=8&fov=100
+     façana  O:  5.11 m, esquerra (t=0) a 260112.2, 4653092.5 (mitgera: toca una altra part o un altre edifici)
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0233401TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0233401TM6503S/ortofoto.png

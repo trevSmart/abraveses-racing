@@ -1,14 +1,16 @@
-# Abraveses de Tera — poble i rodalia (1,82 × 1,82 km)
+# Abraveses de Tera — poble i rodalia (2,74 × 2,74 km).
+# El centre s'ha mogut 460 m al nord respecte del poble perquè el quadrat arribi al cementiri
+# (vora nord del recinte a y local ≈ 1280) i el límit sud del mapa anterior es quedi on era.
 center_wgs84:
-  lat: 41.9930
-  lon: -5.8950
+  lat: 41.997138
+  lon: -5.895188
 
-# south, west, north, east
+# south, west, north, east. Envolupant del quadrat UTM amb 80 m de marge.
 bbox_wgs84:
-  south: 41.98416
-  west: -5.90684
-  north: 42.00183
-  east: -5.88316
+  south: 41.98364
+  west: -5.91328
+  north: 42.01063
+  east: -5.87710
 
 # Sortida: Calle Santibáñez (carretera de Santibáñez), entrant al poble per l'oest
 spawn_wgs84:
@@ -20,11 +22,11 @@ spawn_wgs84:
 utm_epsg: 25830
 
 # Mida del mesh de terreny (metres)
-terrain_size_m: 1820
-terrain_resolution: 256
+terrain_size_m: 2740
+terrain_resolution: 384
 # Malla del joc web: ~2,6 m per cel·la (compromís entre talús net dels camins i mida del GLB)
-terrain_mesh_resolution: 705
-# Trossos del terreny per costat (frustum culling al joc): 704 cel·les / 16 = 44
+terrain_mesh_resolution: 1057
+# Trossos del terreny per costat (frustum culling al joc): 1056 cel·les / 16 = 66
 terrain_tiles: 16
 
 # Terreny i cases fora dels camins s'eleven perquè el traçat conduïble es vegi clar
@@ -43,7 +45,8 @@ waterways:
   canal:  {bed_m: 2.2, bank_m: 2.0, depth_m: 1.1, water_frac: 0.6}
   ditch:  {bed_m: 1.2, bank_m: 2.6, depth_m: 0.6, water_frac: 0.45}
 
-# Opcional: GeoTIFF MDT05 IGN (huso 29). Si no existeix, es descarrega Copernicus GLO-30.
+# Opcional: GeoTIFF MDT05 IGN (huso 29). La fulla 307 s'acaba uns 50 m al nord del poble;
+# el tram fins al cementiri s'omple amb Copernicus GLO-30 (fetch_dem.py).
 mdt_local_path: data/raw/PNOA_MDT05_ETRS89_HU29_0307_LID.tif
 
 paths:
@@ -79,17 +82,20 @@ overpass_url: https://overpass-api.de/api/interpreter
 overpass_urls:
   - https://overpass-api.de/api/interpreter
   - https://overpass.kumi.systems/api/interpreter
+  - https://overpass.openstreetmap.fr/api/interpreter
 
-# Copernicus DEM Open Data (WGS84 geotiff per tile)
-copernicus_dem_template: https://copernicus-dem-30m.s3.eu-central-1.amazonaws.com/Copernicus_DSM_COG_10_N{lat_int}_00_E{lon_int}_00_DEM.tif
+# Copernicus DEM Open Data (WGS84 geotiff per tile). El COG va dins d'una carpeta homònima.
+copernicus_dem_template: https://copernicus-dem-30m.s3.eu-central-1.amazonaws.com/Copernicus_DSM_COG_10_N{lat_int}_00_E{lon_int}_00_DEM/Copernicus_DSM_COG_10_N{lat_int}_00_E{lon_int}_00_DEM.tif
 
 # Ortofoto del terreny: pnoa (IGN, CC BY 4.0, 25 cm o millor) o esri. Es descarrega en UTM
-# exactament sobre el quadrat del terreny. Mestra: 10240 px / 1820 m ≈ 18 cm per píxel (anàlisi
-# del poble). Al joc: tot el terreny a 4096 px (~44 cm) i els 700 m centrals a 4096 px (~17 cm).
+# exactament sobre el quadrat del terreny. Mestra: 14336 px / 2740 m ≈ 19 cm per píxel (anàlisi
+# del poble). Al joc: tot el terreny a 4096 px (~67 cm) i un retall de 700 m a 4096 px (~17 cm).
+# El retall no és el centre del quadrat: el poble queda 460 m al sud, on era abans d'eixamplar.
 ortho_source: pnoa
-ortho_px: 10240
+ortho_px: 14336
 ortho_web_px: 4096
 ortho_center_m: 700
+ortho_center_offset_m: [0, -460]
 
 # Poble en 3D (Cadastre + anàlisi de l'ortofoto). full_map: tot el terreny; si és false,
 # només la franja de `buffer_m` a banda i banda dels `streets`.
@@ -104,4 +110,4 @@ village_detail:
   # Ermita de Nuestra Señora de las Encinas, als afores (model propi, hermitage.py)
   hermitage_ref: "000100400TM65A"
 # Trossos per costat de les peticions al WFS del Cadastre (limita l'àrea per petició)
-cadastre_grid: 3
+cadastre_grid: 4

@@ -18,6 +18,7 @@ import {
   stoneDetail,
   brickDetail,
   tyreMap,
+  tyreSidewallMap,
   windowGlassMap,
 } from "./textures";
 import { Autopilot } from "./autopilot";
@@ -97,11 +98,11 @@ const keys = new Set<string>();
 
 // --- Opcions (tecla O): es desen al navegador ---
 
-type Settings = { hideStreetNames: boolean; motionBlur: boolean };
+type Settings = { hideStreetNames: boolean; motionBlur: boolean; airParticles: boolean };
 const SETTINGS_KEY = "abraveses-racing.settings";
 
 function loadSettings(): Settings {
-  const defaults: Settings = { hideStreetNames: false, motionBlur: true };
+  const defaults: Settings = { hideStreetNames: false, motionBlur: true, airParticles: true };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Settings>) } : defaults;
@@ -141,6 +142,7 @@ const airParticles = new AirParticles(
   sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, SUN_VISUAL_ELEVATION_DEG),
   DETAIL_LAYER,
 );
+airParticles.setEnabled(settings.airParticles);
 const renderer = new THREE.WebGLRenderer({
   // Sense MSAA: a 1,5× ja hi ha prou píxels, i així es pot copiar el canvas a mitja
   // resolució pel desenfoc (un blit des d'un framebuffer multisample no pot escalar).
@@ -202,6 +204,12 @@ kart.rotation.order = "YXZ"; // rumb, després capcineig i balanceig segons el t
 scene.add(kart);
 // Rodes animades: `spin` giren amb la distància recorreguda, `steer` són les davanteres.
 const kartWheels = { spin: [] as THREE.Object3D[], steer: [] as THREE.Object3D[] };
+/** Pilots del darrere: s'il·luminen en frenar. */
+let taillightMat: THREE.MeshStandardMaterial | null = null;
+let brakeLightsOn = false;
+const TAIL_IDLE = 0.08;
+/** Enceses: es distingeixen de l'apagat, sense enlluernar. */
+const TAIL_BRAKE = 0.38;
 
 let spawn: SpawnData = {
   position: { x: 0, y: 3, z: 0 },
@@ -300,11 +308,13 @@ const rayOrigin = new THREE.Vector3();
 const rayDir = new THREE.Vector3();
 // Només la calçada: el terreny dens faria el raycast massa car i no és conduïble.
 const roadMeshes: THREE.Object3D[] = [];
+/** Làmina d'aigua: el cotxe circula pel llit, per sota. */
+const waterMeshes: THREE.Object3D[] = [];
 /** Terra on es pot circular: calçada i terreny. Les col·lisions són només contra models 3D. */
 const groundMeshes: THREE.Object3D[] = [];
 const wallMeshes: THREE.Object3D[] = [];
-/** Cases, tàpies i teulades: la càmera orbital s'hi atura. Els pals no: són prims i la farien saltar. */
-const cameraBlockers: THREE.Object3D[] = [];
+/** Parets de casa (sense pals): per saber si la càmera és a dins d'una. */
+const houseShellMeshes: THREE.Mesh[] = [];
 
 /** Graella (x, z) de les malles de terra: un raig vertical només prova els trossos que té a sota
  *  (2–6) en lloc dels ~400 de calçada i terreny. Es fan uns 17 raigs així per fotograma. */
@@ -363,7 +373,7 @@ function fetchOnce(url: string): Promise<Response> {
 }
 
 function prefetchAssets(): void {
-  for (const name of ["world.glb", "village.json", "trees.json", "streets.json"]) {
+  for (const name of ["world.glb", "village.json", "trees.json", "streets.json", "house_cards.json"]) {
     void fetchOnce(`/${name}?${assetCacheKey}`);
   }
 }
@@ -392,6 +402,7 @@ type WorldMeta = {
   elevation_min_m: number;
   resolution: number;
   ortho_center_m?: number;
+  ortho_center_offset_m?: [number, number];
   origin_utm_x?: number;
   origin_utm_y?: number;
   utm_epsg?: number;
@@ -407,27 +418,46 @@ async function loadWorldMeta(): Promise<void> {
   const meta = (await res.json()) as WorldMeta;
   terrainSizeM = meta.size_m;
   orthoCenterM = meta.ortho_center_m ?? 0;
+  const centerOff = meta.ortho_center_offset_m;
+  if (centerOff && centerOff.length === 2) {
+    orthoUniforms.uCenterAt.value.set(centerOff[0], centerOff[1]);
+  }
   assetCacheKey = `${meta.size_m}-${meta.resolution}-${meta.elevation_min_m}`;
   if (meta.origin_utm_x != null && meta.origin_utm_y != null) {
     worldOriginUtm = { x: meta.origin_utm_x, y: meta.origin_utm_y, epsg: meta.utm_epsg ?? 25830 };
   }
 }
 
-// Ortofoto en dos nivells: tot el terreny a ~34 cm/px i els 700 m centrals (el poble) a ~17 cm/px.
+// Ortofoto en dos nivells: tot el terreny a baixa resolució i un retall de 700 m (el poble) a ~17 cm/px.
+// El retall pot anar desplaçat del centre del quadrat (uCenterAt, metres locals est/nord).
 // El shader tria la textura per posició del món i les fon en una franja de 20 m a la vora, així no
 // cal partir les malles per zones ni coordenades UV (la projecció és planar i surt de la posició).
 const orthoUniforms = {
   uCenterMap: { value: null as THREE.Texture | null },
   uHalfFull: { value: 350 },
   uHalfCenter: { value: 175 },
+  uCenterAt: { value: new THREE.Vector2(0, 0) },
   uHasCenter: { value: 0 },
 };
 
-function injectOrthoShader(shader: THREE.WebGLProgramParametersWithUniforms): void {
+function injectOrthoShader(shader: THREE.WebGLProgramParametersWithUniforms, banks?: boolean): void {
+  // El segon argument només és el talús si el passem nosaltres: three crida onBeforeCompile
+  // amb el renderer, que també és truthy.
+  const withBanks = banks === true;
   Object.assign(shader.uniforms, orthoUniforms);
+  if (withBanks) {
+    shader.vertexShader =
+      "attribute vec3 tone;\nattribute float bank;\nvarying vec3 vTone;\nvarying float vBank;\n" + shader.vertexShader;
+    shader.fragmentShader = "varying vec3 vTone;\nvarying float vBank;\n" + shader.fragmentShader;
+  }
   shader.vertexShader = shader.vertexShader
     .replace("#include <common>", "#include <common>\nvarying vec3 vAbrWorld;")
-    .replace("#include <project_vertex>", "#include <project_vertex>\nvAbrWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    .replace(
+      "#include <project_vertex>",
+      `#include <project_vertex>
+vAbrWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
+${withBanks ? "vTone = tone;\nvBank = bank;" : ""}`,
+    );
   shader.fragmentShader = shader.fragmentShader
     .replace(
       "#include <common>",
@@ -436,6 +466,7 @@ varying vec3 vAbrWorld;
 uniform sampler2D uCenterMap;
 uniform float uHalfFull;
 uniform float uHalfCenter;
+uniform vec2 uCenterAt;
 uniform float uHasCenter;`,
     )
     .replace(
@@ -444,13 +475,21 @@ uniform float uHasCenter;`,
   vec2 abrUvFull = vec2(vAbrWorld.x, -vAbrWorld.z) / (2.0 * uHalfFull) + 0.5;
   vec4 abrTexel = texture2D(map, abrUvFull);
   if (uHasCenter > 0.5) {
-    vec2 abrUvC = vec2(vAbrWorld.x, -vAbrWorld.z) / (2.0 * uHalfCenter) + 0.5;
+    vec2 abrUvC = (vec2(vAbrWorld.x, -vAbrWorld.z) - uCenterAt) / (2.0 * uHalfCenter) + 0.5;
     // Mostreig sempre (fora del branch) perquè les derivades del mipmap siguin correctes.
     vec4 abrCenter = texture2D(uCenterMap, clamp(abrUvC, 0.0, 1.0));
     vec2 abrEdge = min(abrUvC, 1.0 - abrUvC) * 2.0 * uHalfCenter;
     abrTexel = mix(abrTexel, abrCenter, clamp(min(abrEdge.x, abrEdge.y) / 20.0, 0.0, 1.0));
   }
-  diffuseColor *= abrTexel;
+  ${
+    withBanks
+      ? `// Al peu del carrer asfaltat (bank = 1) la foto estira murs i voreres: es deixa el to
+  // de terra. Cap al camp (bank → 0) es fon amb la foto. El factor és per vèrtex, així la
+  // frontera entre dues cares no fa un tall.
+  diffuseColor.rgb *= mix(abrTexel.rgb, vTone, clamp(vBank, 0.0, 1.0));
+  diffuseColor.a *= abrTexel.a;`
+      : "diffuseColor *= abrTexel;"
+  }
 #endif`,
     );
 }
@@ -485,7 +524,7 @@ function loadOrthoTexture(url: string, onLoad: (tex: THREE.Texture) => void, onE
 function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: THREE.MeshStandardMaterial } {
   if (!terrainMaterial || !roofMaterial) {
     const ground = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.96, metalness: 0 });
-    ground.onBeforeCompile = injectOrthoShader;
+    ground.onBeforeCompile = (shader) => injectOrthoShader(shader, true);
     const roof = new THREE.MeshStandardMaterial({
       vertexColors: true,
       color: 0xffffff,
@@ -497,6 +536,7 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
     // porten la foto projectada, només el to mitjà de l'ortofoto al color de vèrtex.
     addWorldDetail(ground, { map: detailTextures.ground, mode: "top", scaleM: 3, strength: 0.85, secondScale: 0.11, fade: [45, 170] });
     addWorldDetail(roof, { map: detailTextures.roofTiles, mode: "ridge", scaleM: 1.6, strength: 0.9, fade: [35, 140] });
+    installHouseHide(roof);
     terrainMaterial = ground;
     roofMaterial = roof;
     orthoUniforms.uHalfFull.value = terrainSizeM / 2;
@@ -569,6 +609,11 @@ function applyCarEnvironment(): void {
   setWaterEnvironment(env);
 }
 
+/** Materials que poden descartar la casa que envolta la càmera. Cal declarar-los abans de
+ *  `createWindowGlassMaterial`, que ja crida `installHouseHide` en construir el món. */
+const houseHideMaterials: THREE.Material[] = [];
+let houseHideCompiled = false;
+
 function createWindowGlassMaterial(sunDir: THREE.Vector3): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({
     map: windowGlassMap(),
@@ -605,16 +650,157 @@ function createWindowGlassMaterial(sunDir: THREE.Vector3): THREE.MeshStandardMat
     );
   };
   carEnvMaterials.push({ mat, intensity: 0.32 });
+  installHouseHide(mat);
   return mat;
 }
 
-function addPart(root: THREE.Object3D, geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0): THREE.Mesh {
+function addPart(
+  root: THREE.Object3D,
+  geo: THREE.BufferGeometry,
+  mat: THREE.Material | THREE.Material[],
+  x = 0,
+  y = 0,
+  z = 0,
+): THREE.Mesh {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x, y, z);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   root.add(mesh);
   return mesh;
+}
+
+/** Sostre del Renault 12. No és una llosa: puja uns 4,5 cm al centre (al llarg i, una mica menys,
+ *  d'ample) i baixa cap al parabrisa i el vidre posterior. El vidre de la cabina segueix la mateixa
+ *  corba longitudinal. */
+function r12RoofGeometry(): THREE.BufferGeometry {
+  const xSeg = 14;
+  const zSeg = 18;
+  const halfW = 0.72;
+  const zFront = 0.16;
+  const zRear = -0.98;
+  const yRim = 1.36;
+  const rise = 0.045;
+  const crown = 0.022;
+  const thick = 0.04;
+  const nx = xSeg + 1;
+  const nz = zSeg + 1;
+  const yTop = (u: number, v: number) =>
+    yRim + Math.sin(v * Math.PI) * rise + Math.sin(u * Math.PI) * crown;
+  const yBot = (u: number, v: number) => yRim + Math.sin(v * Math.PI) * rise - thick;
+
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const pushGrid = (yOf: (u: number, v: number) => number) => {
+    for (let iz = 0; iz < nz; iz++) {
+      const v = iz / zSeg;
+      const z = zFront + (zRear - zFront) * v;
+      for (let ix = 0; ix < nx; ix++) {
+        const u = ix / xSeg;
+        positions.push(-halfW + 2 * halfW * u, yOf(u, v), z);
+        uvs.push(u, v);
+      }
+    }
+  };
+  pushGrid(yTop);
+  pushGrid(yBot);
+  const topCount = nx * nz;
+
+  const indices: number[] = [];
+  const outward = (ia: number, ib: number, ic: number, dir: [number, number, number]) => {
+    const ax = positions[ia * 3] ?? 0;
+    const ay = positions[ia * 3 + 1] ?? 0;
+    const az = positions[ia * 3 + 2] ?? 0;
+    const bx = positions[ib * 3] ?? 0;
+    const by = positions[ib * 3 + 1] ?? 0;
+    const bz = positions[ib * 3 + 2] ?? 0;
+    const cx = positions[ic * 3] ?? 0;
+    const cy = positions[ic * 3 + 1] ?? 0;
+    const cz = positions[ic * 3 + 2] ?? 0;
+    const nxv = (by - ay) * (cz - az) - (bz - az) * (cy - ay);
+    const nyv = (bz - az) * (cx - ax) - (bx - ax) * (cz - az);
+    const nzv = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    if (nxv * dir[0] + nyv * dir[1] + nzv * dir[2] >= 0) {
+      indices.push(ia, ib, ic);
+    } else {
+      indices.push(ia, ic, ib);
+    }
+  };
+  const quad = (a: number, b: number, c: number, d: number, dir: [number, number, number]) => {
+    outward(a, b, c, dir);
+    outward(a, c, d, dir);
+  };
+  for (let iz = 0; iz < zSeg; iz++) {
+    for (let ix = 0; ix < xSeg; ix++) {
+      const a = iz * nx + ix;
+      const b = a + 1;
+      const d = a + nx;
+      const c = d + 1;
+      quad(a, b, c, d, [0, 1, 0]);
+      quad(a + topCount, b + topCount, c + topCount, d + topCount, [0, -1, 0]);
+    }
+  }
+  for (let ix = 0; ix < xSeg; ix++) {
+    const a = ix;
+    const b = ix + 1;
+    quad(a, b, b + topCount, a + topCount, [0, 0, 1]);
+    const rear = zSeg * nx + ix;
+    quad(rear, rear + 1, rear + 1 + topCount, rear + topCount, [0, 0, -1]);
+  }
+  for (let iz = 0; iz < zSeg; iz++) {
+    const left = iz * nx;
+    quad(left, left + nx, left + nx + topCount, left + topCount, [-1, 0, 0]);
+    const right = left + xSeg;
+    quad(right, right + nx, right + nx + topCount, right + topCount, [1, 0, 0]);
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** Canaló de la vora del sostre: segueix el bombament, una mica per sota del caire. */
+function r12DripRail(side: number): THREE.BufferGeometry {
+  const pts: THREE.Vector3[] = [];
+  const steps = 14;
+  const zFront = 0.16;
+  const zRear = -0.98;
+  for (let i = 0; i <= steps; i++) {
+    const v = i / steps;
+    const z = zFront + (zRear - zFront) * v;
+    const y = 1.36 + Math.sin(v * Math.PI) * 0.045 - 0.018;
+    pts.push(new THREE.Vector3(side * 0.73, y, z));
+  }
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 28, 0.012, 6, false);
+}
+
+/** Tapacubos de plàstic gran del Renault 12: anell de ranures radials i el rombe al centre.
+ *  Ni les ranures ni el rombe són de revolució, així es veu com gira la roda. */
+function r12HubcapParts(): { slots: THREE.BufferGeometry; diamond: THREE.BufferGeometry } {
+  const slots: THREE.BufferGeometry[] = [];
+  const n = 16;
+  const radius = 0.132;
+  for (let i = 0; i < n; i++) {
+    const g = new THREE.BoxGeometry(0.01, 0.026, 0.042);
+    g.translate(0, 0, radius);
+    g.rotateX((i / n) * Math.PI * 2);
+    slots.push(g);
+  }
+  // Rombe de franges horitzontals (el logotip a partir del 1972), punta amunt.
+  const bars: THREE.BufferGeometry[] = [];
+  const stripes = 5;
+  const halfH = 0.022;
+  for (let i = 0; i < stripes; i++) {
+    const y = halfH - ((i + 0.5) / stripes) * 2 * halfH;
+    const k = 1 - Math.abs(y) / halfH;
+    const g = new THREE.BoxGeometry(0.005, (2 * halfH / stripes) * 0.58, Math.max(0.03 * k, 0.004));
+    g.translate(0, y, 0);
+    bars.push(g);
+  }
+  return { slots: mergeGeometries(slots)!, diamond: mergeGeometries(bars)! };
 }
 
 function buildKartVisual(root: THREE.Group): void {
@@ -651,10 +837,19 @@ function buildKartVisual(root: THREE.Group): void {
   const black = new THREE.MeshStandardMaterial({ color: 0x18181a, roughness: 0.6 });
   const seam = new THREE.MeshStandardMaterial({ color: 0x1a0a12, roughness: 0.8 });
   const tyreTex = tyreMap();
-  tyreTex.repeat.set(3, 1);
-  const tyre = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tyreTex, roughness: 0.92 });
+  // Una volta de la textura és mitja volta de roda: els blocs queden de la mida d'un pneumàtic real.
+  tyreTex.repeat.set(2, 1);
+  const tyreTread = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tyreTex, roughness: 0.92 });
+  const tyreWall = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tyreSidewallMap(), roughness: 0.96 });
+  const tyre = [tyreTread, tyreWall, tyreWall];
   const headlight = new THREE.MeshStandardMaterial({ color: 0xfff6d8, emissive: 0xfff1c0, emissiveIntensity: 0.35 });
-  const taillight = new THREE.MeshStandardMaterial({ color: 0xb3141b, emissive: 0x5a0000, emissiveIntensity: 0.6 });
+  const taillight = new THREE.MeshStandardMaterial({
+    color: 0xb3141b,
+    emissive: 0xc41c18,
+    emissiveIntensity: TAIL_IDLE,
+  });
+  taillight.name = "taillight";
+  taillightMat = taillight;
   const amber = new THREE.MeshStandardMaterial({ color: 0xf29a1d, emissive: 0x4a2600, emissiveIntensity: 0.5 });
   const frontPlate = new THREE.MeshStandardMaterial({ map: plateMap("ZA-4721-C"), roughness: 0.5 });
   const rearPlate = frontPlate;
@@ -685,13 +880,16 @@ function buildKartVisual(root: THREE.Group): void {
   cabin.moveTo(0.78, 0.86);
   cabin.lineTo(0.26, 1.29);
   cabin.quadraticCurveTo(0.18, 1.355, 0.06, 1.36);
-  cabin.lineTo(-0.84, 1.36);
+  cabin.quadraticCurveTo(-0.39, 1.45, -0.84, 1.36); // sostre bombat, el centre uns 4,5 cm més alt
   cabin.quadraticCurveTo(-0.96, 1.36, -1.04, 1.29);
   cabin.lineTo(-1.52, 0.88);
   cabin.closePath();
   const cabinGlass = addPart(root, extrudeSide(cabin, 1.4, 0.05), glass);
   cabinGlass.castShadow = false;
-  addPart(root, new RoundedBoxGeometry(1.44, 0.06, 1.16, 3, 0.03), paint, 0, 1.385, -0.39);
+  addPart(root, r12RoofGeometry(), paint);
+  for (const side of [-1, 1]) {
+    addPart(root, r12DripRail(side), black);
+  }
   const pillars: [number, number, number, number][] = [
     [0.78, 0.87, 0.2, 1.35], // A
     [-0.3, 0.87, -0.33, 1.37], // B
@@ -753,11 +951,25 @@ function buildKartVisual(root: THREE.Group): void {
     }
   }
 
-  // Rodes amb tapaboques: pivot (gir de direcció) → spinner (rodolament) → pneumàtic.
-  const tyreGeo = new THREE.CylinderGeometry(R12_WHEEL_R, R12_WHEEL_R, 0.18, 20);
+  // Rodes: pivot (gir de direcció) → spinner (rodolament) → pneumàtic i tapacubos.
+  // El tapacubos només mira enfora. El disc tapa la llanda de 13" (radi ~0,165 m).
+  const tyreGeo = new THREE.CylinderGeometry(R12_WHEEL_R, R12_WHEEL_R, 0.18, 24);
   tyreGeo.rotateZ(Math.PI / 2);
-  const hubGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.02, 16);
+  const HUB_R = 0.166;
+  const hubGeo = new THREE.CylinderGeometry(HUB_R, HUB_R * 0.98, 0.016, 36);
   hubGeo.rotateZ(Math.PI / 2);
+  const hubSilver = new THREE.MeshStandardMaterial({
+    color: 0xd8dee3,
+    roughness: 0.32,
+    metalness: 0.78,
+    envMap: env,
+    envMapIntensity: 0.9,
+  });
+  const hubDark = new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.7, metalness: 0.04 });
+  carEnvMaterials.push({ mat: hubSilver, intensity: 0.9 });
+  const { slots: slotGeo, diamond: diamondGeo } = r12HubcapParts();
+  const badgeGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.005, 20);
+  badgeGeo.rotateZ(Math.PI / 2);
   for (const z of [R12_FRONT_AXLE_Z, R12_REAR_AXLE_Z]) {
     for (const side of [-1, 1]) {
       const pivot = new THREE.Group();
@@ -766,7 +978,13 @@ function buildKartVisual(root: THREE.Group): void {
       const spinner = new THREE.Group();
       pivot.add(spinner);
       addPart(spinner, tyreGeo, tyre);
-      addPart(spinner, hubGeo, chrome, side * 0.095, 0, 0);
+      addPart(spinner, hubGeo, hubSilver, side * 0.104, 0, 0);
+      const slots = addPart(spinner, slotGeo, hubDark, side * 0.114, 0, 0);
+      const badge = addPart(spinner, badgeGeo, hubDark, side * 0.116, 0, 0);
+      const diamond = addPart(spinner, diamondGeo, chrome, side * 0.121, 0, 0);
+      for (const piece of [slots, badge, diamond]) {
+        piece.castShadow = false;
+      }
       kartWheels.spin.push(spinner);
       if (z === R12_FRONT_AXLE_Z) {
         kartWheels.steer.push(pivot);
@@ -890,6 +1108,34 @@ function surfaceAt(x: number, z: number): Surface {
     return "offroad";
   }
   return hit.object.name.toLowerCase().includes("dirt") ? "dirt" : "paved";
+}
+
+/** Alçada de la làmina si queda per damunt del terra de les rodes; null si el cotxe va eixut.
+ *  Mira el centre i els dos eixos: en un gual estret les rodes hi entren abans que el centre.
+ *  La vora de la malla s'enterra al talús, així que tocar-la amb un raig no vol dir que hi hagi aigua. */
+function waterOverWheels(x: number, y: number, z: number): number | null {
+  if (waterMeshes.length === 0) {
+    return null;
+  }
+  const fx = Math.sin(state.heading);
+  const fz = Math.cos(state.heading);
+  let best: number | null = null;
+  for (const along of [0, -1.12, 1.32]) {
+    raycaster.set(rayOrigin.set(x + fx * along, y + 6, z + fz * along), down);
+    raycaster.far = 12;
+    const hits = raycaster.intersectObjects(waterMeshes, false);
+    if (hits.length === 0) {
+      continue;
+    }
+    const surfaceY = hits[0].point.y;
+    if (surfaceY <= y - state.wheelOffset + 0.05) {
+      continue;
+    }
+    if (best === null || surfaceY > best) {
+      best = surfaceY;
+    }
+  }
+  return best;
 }
 
 function sampleRoadY(x: number, z: number): number | null {
@@ -1031,9 +1277,21 @@ const BODY_POINTS: [number, number][] = [
 ];
 
 /**
+ * Alçada (m) d'un microrelleu de la calçada. Ones d'uns 15–25 m i pocs centímetres: el pendent
+ * combinat no arriba a un grau. Només serveix per tombar el cotxe; no és el terra de debò.
+ */
+function roadMicroHeight(x: number, z: number): number {
+  const slow = Math.sin(x * 0.28 + z * 0.11);
+  const cross = Math.sin(x * 0.13 - z * 0.33);
+  return slow * 0.022 + cross * 0.014;
+}
+
+/**
  * Posa el cotxe sobre les quatre rodes: el pla que passa per l'alçada del terra sota cada roda
  * dóna el capcineig i el balanceig. Si algun punt del contorn de la carrosseria quedaria per sota
  * del terra (un talús, un caramull), el cotxe s'aixeca com si quedés recolzat sobre els baixos.
+ * A la calçada, un microrelleu suau varia aquesta inclinació perquè el cotxe no quedi sempre
+ * paral·lel al pla del carrer. No entra a l'alçada ni al pendent que empeny el cotxe.
  */
 function sampleGroundPose(x: number, z: number, heading: number): GroundPose | null {
   const center = groundY(x, z);
@@ -1058,6 +1316,21 @@ function sampleGroundPose(x: number, z: number, heading: number): GroundPose | n
   const right = (hFR + hRR) / 2;
   const gradZ = (front - rear) / wb;
   const gradX = (left - right) / (2 * WHEEL_TRACK_HALF);
+  // A la calçada, el desnivell entre rodes del microrelleu se suma al pla real.
+  // L'alçada i el pendent físic es queden amb el terra de debò.
+  let tiltZ = gradZ;
+  let tiltX = gradX;
+  if (isOnRoad(x, z)) {
+    const base = roadMicroHeight(x, z);
+    const micro = (lx: number, lz: number): number =>
+      roadMicroHeight(x + lx * cosH + lz * sinH, z - lx * sinH + lz * cosH) - base;
+    const mFL = micro(WHEEL_TRACK_HALF, frontZ);
+    const mFR = micro(-WHEEL_TRACK_HALF, frontZ);
+    const mRL = micro(WHEEL_TRACK_HALF, rearZ);
+    const mRR = micro(-WHEEL_TRACK_HALF, rearZ);
+    tiltZ += ((mFL + mFR) / 2 - (mRL + mRR) / 2) / wb;
+    tiltX += ((mFL + mRL) / 2 - (mFR + mRR) / 2) / (2 * WHEEL_TRACK_HALF);
+  }
   const midZ = (frontZ + rearZ) / 2;
   const plane = (lx: number, lz: number): number => (front + rear) / 2 + (lz - midZ) * gradZ + lx * gradX;
 
@@ -1069,8 +1342,8 @@ function sampleGroundPose(x: number, z: number, heading: number): GroundPose | n
   return {
     y: plane(0, 0) + lift,
     // Rotació X positiva abaixa el morro (+Z): si el davant és més alt, cal negativa.
-    pitch: -slope,
-    roll: Math.atan(gradX),
+    pitch: -Math.atan(tiltZ),
+    roll: Math.atan(tiltX),
     slope,
   };
 }
@@ -1142,6 +1415,7 @@ function applySpawn(): void {
   state.steer = 0;
   state.accelPitch = 0;
   state.driftAngle = 0;
+  clearImpact();
   autopilot?.reset();
   state.heading = THREE.MathUtils.degToRad(spawn.rotation_y_deg);
   kart.rotation.y = state.heading;
@@ -1169,7 +1443,7 @@ const worldMaterials = {
   // un color pla feia una taca uniforme amb la vora tallada en sec contra la foto del voltant.
   roadDirt: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.97 }),
 };
-worldMaterials.roadDirt.onBeforeCompile = injectOrthoShader;
+worldMaterials.roadDirt.onBeforeCompile = (shader) => injectOrthoShader(shader);
 // Arrebossat amb antirepetició: les façanes són llises i grans i el patró de 2,5 m es veia repetit.
 addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "triplanar", scaleM: 2.5, strength: 0.35, fade: [30, 120], antiTile: true });
 // Tàpies de totxo amb la junta de morter clar; la maçoneria de l'església, amb junta fosca.
@@ -1186,6 +1460,61 @@ addWorldDetail(worldMaterials.road, {
   fade: [45, 170],
 });
 addWorldDetail(worldMaterials.roadDirt, { map: detailTextures.dirt, mode: "top", scaleM: 2.2, strength: 1, secondScale: 0.12, fade: [40, 150] });
+// Dins d'una casa, parets, teulada i accessoris d'aquella casa no es dibuixen.
+installHouseHide(worldMaterials.building);
+installHouseHide(worldMaterials.tapia);
+installHouseHide(worldMaterials.stone);
+installHouseHide(worldMaterials.prop);
+
+/** Casa que la càmera té al voltant (0 = cap). El mateix uniform el llegeixen tots els materials. */
+const hideHouseUniform = { value: 0 };
+
+/**
+ * Descarta els fragments de la casa `hideHouseUniform` (parets, teulada, finestres, portes).
+ * L'atribut `houseId` el posa el pipeline; si la malla no en té, val 0 i no es descarta res.
+ */
+function installHouseHide(material: THREE.Material): void {
+  houseHideMaterials.push(material);
+  const previous = material.onBeforeCompile;
+  const previousKey = material.customProgramCacheKey();
+  material.onBeforeCompile = (shader, renderer) => {
+    previous?.call(material, shader, renderer);
+    shader.uniforms.uHideHouse = hideHouseUniform;
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute float houseId;\nvarying float vHideHouse;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvHideHouse = houseId;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vHideHouse;\nuniform float uHideHouse;")
+      .replace(
+        "#include <clipping_planes_fragment>",
+        `#include <clipping_planes_fragment>
+#ifdef ABR_HIDE_HOUSE
+if (uHideHouse > 0.5 && abs(vHideHouse - uHideHouse) < 0.5) discard;
+#endif`,
+      );
+  };
+  material.customProgramCacheKey = () =>
+    `${previousKey}|hideHouse|${material.defines?.ABR_HIDE_HOUSE !== undefined ? 1 : 0}`;
+}
+
+/** Activa el descart només quan la càmera és dins d'una casa. Fora, el programa no té `discard`. */
+function setHouseHide(id: number): void {
+  hideHouseUniform.value = id;
+  const hide = id > 0;
+  if (hide === houseHideCompiled) {
+    return;
+  }
+  houseHideCompiled = hide;
+  for (const mat of houseHideMaterials) {
+    mat.defines = mat.defines ?? {};
+    if (hide) {
+      mat.defines.ABR_HIDE_HOUSE = "";
+    } else {
+      delete mat.defines.ABR_HIDE_HOUSE;
+    }
+    mat.needsUpdate = true;
+  }
+}
 
 /** Normal de la cara a cada triangle. Les caixes (barrots, marcs) comparteixen els vuit vèrtexs
  *  i la normal de la cantonada és la mitjana de les tres cares: la llum pinta el barrot com un
@@ -1220,14 +1549,18 @@ function tintWorld(root: THREE.Object3D): void {
         mesh.material = worldMaterials.pole;
         return;
       }
-      cameraBlockers.push(mesh);
-      mesh.material = !mesh.geometry.attributes.color
-        ? new THREE.MeshStandardMaterial({ color: 0xd9a088, roughness: 0.78 })
-        : /tapia|brick/.test(mesh.name.toLowerCase())
+      houseShellMeshes.push(mesh);
+      if (!mesh.geometry.attributes.color) {
+        const plain = new THREE.MeshStandardMaterial({ color: 0xd9a088, roughness: 0.78 });
+        installHouseHide(plain);
+        mesh.material = plain;
+      } else {
+        mesh.material = /tapia|brick/.test(mesh.name.toLowerCase())
           ? worldMaterials.tapia
           : /stone/.test(mesh.name.toLowerCase())
             ? worldMaterials.stone
             : worldMaterials.building;
+      }
       return;
     }
     if (kind === "prop") {
@@ -1250,6 +1583,8 @@ function tintWorld(root: THREE.Object3D): void {
     }
     if (kind === "water") {
       // No és terra: el cotxe passa pel llit, per sota de la làmina.
+      waterMeshes.push(mesh);
+      mesh.userData.lazyBvh = true;
       applyWaterMaterial(mesh, "surface");
       return;
     }
@@ -1263,9 +1598,17 @@ function tintWorld(root: THREE.Object3D): void {
     if (kind === "terrain") {
       groundMeshes.push(mesh);
       mesh.userData.lazyBvh = true;
-    } else if (kind === "roof") {
-      cameraBlockers.push(mesh);
-      computeOwnBoundsTree(mesh.geometry);
+      // El glTF exporta els atributs amb prefix _; el shader els vol sense.
+      const bankAttr = mesh.geometry.getAttribute("_bank");
+      const toneAttr = mesh.geometry.getAttribute("_tone");
+      if (bankAttr) {
+        mesh.geometry.setAttribute("bank", bankAttr);
+        mesh.geometry.deleteAttribute("_bank");
+      }
+      if (toneAttr) {
+        mesh.geometry.setAttribute("tone", toneAttr);
+        mesh.geometry.deleteAttribute("_tone");
+      }
     }
     applyTerrainMaterial(mesh, kind === "roof" ? "roof" : "terrain");
   });
@@ -1324,6 +1667,20 @@ type VillageFile = {
   houses?: Record<string, string>;
 };
 
+/** Fitxa breu del tooltip DEV (`house_cards.json`). */
+type HouseCard = {
+  street?: string;
+  use?: string;
+  year?: number;
+  floors?: number;
+  areaM2?: number;
+  dwellings?: number;
+  parts?: number;
+  condition?: string;
+  model?: string;
+  photo?: string;
+};
+
 /** Color de la foto en sRGB; `gain` compensa que la foto inclou les ombres de dins la copa. */
 function photoColor(c: [number, number, number] | number[], gain: number, target = new THREE.Color()): THREE.Color {
   return target.setRGB(
@@ -1348,6 +1705,8 @@ type LazyChunk = {
   obj: THREE.Object3D | null;
   /** performance.now() quan la zona ha aparegut (fade-in). */
   fadeStart?: number;
+  /** Opacitat ja aplicada, per no recórrer la zona cada fotograma. */
+  fadeAlpha?: number;
 };
 const lazyChunks: LazyChunk[] = [];
 const vegetationRoot = new THREE.Group();
@@ -1455,17 +1814,22 @@ function updateVegetationFade(now: number): void {
     const time =
       c.fadeStart === undefined ? 1 : smoothFade((now - c.fadeStart) / CHUNK_FADE_IN_MS);
     const alpha = time * smoothFade(edge);
-    c.obj.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh) {
-        return;
-      }
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      for (const mat of mats) {
-        mat.opacity = alpha;
-      }
-    });
-    c.obj.visible = alpha > 0.02;
+    // Passos de 0,025: conduint, el valor gairebé no canvia i el recorregut de la zona és car.
+    const q = Math.round(alpha * 40) / 40;
+    if (c.fadeAlpha !== q) {
+      c.fadeAlpha = q;
+      c.obj.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) {
+          return;
+        }
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of mats) {
+          mat.opacity = q;
+        }
+      });
+    }
+    c.obj.visible = q > 0.02;
     if (alpha >= 0.999 && c.fadeStart !== undefined) {
       c.fadeStart = undefined;
     }
@@ -1866,6 +2230,18 @@ async function loadVillage(): Promise<void> {
   worldRoot.add(vegetationRoot);
 }
 
+async function loadHouseCards(): Promise<void> {
+  const res = await fetchOnce(`/house_cards.json?${assetCacheKey}`);
+  if (!res.ok) {
+    return;
+  }
+  houseCards = (await res.json()) as Record<string, HouseCard>;
+  const ref = houseTooltip?.dataset.ref;
+  if (ref && devHoverHouseId && houseTooltip && !houseTooltip.hasAttribute("hidden")) {
+    renderHouseCard(ref);
+  }
+}
+
 const shadowLook = new THREE.Vector3();
 
 /** El mapa d'ombres segueix el cotxe, una mica endavant d'on mira la càmera, i ajustat a la
@@ -1913,9 +2289,17 @@ function freezeStatic(root: THREE.Object3D): void {
 const DEV_ROAD_COLOR = 0xffd400;
 const devBadge = document.getElementById("dev-badge");
 const houseTooltip = document.getElementById("house-tooltip");
+const houseTooltipPhoto = houseTooltip?.querySelector("img") ?? null;
+const houseTooltipMissing = houseTooltip?.querySelector<HTMLElement>(".missing") ?? null;
+const houseTooltipCredit = houseTooltip?.querySelector<HTMLElement>(".credit") ?? null;
+const houseTooltipStreet = houseTooltip?.querySelector<HTMLElement>(".street") ?? null;
+const houseTooltipFacts = houseTooltip?.querySelector("dl") ?? null;
+const houseTooltipRef = houseTooltip?.querySelector<HTMLElement>(".ref") ?? null;
 let devMode = false;
 /** house_id → referència cadastral (village.json). */
 let houseRefs: Record<string, string> = {};
+/** Referència cadastral → fitxa breu (house_cards.json). */
+let houseCards: Record<string, HouseCard> = {};
 /** Malles amb atribut houseId: raycast del hover en mode DEV. */
 const housePickMeshes: THREE.Object3D[] = [];
 const housePickRaycaster = new THREE.Raycaster();
@@ -1927,6 +2311,9 @@ let houseCenters = new Map<number, THREE.Vector3>();
 const houseTooltipProj = new THREE.Vector3();
 let devHoverHouseId = 0;
 let devTooltipCopyTimer: ReturnType<typeof setTimeout> | null = null;
+let devTooltipHideTimer: ReturnType<typeof setTimeout> | null = null;
+/** Foto que ja hem demanat, per no recarregar-la a cada fotograma. */
+let houseTooltipPhotoUrl = "";
 /** Malles que canvien de material en mode dev, amb el material normal per tornar-hi. */
 const devTinted: { mesh: THREE.Mesh; normal: THREE.Material | THREE.Material[]; dev: THREE.Material }[] = [];
 
@@ -1943,6 +2330,7 @@ function houseDevMaterial(shade: number): THREE.MeshStandardMaterial {
     side: THREE.DoubleSide,
   });
   mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uHideHouse = hideHouseUniform;
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", "#include <common>\nattribute float houseId;\nvarying float vHouseId;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvHouseId = houseId;");
@@ -1951,6 +2339,7 @@ function houseDevMaterial(shade: number): THREE.MeshStandardMaterial {
         "#include <common>",
         `#include <common>
 varying float vHouseId;
+uniform float uHideHouse;
 vec3 abrHouseColor(float id) {
   id = floor(id + 0.5);
   if (id < 0.5) {
@@ -1966,8 +2355,16 @@ vec3 abrHouseColor(float id) {
   return pow(rgb, vec3(2.2));
 }`,
       )
+      .replace(
+        "#include <clipping_planes_fragment>",
+        `#include <clipping_planes_fragment>
+#ifdef ABR_HIDE_HOUSE
+if (uHideHouse > 0.5 && abs(vHouseId - uHideHouse) < 0.5) discard;
+#endif`,
+      )
       .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= abrHouseColor(vHouseId);");
   };
+  houseHideMaterials.push(mat);
   return mat;
 }
 
@@ -2002,28 +2399,178 @@ function prepareDevTint(root: THREE.Object3D): void {
   houseCenters = buildHouseCenters(housePickMeshes);
 }
 
+/** Durada del fade, igual que la transició d'opacitat de `#house-tooltip`. */
+const HOUSE_TOOLTIP_FADE_MS = 180;
+let houseTooltipFadeOut: ReturnType<typeof setTimeout> | null = null;
+/** Cert mentre la fitxa s'ha de veure (inclou el fade-in). El fade-out el deixa a fals. */
+let houseTooltipShown = false;
+
+function showHouseTooltip(): void {
+  if (!houseTooltip) {
+    return;
+  }
+  if (houseTooltipFadeOut) {
+    clearTimeout(houseTooltipFadeOut);
+    houseTooltipFadeOut = null;
+  }
+  const start = !houseTooltipShown;
+  houseTooltipShown = true;
+  houseTooltip.toggleAttribute("hidden", false);
+  if (!start) {
+    houseTooltip.classList.add("visible");
+    return;
+  }
+  // Un fotograma a opacitat 0, i després el fade-in. Si mentrestant s'amaga, no apareix.
+  houseTooltip.classList.remove("visible");
+  void houseTooltip.offsetWidth;
+  requestAnimationFrame(() => {
+    if (houseTooltipShown) {
+      houseTooltip?.classList.add("visible");
+    }
+  });
+}
+
 function hideHouseTooltip(): void {
-  houseTooltip?.toggleAttribute("hidden", true);
-  houseTooltip?.classList.remove("copied");
-  houseTooltip?.removeAttribute("title");
+  if (!houseTooltip || !houseTooltipShown) {
+    return;
+  }
+  houseTooltipShown = false;
+  houseTooltip.classList.remove("copied");
+  houseTooltip.classList.remove("visible");
+  if (houseTooltipRef && houseTooltip.dataset.ref) {
+    houseTooltipRef.textContent = houseTooltip.dataset.ref;
+  }
+  if (houseTooltipFadeOut) {
+    clearTimeout(houseTooltipFadeOut);
+  }
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  houseTooltipFadeOut = setTimeout(() => {
+    houseTooltipFadeOut = null;
+    if (!houseTooltipShown) {
+      houseTooltip?.toggleAttribute("hidden", true);
+    }
+  }, reduce ? 0 : HOUSE_TOOLTIP_FADE_MS);
+}
+
+function cancelDevTooltipHide(): void {
+  if (devTooltipHideTimer) {
+    clearTimeout(devTooltipHideTimer);
+    devTooltipHideTimer = null;
+  }
+}
+
+/** Deixa un instant per passar del model al requadre i poder-hi fer clic. */
+function scheduleDevTooltipHide(): void {
+  if (devTooltipHideTimer || !devHoverHouseId) {
+    return;
+  }
+  devTooltipHideTimer = setTimeout(() => {
+    devTooltipHideTimer = null;
+    devHoverHouseId = 0;
+    hideHouseTooltip();
+  }, 280);
 }
 
 function clearDevHouseHover(): void {
+  cancelDevTooltipHide();
   devHoverHouseId = 0;
   hideHouseTooltip();
 }
 
-function setDevHouseTooltipRef(ref: string): void {
-  if (!houseTooltip) {
+function addHouseFact(label: string, value: string): void {
+  if (!houseTooltipFacts) {
+    return;
+  }
+  const dt = document.createElement("dt");
+  dt.textContent = label;
+  const dd = document.createElement("dd");
+  dd.textContent = value;
+  houseTooltipFacts.append(dt, dd);
+}
+
+function showHousePhoto(ok: boolean): void {
+  if (houseTooltipPhoto) {
+    houseTooltipPhoto.hidden = !ok;
+  }
+  if (houseTooltipMissing) {
+    houseTooltipMissing.hidden = ok;
+  }
+  if (houseTooltipCredit) {
+    houseTooltipCredit.hidden = !ok;
+  }
+}
+
+function setHousePhoto(photo: string, ref: string): void {
+  if (!houseTooltipPhoto || photo === houseTooltipPhotoUrl) {
+    return;
+  }
+  houseTooltipPhotoUrl = photo;
+  if (!photo) {
+    houseTooltipPhoto.removeAttribute("src");
+    showHousePhoto(false);
+    return;
+  }
+  const token = photo;
+  houseTooltipPhoto.hidden = true;
+  if (houseTooltipMissing) {
+    houseTooltipMissing.hidden = true;
+  }
+  if (houseTooltipCredit) {
+    houseTooltipCredit.hidden = true;
+  }
+  houseTooltipPhoto.alt = `Façana de ${ref}`;
+  houseTooltipPhoto.onload = () => {
+    if (houseTooltipPhotoUrl === token) {
+      showHousePhoto(true);
+    }
+  };
+  houseTooltipPhoto.onerror = () => {
+    if (houseTooltipPhotoUrl === token) {
+      showHousePhoto(false);
+    }
+  };
+  houseTooltipPhoto.src = photo;
+}
+
+/** Omple la fitxa. No es torna a cridar mentre el ratolí segueix sobre la mateixa casa. */
+function renderHouseCard(ref: string): void {
+  if (!houseTooltip || !houseTooltipRef || !houseTooltipFacts || !houseTooltipStreet) {
     return;
   }
   houseTooltip.dataset.ref = ref;
-  houseTooltip.textContent = ref;
-  houseTooltip.title = "Clic per copiar al portapapers";
   houseTooltip.classList.remove("copied");
+  houseTooltipRef.textContent = ref;
+  const card = houseCards[ref];
+  houseTooltipStreet.textContent = card?.street ?? "";
+  houseTooltipFacts.replaceChildren();
+  if (card?.use) {
+    addHouseFact("Ús", card.use);
+  }
+  if (card?.year) {
+    addHouseFact("Any", String(card.year));
+  }
+  if (card?.floors) {
+    addHouseFact("Plantes", String(card.floors));
+  }
+  if (card?.areaM2) {
+    addHouseFact("Construïts", `${card.areaM2} m²`);
+  }
+  if (card?.dwellings != null) {
+    addHouseFact("Habitatges", String(card.dwellings));
+  }
+  if (card?.parts) {
+    addHouseFact("Parts", String(card.parts));
+  }
+  if (card?.condition) {
+    addHouseFact("Estat", card.condition);
+  }
+  if (card?.model) {
+    addHouseFact("Model", card.model);
+  }
+  setHousePhoto(card?.photo ?? "", ref);
 }
 
-/** Coloca el tooltip al centre projectat de la casa en hover (no segueix el ratolí). */
+/** Coloca la fitxa vora el centre projectat de la casa (no segueix el ratolí). */
 function positionDevHouseTooltip(): void {
   if (!devMode || !devHoverHouseId || !houseTooltip) {
     return;
@@ -2039,12 +2586,32 @@ function positionDevHouseTooltip(): void {
     hideHouseTooltip();
     return;
   }
-  if (!houseTooltip.classList.contains("copied")) {
-    setDevHouseTooltipRef(ref);
+  if (houseTooltip.dataset.ref !== ref) {
+    renderHouseCard(ref);
   }
-  houseTooltip.style.left = `${pos.x}px`;
-  houseTooltip.style.top = `${pos.y}px`;
-  houseTooltip.toggleAttribute("hidden", false);
+  showHouseTooltip();
+  const w = houseTooltip.offsetWidth;
+  const h = houseTooltip.offsetHeight;
+  const margin = 12;
+  // El HUD de baix (velocímetre, FPS i el rètol DEV) i el minimapa de dalt a la dreta.
+  const bottomHud = 132;
+  const miniLeft = window.innerWidth - 16 - 200;
+  let left = pos.x - w / 2;
+  let top = pos.y - h - 18;
+  if (top < margin) {
+    top = pos.y + 18;
+  }
+  const maxTop = Math.max(margin, window.innerHeight - h - bottomHud);
+  top = Math.min(Math.max(top, margin), maxTop);
+  if (top + h > window.innerHeight - margin) {
+    top = Math.max(margin, window.innerHeight - h - margin);
+  }
+  left = Math.min(Math.max(left, margin), window.innerWidth - w - margin);
+  if (top < 16 + 200 && left + w > miniLeft) {
+    left = Math.max(margin, miniLeft - w - 8);
+  }
+  houseTooltip.style.left = `${Math.round(left)}px`;
+  houseTooltip.style.top = `${Math.round(top)}px`;
 }
 
 function pickHouse(clientX: number, clientY: number): { ref: string; houseId: number } | null {
@@ -2076,10 +2643,11 @@ function onDevHousePointerMove(e: PointerEvent): void {
   }
   const hit = pickHouse(e.clientX, e.clientY);
   if (hit) {
+    cancelDevTooltipHide();
     devHoverHouseId = hit.houseId;
     positionDevHouseTooltip();
   } else {
-    clearDevHouseHover();
+    scheduleDevTooltipHide();
   }
 }
 
@@ -2088,7 +2656,7 @@ function onDevPointerLeaveCanvas(e: PointerEvent): void {
   if (rel instanceof Node && houseTooltip?.contains(rel)) {
     return;
   }
-  clearDevHouseHover();
+  scheduleDevTooltipHide();
 }
 
 function onDevPointerLeaveTooltip(e: PointerEvent): void {
@@ -2096,11 +2664,11 @@ function onDevPointerLeaveTooltip(e: PointerEvent): void {
   if (rel === renderer.domElement) {
     return;
   }
-  clearDevHouseHover();
+  scheduleDevTooltipHide();
 }
 
 async function copyDevHouseRef(): Promise<void> {
-  if (!houseTooltip || houseTooltip.hasAttribute("hidden")) {
+  if (!houseTooltip || !houseTooltipRef || houseTooltip.hasAttribute("hidden")) {
     return;
   }
   const ref = houseTooltip.dataset.ref;
@@ -2112,18 +2680,16 @@ async function copyDevHouseRef(): Promise<void> {
   } catch {
     return;
   }
-  houseTooltip.textContent = "Copiat!";
+  houseTooltipRef.textContent = "Copiat";
   houseTooltip.classList.add("copied");
   if (devTooltipCopyTimer) {
     clearTimeout(devTooltipCopyTimer);
   }
   devTooltipCopyTimer = setTimeout(() => {
     devTooltipCopyTimer = null;
-    if (devHoverHouseId && houseTooltip && !houseTooltip.hasAttribute("hidden")) {
-      const again = resolveHouseRef(houseRefs, devHoverHouseId);
-      if (again) {
-        setDevHouseTooltipRef(again);
-      }
+    if (houseTooltipRef && houseTooltip?.dataset.ref === ref) {
+      houseTooltipRef.textContent = ref;
+      houseTooltip.classList.remove("copied");
     }
   }, 1200);
 }
@@ -2142,6 +2708,7 @@ function setDevMode(on: boolean): void {
 
 renderer.domElement.addEventListener("pointermove", onDevHousePointerMove);
 renderer.domElement.addEventListener("pointerleave", onDevPointerLeaveCanvas);
+houseTooltip?.addEventListener("pointerenter", () => cancelDevTooltipHide());
 houseTooltip?.addEventListener("pointerleave", onDevPointerLeaveTooltip);
 houseTooltip?.addEventListener("click", () => {
   void copyDevHouseRef();
@@ -2905,6 +3472,7 @@ function respawnAt(pick: RespawnPick): void {
   state.verticalVelocity = 0;
   state.accelPitch = 0;
   state.driftAngle = 0;
+  clearImpact();
   state.heading = pick.heading;
   kart.rotation.y = pick.heading;
   const y = sampleRoadY(pick.x, pick.z) ?? kart.position.y - state.wheelOffset;
@@ -3011,8 +3579,149 @@ const SLIDE_OFFSETS = [0, 0.2, -0.2, 0.45, -0.45, 0.8, -0.8, 1.2, -1.2];
 const STUCK_SECONDS = 1.0;
 let stuckTime = 0;
 
+/**
+ * Cop contra una paret o un tronc. La carrosseria és una molla: el para-xocs clava,
+ * el cul s'aixeca i trontolla, i un xoc de biaix fa sortir la cua.
+ * Rotació X positiva abaixa el morro (el cul puja). `side` > 0 tomba cap a la dreta del cotxe.
+ */
+const impactBody = {
+  pitch: 0,
+  pitchVel: 0,
+  roll: 0,
+  rollVel: 0,
+  /** Gir residual (rad/s) que continua desviant el morro després del cop. */
+  yawRate: 0,
+};
+const IMPACT_PITCH_K = 68;
+const IMPACT_PITCH_C = 3.6;
+const IMPACT_ROLL_K = 110;
+const IMPACT_ROLL_C = 4.4;
+const IMPACT_MIN_SPEED = 2.4;
+/** Segons amb el volant esponjós i el derrapatge que no s'agafa. */
+let impactLoose = 0;
+let impactCooldown = 0;
+/** Ja estem en contacte: el següent fotograma frega, no és un cop nou. */
+let impactContact = false;
+/** Metres que el cotxe s'ha aixecat pel cop; no compten com a salt. */
+let appliedBodyLift = 0;
+
+function clearImpact(): void {
+  impactBody.pitch = 0;
+  impactBody.pitchVel = 0;
+  impactBody.roll = 0;
+  impactBody.rollVel = 0;
+  impactBody.yawRate = 0;
+  impactLoose = 0;
+  impactCooldown = 0;
+  impactContact = false;
+  appliedBodyLift = 0;
+}
+
+/** +1 si el cop ha d'enviar la cua cap a la dreta (volant a la dreta, o ja derrapant). */
+function impactSide(): number {
+  if (Math.abs(state.steer) > 0.2) {
+    return Math.sign(state.steer);
+  }
+  if (Math.abs(state.driftAngle) > 0.12) {
+    return Math.sign(state.driftAngle);
+  }
+  return Math.random() < 0.5 ? -1 : 1;
+}
+
+/** Gira el morro sense ficar-lo dins la paret. El derrapatge es queda: el cotxe queda creuat. */
+function applyImpactYaw(yaw: number): void {
+  if (Math.abs(yaw) < 1e-5) {
+    return;
+  }
+  const next = state.heading + yaw;
+  const pos = kart.position;
+  const embedded = bodyHitsWall(pos.x, pos.y, pos.z, state.heading);
+  if (!embedded && bodyHitsWall(pos.x, pos.y, pos.z, next)) {
+    return;
+  }
+  state.heading = next;
+  state.driftAngle = THREE.MathUtils.clamp(state.driftAngle - yaw * 0.82, -1.2, 1.2);
+}
+
+/**
+ * `headOn` 1 = de cara, ~0 = frec. `kind` "scrape" només fa trontollar, sense rebot ni gir.
+ * Retorna si el cop ha agafat (prou velocitat i fora de la pausa entre cops).
+ */
+function kickImpact(speed: number, headOn: number, side: number, kind: "hit" | "scrape"): boolean {
+  const v = Math.abs(speed);
+  if (v < IMPACT_MIN_SPEED || impactCooldown > 0) {
+    return false;
+  }
+  const strength = THREE.MathUtils.clamp((v - IMPACT_MIN_SPEED) / 12, 0, 1);
+  const forward = Math.sign(speed) || 1;
+  const shove = kind === "hit" ? 1 : 0.35;
+  // De cara, el davant clava i el cul puja; marxa enrere, al revés.
+  impactBody.pitchVel += forward * (0.8 + 2.6 * headOn) * strength * shove;
+  impactBody.rollVel += side * (1.2 + 2.0 * headOn) * strength * shove;
+  impactBody.rollVel += (Math.random() - 0.5) * strength * 1.5 * shove;
+  impactBody.pitchVel += (Math.random() - 0.5) * strength * 0.7 * shove;
+
+  if (kind === "hit" && headOn > 0.34) {
+    const yawKick = side * strength * (headOn - 0.2) * 0.9;
+    impactBody.yawRate += yawKick * 2.6;
+    applyImpactYaw(yawKick * 0.25);
+    impactLoose = Math.max(impactLoose, 0.25 + 0.7 * strength * headOn);
+  }
+
+  if (kind === "hit" && headOn >= 0.72) {
+    // Rebot: se separa de la paret en lloc de quedar-hi enganxat.
+    state.speed = -forward * Math.min(6.5, v * (0.14 + 0.26 * strength));
+  } else if (kind === "hit" && headOn > 0.45) {
+    state.speed *= 1 - 0.4 * strength * headOn;
+  }
+
+  impactCooldown = kind === "hit" ? 0.22 + 0.2 * headOn : 0.14;
+  return true;
+}
+
+function springImpact(
+  pos: "pitch" | "roll",
+  vel: "pitchVel" | "rollVel",
+  k: number,
+  c: number,
+  limit: number,
+  dt: number,
+): void {
+  impactBody[vel] += (-k * impactBody[pos] - c * impactBody[vel]) * dt;
+  impactBody[pos] += impactBody[vel] * dt;
+  if (impactBody[pos] > limit) {
+    impactBody[pos] = limit;
+    impactBody[vel] = Math.min(0, impactBody[vel]);
+  } else if (impactBody[pos] < -limit) {
+    impactBody[pos] = -limit;
+    impactBody[vel] = Math.max(0, impactBody[vel]);
+  }
+}
+
+/** Metres que cal pujar el centre perquè el cap que baixa continuï tocant a terra. */
+function impactBodyLift(): number {
+  return (
+    Math.sin(Math.abs(impactBody.pitch)) * (R12.lengthM * 0.5) +
+    Math.sin(Math.abs(impactBody.roll)) * (R12.widthM * 0.5)
+  );
+}
+
+function updateImpact(dt: number): void {
+  impactCooldown = Math.max(0, impactCooldown - dt);
+  impactLoose = Math.max(0, impactLoose - dt);
+  springImpact("pitch", "pitchVel", IMPACT_PITCH_K, IMPACT_PITCH_C, 0.36, dt);
+  springImpact("roll", "rollVel", IMPACT_ROLL_K, IMPACT_ROLL_C, 0.42, dt);
+  if (Math.abs(impactBody.yawRate) < 1e-3) {
+    impactBody.yawRate = 0;
+    return;
+  }
+  applyImpactYaw(impactBody.yawRate * dt);
+  impactBody.yawRate *= Math.exp(-2.2 * dt);
+}
+
 function moveCar(move: number, dt: number): number {
   if (Math.abs(move) < 1e-5) {
+    impactContact = false;
     return 0;
   }
   const travelSign = Math.sign(move);
@@ -3042,18 +3751,36 @@ function moveCar(move: number, dt: number): number {
     }
     pos.x = nx;
     pos.z = nz;
-    if (off !== 0) {
-      // Alinea el cotxe amb l'obstacle i frega una mica, en lloc d'aturar-lo en sec.
-      state.heading = nextHeading;
-      kart.rotation.y = state.heading;
-      state.speed *= Math.exp(-5 * Math.abs(Math.sin(off)) * dt);
-      // Fregar la paret mata el derrapatge.
-      state.driftAngle *= Math.exp(-8 * dt);
+    if (off === 0) {
+      impactContact = false;
+      return dist;
+    }
+    // Alinea el cotxe amb l'obstacle i frega una mica, en lloc d'aturar-lo en sec.
+    state.heading = nextHeading;
+    kart.rotation.y = state.heading;
+    const scrape = Math.abs(Math.sin(off));
+    state.speed *= Math.exp(-5 * scrape * dt);
+    const deflect = Math.min(1, Math.abs(off) / 1.2);
+    const side = Math.sign(off) || impactSide();
+    if (!impactContact) {
+      kickImpact(state.speed, 0.22 + 0.55 * deflect, side, "hit");
+      impactContact = true;
+    } else if (scrape > 0.15) {
+      kickImpact(state.speed, 0.15, side, "scrape");
+    }
+    // Un frec lleuger assenta el derrapatge; un cop de biaix el deixa creuat.
+    if (Math.abs(off) < 0.4) {
+      state.driftAngle *= Math.exp(-4 * dt);
     }
     return dist;
   }
-  state.speed *= 0.35;
-  state.driftAngle = 0;
+  const side = impactSide();
+  const kicked = kickImpact(state.speed, impactContact ? 0.45 : 1, side, impactContact ? "scrape" : "hit");
+  impactContact = true;
+  if (!kicked) {
+    state.speed *= 0.35;
+    state.driftAngle *= 0.6;
+  }
   return 0;
 }
 
@@ -3212,14 +3939,17 @@ hudEl?.addEventListener("click", () => {
 
 const CAM_MIN_PITCH = 0.05; // gairebé arran de terra
 const CAM_MAX_PITCH = 1.35; // gairebé zenital
-// A marxa ràpida la càmera s'allunya i s'inclina (mira més avall). El seguiment ja
-// la deixa una mica enrere; això és l'efecte expressament, a ple cap a ~115 km/h.
+// A marxa ràpida la càmera s'allunya, s'inclina (mira més avall) i eixampla una mica
+// el camp. El centre es queda llegible; el desenfoc de la marxa va als marges.
+// A ple efecte, cap a ~115 km/h.
 const CAM_SPEED_MIN = 4;
 const CAM_SPEED_FULL = 32;
 /** Metres extres de distància a ple efecte. */
 const CAM_SPEED_EXTRA_DIST = 4.2;
 /** Inclinació extra (rad) a ple efecte, per damunt de la perspectiva. */
 const CAM_SPEED_PITCH = 0.22;
+/** Graus extra de camp vertical a ple efecte. */
+const CAM_SPEED_FOV = 7;
 const CAM_KEY_YAW_RATE = 1.8; // rad/s
 const CAM_KEY_PITCH_RATE = 0.9;
 // "Velocitat mitja" de retorn: ~80°/s de gir i ~35°/s d'inclinació.
@@ -3257,7 +3987,7 @@ function updateCameraOrbit(dt: number, throttle: number): void {
   }
 }
 
-/** 0 aturat, 1 a partir de `CAM_SPEED_FULL`: zoom out i inclinació de la persecució. */
+/** 0 aturat, 1 a partir de `CAM_SPEED_FULL`: distància, inclinació i camp de la persecució. */
 function camSpeedT(): number {
   return THREE.MathUtils.smoothstep(Math.abs(state.speed), CAM_SPEED_MIN, CAM_SPEED_FULL);
 }
@@ -3274,41 +4004,93 @@ function cameraOffset(heading: number, out: THREE.Vector3): THREE.Vector3 {
 
 const camOffset = new THREE.Vector3();
 const camLook = new THREE.Vector3();
-/** Més que el pla proper (0,2 m): si la càmera el travessa, es veu l'interior sense parets. */
-const CAM_SOLID_MARGIN = 0.6;
+/** Material només per al raig: les parets es dibuixen per fora, però des de dins cal veure-hi la cara. */
+const insideRayMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+const insideHitNormal = new THREE.Vector3();
+const INSIDE_RAYS: THREE.Vector3[] = [];
+for (let i = 0; i < 8; i++) {
+  const a = (i % 4) * (Math.PI / 2) + (i < 4 ? 0 : Math.PI / 4);
+  INSIDE_RAYS.push(new THREE.Vector3(Math.cos(a), i < 4 ? 0 : -0.45, Math.sin(a)).normalize());
+}
+/** Casa dins la qual és la càmera; 0 si és al carrer. */
+let insideHouseId = 0;
 
 /**
- * Si el segment del cotxe a `pos` talla una casa o una teulada, acosta el punt fins just
- * davant del primer sòlid. Les façanes només tenen cara exterior: des de dins es descarten
- * i els accessoris (finestres, portes, teuladins) queden flotant.
+ * Si la càmera és dins d'una casa, en torna l'identificador. Un raig que surt de dins
+ * toca primer la cara interior (la normal mira cap on va el raig). Cal que diversos
+ * raigs hi coincideixin: un de sol pot travessar una lògia i encertar la paret del fons.
  */
-function pullCameraOutside(pos: THREE.Vector3): void {
-  if (cameraBlockers.length === 0) {
-    return;
+/** True si el centre de la càmera cau dins l'esfera de la malla (més grossa que la casa).
+ *  L'esfera es calcula un sol cop: les cases no es mouen. */
+function shellMayContainCamera(mesh: THREE.Mesh): boolean {
+  let sphere = mesh.userData.shellSphere as THREE.Sphere | undefined;
+  if (!sphere) {
+    const geo = mesh.geometry;
+    if (!geo.boundingSphere) {
+      geo.computeBoundingSphere();
+    }
+    if (!geo.boundingSphere) {
+      return false;
+    }
+    sphere = geo.boundingSphere.clone().applyMatrix4(mesh.matrixWorld);
+    mesh.userData.shellSphere = sphere;
   }
-  rayOrigin.set(kart.position.x, kart.position.y + 1.0, kart.position.z);
-  rayDir.subVectors(pos, rayOrigin);
-  const dist = rayDir.length();
-  if (dist < 0.05) {
-    return;
+  return sphere.containsPoint(camera.position);
+}
+
+function houseAroundCamera(): number {
+  if (houseShellMeshes.length === 0) {
+    return 0;
   }
-  rayDir.multiplyScalar(1 / dist);
-  raycaster.set(rayOrigin, rayDir);
-  // El raig passa una mica més enllà del punt: si ja és a tocar de la façana, també el retira.
-  raycaster.far = dist + CAM_SOLID_MARGIN;
-  const hits = raycaster.intersectObjects(cameraBlockers, false);
-  if (hits.length === 0) {
-    return;
+  // Al carrer, cap esfera no conté la càmera: no es llença cap raig ni es toca cap material.
+  const near: THREE.Mesh[] = [];
+  for (const mesh of houseShellMeshes) {
+    if (shellMayContainCamera(mesh)) {
+      near.push(mesh);
+    }
   }
-  const hit = hits[0].distance;
-  // Si la paret és més a prop que el marge, queda arran seu sense travessar-la.
-  let stop = hit - CAM_SOLID_MARGIN;
-  if (stop < 0.2) {
-    stop = Math.max(0.05, hit - 0.12);
+  if (near.length === 0) {
+    return 0;
   }
-  if (stop < dist) {
-    pos.copy(rayOrigin).addScaledVector(rayDir, stop);
+  const saved = near.map((mesh) => mesh.material);
+  for (const mesh of near) {
+    mesh.material = insideRayMat;
   }
+  const votes = new Map<number, number>();
+  try {
+    for (const dir of INSIDE_RAYS) {
+      raycaster.set(camera.position, dir);
+      raycaster.far = 40;
+      const hits = raycaster.intersectObjects(near, false);
+      for (const hit of hits) {
+        if (!hit.face) {
+          break;
+        }
+        insideHitNormal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
+        if (insideHitNormal.dot(dir) <= 0.25) {
+          break;
+        }
+        const id = houseIdFromHit(hit);
+        if (id >= 1) {
+          votes.set(id, (votes.get(id) ?? 0) + 1);
+          break;
+        }
+      }
+    }
+  } finally {
+    near.forEach((mesh, i) => {
+      mesh.material = saved[i];
+    });
+  }
+  let bestId = 0;
+  let bestVotes = 0;
+  for (const [id, count] of votes) {
+    if (count > bestVotes) {
+      bestId = id;
+      bestVotes = count;
+    }
+  }
+  return bestVotes >= 3 ? bestId : 0;
 }
 
 function applyCamBlend(dt: number, snap = false): void {
@@ -3332,8 +4114,9 @@ function applyCamBlend(dt: number, snap = false): void {
       camBlend.fov = preset.fov;
     }
   }
-  if (camera.fov !== camBlend.fov) {
-    camera.fov = camBlend.fov;
+  const fov = camBlend.fov + CAM_SPEED_FOV * camSpeedT();
+  if (Math.abs(camera.fov - fov) > 0.01) {
+    camera.fov = fov;
     camera.updateProjectionMatrix();
   }
 }
@@ -3360,7 +4143,6 @@ function placeCameraBehindKart(): void {
   cameraOrbit.pitch = camPresetPitch();
   applyCamBlend(0, true);
   camera.position.copy(kart.position).add(cameraOffset(state.heading, camOffset));
-  pullCameraOutside(camera.position);
   aimCamera(state.heading);
   motionBlur.reset();
 }
@@ -3398,15 +4180,18 @@ function updateDrift(throttle: number, brake: boolean, dt: number): boolean {
     v > R12.driftMinSpeed &&
     Math.abs(state.steer) > 0.3;
   if (drifting) {
-    // Com més ràpid, més es descontrola la cua.
-    const grip = THREE.MathUtils.clamp((v - R12.driftMinSpeed) / 6, 0.4, 1);
-    const extra = R12.driftYawRate * state.steer * grip * dt;
-    const next = THREE.MathUtils.clamp(state.driftAngle + extra, -R12.maxDriftAngle, R12.maxDriftAngle);
+    // Com més ràpid, més es descontrola la cua, però les rodes la van tornant a agafar.
+    const slip = THREE.MathUtils.clamp((v - R12.driftMinSpeed) / 6, 0.4, 1);
+    const extra = R12.driftYawRate * state.steer * slip * dt;
+    const held = state.driftAngle * Math.exp(-R12.driftGrip * dt);
+    const next = THREE.MathUtils.clamp(held + extra, -R12.maxDriftAngle, R12.maxDriftAngle);
     // El morro gira; la marxa es manté on anava.
     state.heading -= next - state.driftAngle;
     state.driftAngle = next;
   } else {
-    state.driftAngle *= Math.exp(-R12.driftRecovery * dt);
+    // Després d'un cop el cotxe triga a tornar a agafar.
+    const recovery = R12.driftRecovery * (impactLoose > 0 ? 0.28 : 1);
+    state.driftAngle *= Math.exp(-recovery * dt);
     if (Math.abs(state.driftAngle) < 1e-3) {
       state.driftAngle = 0;
     }
@@ -3415,6 +4200,16 @@ function updateDrift(throttle: number, brake: boolean, dt: number): boolean {
     state.speed *= Math.exp(-DRIFT_SCRUB * Math.abs(Math.sin(state.driftAngle)) * dt);
   }
   return drifting;
+}
+
+/** S (o el fre) amb el cotxe encara avançant, o accelerar endavant mentre va enrere. */
+function updateBrakeLights(throttle: number, brake: boolean, speed: number): void {
+  const on = brake || (throttle < -0.05 && speed > 0.2) || (throttle > 0.05 && speed < -0.2);
+  if (!taillightMat || on === brakeLightsOn) {
+    return;
+  }
+  brakeLightsOn = on;
+  taillightMat.emissiveIntensity = on ? TAIL_BRAKE : TAIL_IDLE;
 }
 
 function applyTerrainForces(dt: number, brake: boolean): void {
@@ -3443,6 +4238,7 @@ function applyTerrainForces(dt: number, brake: boolean): void {
 function update(dt: number): void {
   const { throttle, steer, brake } = readInput(dt);
   const speedBefore = state.speed;
+  updateBrakeLights(throttle, brake, speedBefore);
 
   // Física d'un R12 a escala real (vegeu vehicle.ts). Aturat no gira: cal maniobrar.
   const headingBefore = state.heading;
@@ -3453,7 +4249,9 @@ function update(dt: number): void {
     state.speed = speedSliding + (state.speed - speedSliding) * R12.driftBrakeFactor;
   }
   state.steer = stepSteer(state.steer, steer, state.speed, dt);
-  state.heading -= yawRate(state.speed, state.steer) * dt;
+  // Amb el cop acabat de rebre el volant mana menys: el cotxe se'n va de cul.
+  const steerGrip = impactLoose > 0 ? 0.42 : 1;
+  state.heading -= yawRate(state.speed, state.steer) * dt * steerGrip;
   // Girar arran d'una paret no pot ficar el morro ni la cua dins la casa.
   const p = kart.position;
   if (
@@ -3473,13 +4271,17 @@ function update(dt: number): void {
   updateSpeedometer();
 
   const moved = moveCar(state.speed * dt, dt);
+  updateImpact(dt);
   updateStuckWatchdog(throttle, moved, dt);
   animateWheels(Math.sign(state.speed) * moved);
   const forward = new THREE.Vector3(Math.sin(state.heading), 0, Math.cos(state.heading));
 
   const pose = sampleGroundPose(kart.position.x, kart.position.z, state.heading);
   const floorY = pose ? pose.y + state.wheelOffset : null;
-  const airborne = state.verticalVelocity !== 0 || (floorY !== null && kart.position.y > floorY + 0.08);
+  // `appliedBodyLift` és el que ja hem sumat: el trontoll no s'ha de confondre amb un salt.
+  const airborne =
+    state.verticalVelocity !== 0 ||
+    (floorY !== null && kart.position.y > floorY + appliedBodyLift + 0.08);
   if (pose && !airborne) {
     const k = Math.min(1, 15 * dt);
     state.pitch += (pose.pitch - state.pitch) * k;
@@ -3488,9 +4290,14 @@ function update(dt: number): void {
   }
   const accelK = Math.min(1, (airborne ? 6 : 10) * dt);
   state.accelPitch += (targetAccelPitch - state.accelPitch) * accelK;
-  kart.rotation.set(state.pitch + state.accelPitch, state.heading, state.roll);
+  kart.rotation.set(
+    state.pitch + state.accelPitch + impactBody.pitch,
+    state.heading,
+    state.roll + impactBody.roll,
+  );
 
   if (airborne) {
+    appliedBodyLift = 0;
     state.verticalVelocity -= GRAVITY * dt;
     kart.position.y += state.verticalVelocity * dt;
     const landY = floorY ?? kart.position.y;
@@ -3505,7 +4312,8 @@ function update(dt: number): void {
       }
     }
   } else if (floorY !== null) {
-    kart.position.y = floorY;
+    appliedBodyLift = impactBodyLift();
+    kart.position.y = floorY + appliedBodyLift;
   }
 
   if (kart.position.y < -20) {
@@ -3517,17 +4325,15 @@ function update(dt: number): void {
   // La càmera segueix la marxa, no el morro: derrapant es veu el cotxe creuat.
   const travel = state.heading + state.driftAngle;
   const camPos = kart.position.clone().add(cameraOffset(travel, camOffset));
-  pullCameraOutside(camPos);
   camera.position.lerp(camPos, 1 - Math.exp(-4 * dt));
-  // El tram recte de la interpolació pot tallar una cantonada.
-  pullCameraOutside(camera.position);
   // Darrere d'un turó la càmera no pot quedar enterrada.
   const camGround = groundY(camera.position.x, camera.position.z);
   if (camGround !== null && camera.position.y < camGround + 1.5) {
     camera.position.y = camGround + 1.5;
-    pullCameraOutside(camera.position);
   }
   aimCamera(travel);
+  insideHouseId = houseAroundCamera();
+  setHouseHide(insideHouseId);
   updateMinimapCamera(dt, forward);
   updateCurrentStreet(dt);
   followSun();
@@ -3548,6 +4354,7 @@ window.addEventListener("resize", onResize);
 const optionsModal = document.getElementById("options");
 const optHideStreetNames = document.getElementById("opt-hide-street-names") as HTMLInputElement | null;
 const optMotionBlur = document.getElementById("opt-motion-blur") as HTMLInputElement | null;
+const optAirParticles = document.getElementById("opt-air-particles") as HTMLInputElement | null;
 let optionsOpen = false;
 
 function toggleOptions(open: boolean): void {
@@ -3563,6 +4370,9 @@ function toggleOptions(open: boolean): void {
     }
     if (optMotionBlur) {
       optMotionBlur.checked = settings.motionBlur;
+    }
+    if (optAirParticles) {
+      optAirParticles.checked = settings.airParticles;
     }
     optHideStreetNames?.focus();
   } else {
@@ -3585,6 +4395,11 @@ optMotionBlur?.addEventListener("change", () => {
   if (!settings.motionBlur) {
     motionBlur.reset();
   }
+});
+optAirParticles?.addEventListener("change", () => {
+  settings.airParticles = optAirParticles.checked;
+  saveSettings();
+  airParticles.setEnabled(settings.airParticles);
 });
 optionsModal?.addEventListener("click", (e) => {
   if (e.target === optionsModal) {
@@ -3784,15 +4599,20 @@ function loop(now: number): void {
       position: kart.position,
       heading: state.heading,
       speed: state.speed,
+      driftAngle: state.driftAngle,
       surface: surfaceAt(kart.position.x, kart.position.z),
+      waterY: waterOverWheels(kart.position.x, kart.position.y, kart.position.z),
     });
     // Un núvol davant del sol atenua la llum directa (i suavitza les ombres).
     sun.intensity = SUN_INTENSITY * (1 - 0.4 * sky.cloudOverSun);
+    hideHouseUniform.value = insideHouseId;
     if (settings.motionBlur) {
       motionBlur.render(renderer, scene, camera, state.speed);
     } else {
       renderer.render(scene, camera);
     }
+    // El minimapa i el mapa gran ensenyen la casa sencera.
+    hideHouseUniform.value = 0;
     sky.renderFlare(renderer);
     renderMinimap(now);
     updateHudCoords();
@@ -3819,7 +4639,7 @@ async function boot(): Promise<void> {
     markLoad("món");
     setLoading("Plantant arbres i horts…");
     await nextPaint();
-    await Promise.all([loadTrees(), loadVillage(), loadStreets()]);
+    await Promise.all([loadTrees(), loadVillage(), loadStreets(), loadHouseCards()]);
     markLoad("vegetació i carrers");
     layoutMinimap();
     applySpawn();

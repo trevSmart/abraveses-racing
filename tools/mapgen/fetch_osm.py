@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 
 import geopandas as gpd
@@ -117,18 +118,25 @@ def fetch_osm() -> Path:
     }
     last_err: Exception | None = None
     resp = None
-    for url in urls:
-        print(f"Querying Overpass ({url})…")
-        try:
-            resp = requests.post(url, data={"data": query}, timeout=180, headers=headers)
-            if resp.status_code == 406:
-                resp = requests.get(url, params={"data": query}, timeout=180, headers=headers)
-            resp.raise_for_status()
+    for attempt in range(4):
+        for url in urls:
+            print(f"Querying Overpass ({url})…")
+            try:
+                resp = requests.post(url, data={"data": query}, timeout=180, headers=headers)
+                if resp.status_code == 406:
+                    resp = requests.get(url, params={"data": query}, timeout=180, headers=headers)
+                resp.raise_for_status()
+                break
+            except Exception as exc:
+                last_err = exc
+                print(f"  failed: {exc}")
+                resp = None
+        if resp is not None:
             break
-        except Exception as exc:
-            last_err = exc
-            print(f"  failed: {exc}")
-            resp = None
+        if attempt < 3:
+            wait_s = 15 * (attempt + 1)
+            print(f"  cap servidor ha respost; es torna a provar d'aquí {wait_s} s")
+            time.sleep(wait_s)
     if resp is None:
         raise RuntimeError(f"All Overpass endpoints failed: {last_err}")
     data = resp.json()

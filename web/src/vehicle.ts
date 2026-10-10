@@ -8,11 +8,11 @@ export const R12 = {
   maxSpeed: 36,
   /** m/s² a baixa velocitat; amb la caiguda quadràtica cap a la punta, 0–100 km/h ≈ 7,4 s. */
   engineAccel: 5,
-  reverseAccel: 1.5,
-  /** ~16 km/h. */
-  maxReverse: 4.5,
-  /** ~1,2 g, frens de competició: de 50 km/h a 0 en ~8 m. */
-  brakeDecel: 12,
+  reverseAccel: 5,
+  /** ~43 km/h: prou ràpida per maniobrar pels carrers, sense arribar a la de marxa endavant. */
+  maxReverse: 12,
+  /** ~2 g: de 50 km/h a 0 en uns 0,7 s (~5 m). */
+  brakeDecel: 20,
   /** Fre motor + rodolament a velocitat baixa (m/s²). */
   coastDecel: 0.35,
   /** Arrossegament aerodinàmic: decel = k·v². */
@@ -34,11 +34,13 @@ export const R12 = {
   /** Velocitat (m/s, ~40 km/h) a partir de la qual una frenada amb el volant girat fa derrapar. */
   driftMinSpeed: 11,
   /** Gir extra de la carrosseria (rad/s) amb el volant a topall mentre derrapa. */
-  driftYawRate: 1.8,
-  /** Angle màxim entre el morro i la direcció de la marxa (~40°). */
-  maxDriftAngle: 0.7,
-  /** Ritme (1/s) amb què les rodes tornen a agafar i la marxa s'alinea amb el morro. */
-  driftRecovery: 2.5,
+  driftYawRate: 1.65,
+  /** Angle màxim entre el morro i la direcció de la marxa (~34°). */
+  maxDriftAngle: 0.59,
+  /** Mentre derrapa, les rodes encara agafen: ritme (1/s) amb què es tanca l'angle. */
+  driftGrip: 2.1,
+  /** Ritme (1/s) amb què, en deixar el fre, la marxa s'alinea amb el morro. */
+  driftRecovery: 4,
   /** Frenant de costat les rodes llisquen: fan aquesta fracció de la frenada normal. */
   driftBrakeFactor: 0.55,
   /** Fracció de la velocitat vertical que retorna en tocar terra després d'un salt. */

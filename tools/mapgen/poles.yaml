@@ -1,6 +1,6 @@
 # Postes de formigó de la xarxa de baixa tensió. Situats a Street View (set. 2024):
-# la càmera del panorama, el costat del carrer i la distància, i després enganxats al
-# voral del carrer de l'OSM (a 4,15 m de l'eix) perquè no quedin dins la calçada del joc.
+# la càmera del panorama, el costat del carrer i la distància. El punt queda al voral,
+# fora del polígon de la calçada del joc (a les cruïlles, 4 m de l'eix encara és asfalt).
 # `at` és UTM (EPSG:25830). Els de la mateixa `line` s'uneixen amb cables si el tram fa
 # menys de 72 m. `lamp` hi afegeix un braç de fanal cap al carrer.
 - id: sb-01
@@ -55,3 +55,61 @@
   at: [260252.7, 4652956.4]
   line: cristo
   photo: "C. el Cristo, rumb 160: pal arran, a la dreta de la casa rosa"
+- id: cr-05
+  # A la boca de Taburete, al voral, arran de la casa groga. La planta i la calçada
+  # gairebé es toquen: el pal queda a la juntura, fora de totes dues.
+  at: [260260.6, 4652903.3]
+  line: cristo
+  photo: "1 C. Taburete, rumb 256: pal a la cruïlla amb C. el Cristo, davant la casa groga"
+- id: cr-02
+  at: [260281.2, 4652876.8]
+  line: cristo
+  lamp: true
+  photo: "7707 C. el Cristo, rumb 339: fanal a l'esquerra, ~14 m"
+- id: cr-04
+  at: [260299.0, 4652844.4]
+  line: cristo
+  photo: "7704 C. el Cristo, rumb 355: pal més enllà, al mateix voral"
+- id: cr-03
+  at: [260301.7, 4652811.5]
+  line: cristo
+  photo: "7704 C. el Cristo, rumb 355: pal a la dreta, arran de la casa de maó"
+- id: cr-06
+  at: [260305.8, 4652766.7]
+  line: cristo
+  photo: "7704 C. el Cristo, rumb 175: pal més al sud, al voral esquerre"
+- id: ca-01
+  at: [260031.3, 4653061.8]
+  line: calzada
+  lamp: true
+  photo: "7747 C. Calzada, rumb 250: fanal a l'esquerra, ~18 m"
+- id: ca-04
+  at: [260088.9, 4653069.8]
+  line: calzada
+  lamp: true
+  photo: "3 C. Calzada, rumb 289: fanal al davant, al voral dret"
+- id: ca-02
+  at: [260109.1, 4653108.5]
+  line: calzada
+  lamp: true
+  photo: "10 C. Calzada, rumb 231: fanal a la dreta, davant l'església"
+- id: ca-03
+  at: [260171.0, 4653152.3]
+  line: [calzada, santiago]
+  lamp: true
+  photo: "14 C. Calzada, rumb 61: fanal a l'esquerra, a prop; els cables segueixen cap a Santiago"
+- id: sg-01
+  at: [260192.0, 4653178.8]
+  line: santiago
+  lamp: true
+  photo: "40 C. Santiago, rumb 328: fanal a la cantonada del centre, arran de la càmera"
+- id: sg-02
+  at: [260220.3, 4653034.2]
+  line: santiago
+  lamp: true
+  photo: "1 C. Santiago, rumb 70: pal amb fanal a la cantonada, arran de la càmera"
+- id: sg-03
+  at: [260204.8, 4653046.7]
+  line: santiago
+  lamp: true
+  photo: "1 C. Santiago, rumb 334: fanal a l'esquerra, uns 20 m carrer amunt"

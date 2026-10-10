@@ -15,3 +15,9 @@
 
 ## Dubtes
 - El rètol de la foto no es modela.
+
+## Cobert fora del Cadastre
+
+Caseta d'uns 5 × 3 m (UTM 260377.0, 4652854.4), a uns 4 m de la nau. A l'ortofoto és un
+rectangle vermellós `(189, 145, 152)` sobre el verd, sense part del Cadastre. Ràfec 2,2 m i
+paret `[176, 154, 140]` estimats; cap façana vista, sense obertures.

@@ -1,35 +1,34 @@
-// Motion blur lleuger: mostres al llarg del desplaçament en pantalla de la càmera (velocitat + gir).
+// Desenfoc de moviment en una sola passada, a mitja resolució.
 //
-// L'escena es pinta al canvas (camí ràpid de la GPU). El desenfoc és una sola passada a pantalla
-// completa que llegeix una còpia a mitja resolució: a 120 Hz un segon render de l'escena feia
-// perdre el fotograma. Parat, o amb un traç de menys d'un píxel, no es fa cap passada extra.
+// El vel uniforme segueix només el gir de la càmera (òrbita o revolt): anar recte no
+// desplaça el punt de mira, i un traç igual a tot el fotograma taparia la carretera.
+// La marxa no obre aquesta passada: un vel a cada fotograma, encara que sigui curt, es menja
+// el refresc. El canvas de sota es conserva on el vel del gir no arriba,
+// així el centre no baixa a mitja resolució.
+//
+// L'escena es pinta al canvas. Parat i sense gir, no es fa cap passada extra.
 
 import * as THREE from "three";
 
 const SAMPLES = 6;
-const PROBE_M = 18;
-/** Velocitat (m/s) a partir de la qual el desenfoc arriba al màxim. */
-const SPEED_FULL_MPS = 26;
-/** Intensitat màxima del desenfoc (0 = off). */
-const MAX_INTENSITY = 0.42;
-/** Límit del vector de velocitat en UV per fotograma (evita estrebades en respawn). */
+/** Límit del vector de gir en UV per fotograma (evita estrebades en respawn). */
 const MAX_VELOCITY_UV = 0.028;
-/** Desplaçament en UV a partir del qual el gir de la càmera comença a desenfocar, i on arriba al màxim. */
+/** Desplaçament en UV a partir del qual el gir comença a desenfocar, i on arriba al màxim. */
 const TURN_MIN_UV = 0.0025;
 const TURN_FULL_UV = 0.01;
-/** Traç del gir (òrbita o revolt). Curt a propòsit: en orbitar, un vel fort tapa el que es mira. */
+/** Traç del gir. Curt a propòsit: en orbitar, un vel fort tapa el que es mira. */
 const TURN_INTENSITY = 0.5;
-/** Per sota d'això el traç no es veu: no val la pena copiar el framebuffer. */
+/** Per sota d'això el traç del gir no es veu. */
 const MIN_BLUR_PX = 1.25;
-/** El vel arriba al màxim cap a aquest traç (px), perquè no aparegui de cop. */
+/** El vel del gir arriba al màxim cap a aquest traç (px). */
 const FULL_BLUR_PX = 8;
+/** Marxa (m/s) on l'efecte radial comença i on arriba al màxim. */
+const SPEED_MIN_MPS = 6;
+const SPEED_FULL_MPS = 32;
 /** El desenfoc es calcula a aquesta fracció del framebuffer. */
 const BLUR_SCALE = 0.5;
 
 const _dir = new THREE.Vector3();
-const _ndcPrev = new THREE.Vector3();
-const _ndcCurr = new THREE.Vector3();
-const _viewProj = new THREE.Matrix4();
 const _bufSize = new THREE.Vector2();
 const _quat = new THREE.Quaternion();
 const _quatInv = new THREE.Quaternion();
@@ -47,23 +46,43 @@ uniform sampler2D tDiffuse;
 uniform vec2 velocity;
 uniform float intensity;
 uniform float uFade;
+uniform float uSpeed;
+uniform float uAspect;
+uniform float uPhase;
 varying vec2 vUv;
+
 void main() {
-  vec4 acc = texture2D(tDiffuse, vUv);
+  vec2 center = vec2(0.5, 0.5);
+  vec2 fromCenter = vUv - center;
+  float r = length(fromCenter * vec2(uAspect, 1.0));
+
   vec2 v = velocity * intensity;
   float len = length(v);
   if (len > ${MAX_VELOCITY_UV.toFixed(5)}) {
     v *= ${MAX_VELOCITY_UV.toFixed(5)} / len;
   }
+  vec3 dirColor = texture2D(tDiffuse, vUv).rgb;
   float n = 1.0;
   for (int i = 1; i < ${SAMPLES}; i++) {
     float t = float(i) / float(${SAMPLES - 1});
-    acc += texture2D(tDiffuse, vUv - v * t);
+    dirColor += texture2D(tDiffuse, vUv - v * t).rgb;
     n += 1.0;
   }
-  vec3 c = (acc / n).rgb;
-  // Premultiplicat: el canvas ja ho és, i així el vel no enfosqueix.
-  gl_FragColor = vec4(c * uFade, uFade);
+  dirColor /= n;
+
+  // La marxa només enfosqueix una mica els cantons, sense mostres de més.
+  float vig = smoothstep(0.72, 1.3, r) * uSpeed * 0.22;
+  float ang = atan(fromCenter.y, fromCenter.x * uAspect);
+  float spoke = abs(fract(ang * 2.228) - 0.5);
+  float along = fract(r * 5.0 - uPhase);
+  float dash = smoothstep(0.0, 0.06, along) * (1.0 - smoothstep(0.28, 0.48, along));
+  float line = smoothstep(0.035, 0.0, spoke) * dash;
+  line *= smoothstep(0.88, 1.1, r) * uSpeed;
+
+  float keep = (1.0 - uFade) * (1.0 - vig);
+  vec3 src = dirColor * uFade * (1.0 - vig);
+  src += vec3(0.86, 0.82, 0.74) * line * 0.08;
+  gl_FragColor = vec4(src, 1.0 - keep);
 }
 `;
 
@@ -85,13 +104,9 @@ export class MotionBlur {
   private readonly presentScene = new THREE.Scene();
   private readonly quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private readonly presentMaterial: THREE.ShaderMaterial;
+  /** Desplaçament en UV degut només al gir de la càmera. */
   private readonly velocity = new THREE.Vector2();
-  /** Desplaçament en UV degut només al gir de la càmera (òrbita o revolt). */
-  private readonly rotVelocity = new THREE.Vector2();
-  private readonly viewProjPrev = new THREE.Matrix4();
   private readonly prevQuat = new THREE.Quaternion();
-  /** Punt al món que es projecta per estimar el desplaçament en pantalla. */
-  private readonly probeWorld = new THREE.Vector3();
   private hasPrev = false;
   private bufW = 0;
   private bufH = 0;
@@ -101,6 +116,10 @@ export class MotionBlur {
   private lowFbo: WebGLFramebuffer | null = null;
   /** null = encara no provat; false = el context no admet el blit escalat. */
   private blitOk: boolean | null = null;
+  /** Fase de les ratlles, en cicles, avançada amb la distància recorreguda. */
+  private streakPhase = 0;
+  private lastMs = 0;
+  private hasClock = false;
 
   constructor() {
     this.low = halfTarget();
@@ -111,6 +130,9 @@ export class MotionBlur {
         velocity: { value: this.velocity },
         intensity: { value: 0 },
         uFade: { value: 0 },
+        uSpeed: { value: 0 },
+        uAspect: { value: 1 },
+        uPhase: { value: 0 },
       },
       vertexShader: quadVert,
       fragmentShader: presentFrag,
@@ -149,18 +171,12 @@ export class MotionBlur {
   reset(): void {
     this.hasPrev = false;
     this.velocity.set(0, 0);
-    this.rotVelocity.set(0, 0);
   }
 
-  private updateVelocity(camera: THREE.PerspectiveCamera): void {
-    _viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  private updateRotation(camera: THREE.PerspectiveCamera): void {
     camera.getWorldQuaternion(_quat);
     if (this.hasPrev) {
-      _ndcCurr.copy(this.probeWorld).applyMatrix4(_viewProj);
-      _ndcPrev.copy(this.probeWorld).applyMatrix4(this.viewProjPrev);
-      this.velocity.set((_ndcCurr.x - _ndcPrev.x) * 0.5, (_ndcCurr.y - _ndcPrev.y) * 0.5);
-      // La vista anterior, en coordenades de la càmera actual: l'òrbita gira al voltant
-      // del punt de mira i el punt de prova (just allà) gairebé no es mou.
+      // La mirada anterior, en coordenades de la càmera actual.
       _dir.set(0, 0, -1).applyQuaternion(this.prevQuat);
       _dir.applyQuaternion(_quatInv.copy(_quat).invert());
       if (_dir.z < -0.05) {
@@ -168,22 +184,18 @@ export class MotionBlur {
         const hFov = 2 * Math.atan(Math.tan(vFov * 0.5) * camera.aspect);
         const ndcX = _dir.x / -_dir.z / Math.tan(hFov * 0.5);
         const ndcY = _dir.y / -_dir.z / Math.tan(vFov * 0.5);
-        this.rotVelocity.set(ndcX * 0.5, ndcY * 0.5);
+        this.velocity.set(ndcX * 0.5, ndcY * 0.5);
       } else {
-        this.rotVelocity.set(0, 0);
+        this.velocity.set(0, 0);
       }
     } else {
       this.velocity.set(0, 0);
-      this.rotVelocity.set(0, 0);
     }
-    camera.getWorldDirection(_dir);
-    this.probeWorld.copy(camera.position).addScaledVector(_dir, PROBE_M);
-    this.viewProjPrev.copy(_viewProj);
     this.prevQuat.copy(_quat);
     this.hasPrev = true;
   }
 
-  /** Longitud del traç en píxels del framebuffer, ja amb el sostre del shader. */
+  /** Longitud del traç de gir en píxels del framebuffer, ja amb el sostre del shader. */
   private blurPixels(intensity: number): number {
     let len = this.velocity.length() * intensity;
     if (len > MAX_VELOCITY_UV) {
@@ -236,8 +248,8 @@ export class MotionBlur {
   }
 
   /**
-   * Dibuixa l'escena i, si el cotxe es mou o la càmera gira, un vel de desenfoc a sobre.
-   * `speedMps` és la marxa; el gir (òrbita o revolt) es mesura pel desplaçament en pantalla.
+   * Dibuixa l'escena i, si la càmera gira, el vel a sobre.
+   * Anar recte no obre la passada.
    */
   render(
     renderer: THREE.WebGLRenderer,
@@ -252,26 +264,33 @@ export class MotionBlur {
     renderer.render(scene, camera);
 
     this.setSizeFromRenderer(renderer);
-    this.updateVelocity(camera);
+    this.updateRotation(camera);
 
-    const speed = Math.abs(speedMps);
-    const speedAmount = THREE.MathUtils.smoothstep(speed, 2.5, SPEED_FULL_MPS) * MAX_INTENSITY;
-    const turnT = THREE.MathUtils.smoothstep(this.rotVelocity.length(), TURN_MIN_UV, TURN_FULL_UV);
-    const turnAmount = turnT * TURN_INTENSITY;
-    const intensity = Math.max(speedAmount, turnAmount);
-    if (turnAmount > speedAmount) {
-      this.velocity.copy(this.rotVelocity);
+    const now = performance.now();
+    if (this.hasClock) {
+      const dt = Math.min(0.05, (now - this.lastMs) / 1000);
+      this.streakPhase = (this.streakPhase + Math.abs(speedMps) * dt * 0.12) % 1;
     }
-    const blurPx = this.blurPixels(intensity);
-    const fade = THREE.MathUtils.smoothstep(blurPx, MIN_BLUR_PX, FULL_BLUR_PX);
-    if (fade <= 0 || !this.downsample(renderer)) {
+    this.lastMs = now;
+    this.hasClock = true;
+
+    const turnT = THREE.MathUtils.smoothstep(this.velocity.length(), TURN_MIN_UV, TURN_FULL_UV);
+    const intensity = turnT * TURN_INTENSITY;
+    const rotFade = THREE.MathUtils.smoothstep(this.blurPixels(intensity), MIN_BLUR_PX, FULL_BLUR_PX);
+    const speedT = THREE.MathUtils.smoothstep(Math.abs(speedMps), SPEED_MIN_MPS, SPEED_FULL_MPS);
+    // Anar recte no obre la passada: el cost és el d'un fotograma sencer de mostres.
+    if (rotFade <= 0 || !this.downsample(renderer)) {
       renderer.setRenderTarget(prevTarget);
       renderer.autoClear = prevAutoClear;
       return;
     }
 
-    this.presentMaterial.uniforms.intensity.value = intensity;
-    this.presentMaterial.uniforms.uFade.value = fade;
+    const uniforms = this.presentMaterial.uniforms;
+    uniforms.intensity.value = intensity;
+    uniforms.uFade.value = rotFade;
+    uniforms.uSpeed.value = speedT;
+    uniforms.uAspect.value = this.bufW / Math.max(1, this.bufH);
+    uniforms.uPhase.value = this.streakPhase;
     renderer.setRenderTarget(null);
     renderer.autoClear = false;
     renderer.render(this.presentScene, this.quadCam);

@@ -31,3 +31,11 @@ Fitxa: `tools/mapgen/cases.yaml` · dades i enllaços de Street View: `expedient
 - El mur de bloc del carrer és la fitxa `0132131-carrer` de `walls.yaml`: totes les vores
   de la parcel·la que donen al carrer, 1,20 m (la porta de vianants de la foto en fa ~1,8 i
   el mur n'és uns dos terços). Bloc gris `[186, 178, 166]`, sense reixa.
+
+## Cobert fora del Cadastre
+
+Nau d'uns 27 × 7 m al sud de la parcel·la (centre UTM 259953.7, 4653019.6). A l'ortofoto PNOA
+és una teula vermellosa `(195, 142, 142)` que no cau sobre cap part. Al Street View de setembre
+de 2024 (7742 ZA-P-2547, mirant cap al sud-est) el costat del carrer és un mur de bloc cec.
+`wall_material: block`, color `[176, 172, 164]`, ràfec 2,6 m (estimat: no hi ha obertura de
+referència). Les quatre façanes van sense obertures.

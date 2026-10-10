@@ -1,0 +1,12 @@
+== 0432818TM6503S
+   ús 1_residential · 1 habitatges · 180 m² construïts · construïda 1998 · functional
+-- part1: 2 plantes · 94 m² · centre UTM 260233.2, 4653022.1
+     façana  S:  8.74 m, esquerra (t=0) a 260230.6, 4653016.5
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9925745,-5.8946959&heading=347&pitch=8&fov=100
+     façana  E:  8.74 m, esquerra (t=0) a 260239.1, 4653018.5 (mitgera: toca una altra part o un altre edifici)
+     façana  N: 11.67 m, esquerra (t=0) a 260237.7, 4653027.1
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9928196,-5.8946840&heading=172&pitch=8&fov=100
+     façana SO: 10.07 m, esquerra (t=0) a 260226.2, 4653025.6
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9926856,-5.8947794&heading=64&pitch=8&fov=100
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432818TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0432818TM6503S/ortofoto.png

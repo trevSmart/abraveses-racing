@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from io import BytesIO
 from pathlib import Path
 
@@ -77,10 +78,24 @@ def _download_mosaic(source: str, epsg: int, ox: float, oy: float, size_m: float
                 y_top - row * tile_m,
             )
             req = SOURCES[source](epsg, bbox, tile_px)
-            resp = requests.get(req["url"], params=req["params"], timeout=180, headers=HEADERS)
-            resp.raise_for_status()
-            if not resp.headers.get("Content-Type", "").startswith("image/"):
-                raise RuntimeError(f"{source} no ha retornat una imatge: {resp.text[:200]}")
+            resp = None
+            last_err: Exception | None = None
+            for attempt in range(4):
+                try:
+                    resp = requests.get(req["url"], params=req["params"], timeout=180, headers=HEADERS)
+                    resp.raise_for_status()
+                    if not resp.headers.get("Content-Type", "").startswith("image/"):
+                        raise RuntimeError(f"{source} no ha retornat una imatge: {resp.text[:200]}")
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    last_err = exc
+                    resp = None
+                    if attempt < 3:
+                        wait_s = 4 * (attempt + 1)
+                        print(f"  {source} tile {row * tiles + col + 1} reintent {attempt + 1}: {exc}")
+                        time.sleep(wait_s)
+            if resp is None:
+                raise RuntimeError(str(last_err))
             tile = Image.open(BytesIO(resp.content)).convert("RGB")
             mosaic.paste(tile, (col * tile_px, row * tile_px))
             print(f"  {source} tile {row * tiles + col + 1}/{tiles * tiles}")
@@ -95,13 +110,27 @@ def _write_web_textures(cfg: dict, master: Image.Image, size_m: float) -> None:
     print(f"Orthophoto (web, tot) → {full_path} ({size_m / web_px * 100:.0f} cm/px)")
     center_m = float(cfg.get("ortho_center_m", 0))
     if 0 < center_m < size_m:
+        off = cfg.get("ortho_center_offset_m") or [0.0, 0.0]
+        cx, cy = float(off[0]), float(off[1])
         n = master.width
-        a = int(round((size_m - center_m) / 2 / size_m * n))
-        b = n - a
-        crop = master.crop((a, a, b, b))
+        col = (cx + size_m / 2.0) / size_m * n
+        row = (size_m / 2.0 - cy) / size_m * n
+        half_px = (center_m / 2.0) / size_m * n
+        box = (
+            int(round(col - half_px)),
+            int(round(row - half_px)),
+            int(round(col + half_px)),
+            int(round(row + half_px)),
+        )
+        if box[0] < 0 or box[1] < 0 or box[2] > n or box[3] > master.height:
+            raise RuntimeError(f"El retall d'ortofoto {box} cau fora de la mestra {n}×{master.height}")
+        crop = master.crop(box)
         center_path = ensure_parent(cfg["paths"]["ortho_center_jpg"])
         crop.resize((web_px, web_px), Image.LANCZOS).save(center_path, quality=85, optimize=True, progressive=True)
-        print(f"Orthophoto (web, centre {center_m:.0f} m) → {center_path} ({center_m / web_px * 100:.0f} cm/px)")
+        print(
+            f"Orthophoto (web, {center_m:.0f} m a ({cx:.0f}, {cy:.0f})) → "
+            f"{center_path} ({center_m / web_px * 100:.0f} cm/px)"
+        )
 
 
 def fetch_ortho(pixels: int | None = None) -> Path | None:

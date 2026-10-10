@@ -1,0 +1,13 @@
+== 0333217TM6503S
+   ús 1_residential · 1 habitatges · 96 m² construïts · construïda 2000 · functional
+-- part1: 2 plantes · 64 m² · centre UTM 260200.5, 4653162.9
+     façana NE:  5.49 m, esquerra (t=0) a 260206.0, 4653162.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9941325,-5.8951457&heading=228&pitch=8&fov=100
+     façana NE:  3.55 m, esquerra (t=0) a 260202.3, 4653166.2
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9941355,-5.8951424&heading=224&pitch=8&fov=100
+     façana NO:  7.45 m, esquerra (t=0) a 260199.8, 4653168.7
+        Street View: https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.9940519,-5.8952284&heading=131&pitch=8&fov=100
+     façana SO:  8.91 m, esquerra (t=0) a 260194.8, 4653163.1 (mitgera: toca una altra part o un altre edifici)
+     façana SE:  6.68 m, esquerra (t=0) a 260201.5, 4653157.2
+Foto de façana del Cadastre → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0333217TM6503S/cadastre_facana.jpg
+Ortofoto amb les parts → /Users/marcpla/Documents/Projectes/abraveses-racing/data/cases/0333217TM6503S/ortofoto.png
