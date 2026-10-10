@@ -21,11 +21,13 @@ import {
   windowGlassMap,
 } from "./textures";
 import { Autopilot } from "./autopilot";
+import { AirParticles } from "./airParticles";
 import { CraneFlocks } from "./birds";
 import { Sky, SUN_VISUAL_ELEVATION_DEG, sunDirection } from "./sky";
 import { R12, stepSpeed, stepSteer, turnRadius, yawRate } from "./vehicle";
 import { applyWaterMaterial, setWaterEnvironment, waterTime } from "./water";
-import { houseIdFromHit, resolveHouseRef } from "./housePick";
+import { buildHouseCenters, houseCenterToClient, houseIdFromHit, resolveHouseRef } from "./housePick";
+import { MotionBlur } from "./motionBlur";
 
 type SpawnData = {
   position: { x: number; y: number; z: number };
@@ -95,11 +97,11 @@ const keys = new Set<string>();
 
 // --- Opcions (tecla O): es desen al navegador ---
 
-type Settings = { hideStreetNames: boolean };
+type Settings = { hideStreetNames: boolean; motionBlur: boolean };
 const SETTINGS_KEY = "abraveses-racing.settings";
 
 function loadSettings(): Settings {
-  const defaults: Settings = { hideStreetNames: false };
+  const defaults: Settings = { hideStreetNames: false, motionBlur: true };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Settings>) } : defaults;
@@ -129,6 +131,7 @@ const SUN_AZIMUTH = { x: 80, z: 40 };
 const sky = new Sky(sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, SUN_VISUAL_ELEVATION_DEG), DETAIL_LAYER);
 scene.add(sky.dome);
 const craneFlocks = new CraneFlocks(scene);
+const airParticles = new AirParticles(scene, sunDirection(SUN_AZIMUTH.x, SUN_AZIMUTH.z, SUN_VISUAL_ELEVATION_DEG));
 
 // La boira tapa del tot a 560 m: més enllà no cal dibuixar res.
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 600);
@@ -144,6 +147,7 @@ renderer.toneMappingExposure = 1.08;
 renderer.domElement.tabIndex = 0;
 renderer.domElement.style.outline = "none";
 document.body.appendChild(renderer.domElement);
+const motionBlur = new MotionBlur();
 renderer.domElement.addEventListener("pointerdown", () => {
   renderer.domElement.focus();
 });
@@ -218,10 +222,43 @@ const HOP_VELOCITY = 10.5;
 const KART_HALF_W = 0.7;
 const KART_HALF_L = 1.6;
 const WALL_CHECK_M = 2.3;
-// Càmera de persecució per a un cotxe de mida real.
-const CAM_BACK_M = 10.5;
-const CAM_UP_M = 4.2;
-const CAM_LOOK_UP_M = 1.4;
+
+/**
+ * Tres càmeres de persecució. La del mig és la de sempre; Z les alterna
+ * (normal → oberta → curses). `back`/`up` són metres darrere i per sobre del cotxe.
+ */
+type CameraPreset = {
+  back: number;
+  up: number;
+  /** Punt de mirada, metres sobre el terra del cotxe. */
+  lookUp: number;
+  /** Mirada avançada al llarg de la marxa (m): les de curses miren la carretera. */
+  lookAhead: number;
+  /** Camp de visió vertical (graus). */
+  fov: number;
+};
+const CAM_PRESETS: CameraPreset[] = [
+  // Curses: més a prop i més baixa que la normal, amb el cotxe sencer i la carretera al davant.
+  { back: 6.8, up: 2.35, lookUp: 1.15, lookAhead: 12, fov: 62 },
+  // La de sempre.
+  { back: 10.5, up: 4.2, lookUp: 1.4, lookAhead: 0, fov: 60 },
+  // Oberta: alta, enrere i inclinada, amb prou camp perquè hi entri l'horitzó.
+  { back: 18, up: 11, lookUp: 2.2, lookAhead: 6, fov: 78 },
+];
+/** Es comença per la del mig. */
+let camPresetIndex = 1;
+
+function camPreset(): CameraPreset {
+  return CAM_PRESETS[camPresetIndex];
+}
+
+function camPresetDist(preset: CameraPreset = camPreset()): number {
+  return Math.hypot(preset.back, preset.up);
+}
+
+function camPresetPitch(preset: CameraPreset = camPreset()): number {
+  return Math.atan2(preset.up, preset.back);
+}
 
 /** Textures de detall procedurals, generades un sol cop (vegeu textures.ts). */
 const detailTextures = {
@@ -420,16 +457,20 @@ function loadOrthoTexture(url: string, onLoad: (tex: THREE.Texture) => void, onE
   );
 }
 
-/** Un sol parell de textures a la GPU per a tots els trossos del terreny; les teulades fan servir
- * un material germà de doble cara amb les mateixes textures. */
+/** Terreny amb ortofoto projectada; teulades amb color de vèrtex (mostra de la foto) i detall de teula. */
 function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: THREE.MeshStandardMaterial } {
   if (!terrainMaterial || !roofMaterial) {
     const ground = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.96, metalness: 0 });
-    const roof = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
-    for (const mat of [ground, roof]) {
-      mat.onBeforeCompile = injectOrthoShader;
-    }
-    // L'ortofoto (17–44 cm/px) es veu borrosa de prop: gra de terra i teula àrab a escala real.
+    ground.onBeforeCompile = injectOrthoShader;
+    const roof = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      color: 0xffffff,
+      roughness: 0.85,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    });
+    // L'ortofoto (17–44 cm/px) es veu borrosa de prop: gra de terra a escala real; les teules no
+    // porten la foto projectada, només el to mitjà de l'ortofoto al color de vèrtex.
     addWorldDetail(ground, { map: detailTextures.ground, mode: "top", scaleM: 3, strength: 0.85, secondScale: 0.11, fade: [45, 170] });
     addWorldDetail(roof, { map: detailTextures.roofTiles, mode: "ridge", scaleM: 1.6, strength: 0.9, fade: [35, 140] });
     terrainMaterial = ground;
@@ -439,14 +480,13 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
     loadOrthoTexture(
       `/terrain.jpg?${assetCacheKey}`,
       (tex) => {
-        for (const mat of [ground, roof, worldMaterials.roadDirt]) {
-          mat.map = tex;
-          mat.needsUpdate = true;
-        }
+        ground.map = tex;
+        ground.needsUpdate = true;
+        worldMaterials.roadDirt.map = tex;
+        worldMaterials.roadDirt.needsUpdate = true;
       },
       () => {
         ground.color.setHex(0x8fbf75);
-        roof.color.setHex(0xb0644a);
         worldMaterials.roadDirt.color.setHex(0xb09c80);
       },
     );
@@ -1105,8 +1145,8 @@ worldMaterials.roadDirt.onBeforeCompile = injectOrthoShader;
 // Arrebossat amb antirepetició: les façanes són llises i grans i el patró de 2,5 m es veia repetit.
 addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "triplanar", scaleM: 2.5, strength: 0.35, fade: [30, 120], antiTile: true });
 // Tàpies de totxo amb la junta de morter clar; la maçoneria de l'església, amb junta fosca.
-addWorldDetail(worldMaterials.tapia, { map: detailTextures.brick, mode: "triplanar", scaleM: 3.15, strength: 1, fade: [30, 120], mortar: new THREE.Color(0xe2dccd) });
-addWorldDetail(worldMaterials.stone, { map: detailTextures.stone, mode: "triplanar", scaleM: 3, strength: 1, fade: [30, 120] });
+addWorldDetail(worldMaterials.tapia, { map: detailTextures.brick, mode: "triplanar", scaleM: 3.15, strength: 1, fade: [30, 120], secondScale: 0.13, mortar: new THREE.Color(0xe2dccd) });
+addWorldDetail(worldMaterials.stone, { map: detailTextures.stone, mode: "triplanar", scaleM: 3, strength: 1, fade: [30, 120], secondScale: 0.12 });
 addWorldDetail(worldMaterials.green, { map: detailTextures.ground, mode: "top", scaleM: 3, strength: 0.8, secondScale: 0.11 });
 addWorldDetail(worldMaterials.road, { map: detailTextures.asphalt, mode: "top", scaleM: 1.5, strength: 0.9, secondScale: 0.15, fade: [35, 130] });
 addWorldDetail(worldMaterials.roadDirt, { map: detailTextures.dirt, mode: "top", scaleM: 2.2, strength: 1, secondScale: 0.12, fade: [40, 150] });
@@ -1692,6 +1732,11 @@ const housePickRaycaster = new THREE.Raycaster();
 housePickRaycaster.firstHitOnly = true;
 housePickRaycaster.layers.enable(DETAIL_LAYER);
 const housePickNdc = new THREE.Vector2();
+/** Centres 3D de cada casa (malla estàtica) per posar el tooltip DEV al mig de la casa. */
+let houseCenters = new Map<number, THREE.Vector3>();
+const houseTooltipProj = new THREE.Vector3();
+let devHoverHouseId = 0;
+let devTooltipCopyTimer: ReturnType<typeof setTimeout> | null = null;
 /** Malles que canvien de material en mode dev, amb el material normal per tornar-hi. */
 const devTinted: { mesh: THREE.Mesh; normal: THREE.Material | THREE.Material[]; dev: THREE.Material }[] = [];
 
@@ -1764,23 +1809,55 @@ function prepareDevTint(root: THREE.Object3D): void {
       devTinted.push({ mesh, normal: mesh.material, dev });
     }
   });
+  houseCenters = buildHouseCenters(housePickMeshes);
 }
 
 function hideHouseTooltip(): void {
   houseTooltip?.toggleAttribute("hidden", true);
+  houseTooltip?.classList.remove("copied");
+  houseTooltip?.removeAttribute("title");
 }
 
-function showHouseTooltip(ref: string, clientX: number, clientY: number): void {
+function clearDevHouseHover(): void {
+  devHoverHouseId = 0;
+  hideHouseTooltip();
+}
+
+function setDevHouseTooltipRef(ref: string): void {
   if (!houseTooltip) {
     return;
   }
+  houseTooltip.dataset.ref = ref;
   houseTooltip.textContent = ref;
-  houseTooltip.style.left = `${clientX}px`;
-  houseTooltip.style.top = `${clientY}px`;
+  houseTooltip.title = "Clic per copiar al portapapers";
+  houseTooltip.classList.remove("copied");
+}
+
+/** Coloca el tooltip al centre projectat de la casa en hover (no segueix el ratolí). */
+function positionDevHouseTooltip(): void {
+  if (!devMode || !devHoverHouseId || !houseTooltip) {
+    return;
+  }
+  const ref = resolveHouseRef(houseRefs, devHoverHouseId);
+  if (!ref) {
+    clearDevHouseHover();
+    return;
+  }
+  const rect = renderer.domElement.getBoundingClientRect();
+  const pos = houseCenterToClient(houseCenters, devHoverHouseId, camera, rect, houseTooltipProj);
+  if (!pos) {
+    hideHouseTooltip();
+    return;
+  }
+  if (!houseTooltip.classList.contains("copied")) {
+    setDevHouseTooltipRef(ref);
+  }
+  houseTooltip.style.left = `${pos.x}px`;
+  houseTooltip.style.top = `${pos.y}px`;
   houseTooltip.toggleAttribute("hidden", false);
 }
 
-function pickHouseRef(clientX: number, clientY: number): string | null {
+function pickHouse(clientX: number, clientY: number): { ref: string; houseId: number } | null {
   if (!housePickMeshes.length) {
     return null;
   }
@@ -1794,20 +1871,71 @@ function pickHouseRef(clientX: number, clientY: number): string | null {
   if (!hits.length) {
     return null;
   }
-  return resolveHouseRef(houseRefs, houseIdFromHit(hits[0]));
+  const houseId = houseIdFromHit(hits[0]);
+  const ref = resolveHouseRef(houseRefs, houseId);
+  if (!ref) {
+    return null;
+  }
+  return { ref, houseId };
 }
 
 function onDevHousePointerMove(e: PointerEvent): void {
   if (!devMode || bigMapOpen || optionsOpen) {
-    hideHouseTooltip();
+    clearDevHouseHover();
     return;
   }
-  const ref = pickHouseRef(e.clientX, e.clientY);
-  if (ref) {
-    showHouseTooltip(ref, e.clientX, e.clientY);
+  const hit = pickHouse(e.clientX, e.clientY);
+  if (hit) {
+    devHoverHouseId = hit.houseId;
+    positionDevHouseTooltip();
   } else {
-    hideHouseTooltip();
+    clearDevHouseHover();
   }
+}
+
+function onDevPointerLeaveCanvas(e: PointerEvent): void {
+  const rel = e.relatedTarget;
+  if (rel instanceof Node && houseTooltip?.contains(rel)) {
+    return;
+  }
+  clearDevHouseHover();
+}
+
+function onDevPointerLeaveTooltip(e: PointerEvent): void {
+  const rel = e.relatedTarget;
+  if (rel === renderer.domElement) {
+    return;
+  }
+  clearDevHouseHover();
+}
+
+async function copyDevHouseRef(): Promise<void> {
+  if (!houseTooltip || houseTooltip.hasAttribute("hidden")) {
+    return;
+  }
+  const ref = houseTooltip.dataset.ref;
+  if (!ref) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(ref);
+  } catch {
+    return;
+  }
+  houseTooltip.textContent = "Copiat!";
+  houseTooltip.classList.add("copied");
+  if (devTooltipCopyTimer) {
+    clearTimeout(devTooltipCopyTimer);
+  }
+  devTooltipCopyTimer = setTimeout(() => {
+    devTooltipCopyTimer = null;
+    if (devHoverHouseId && houseTooltip && !houseTooltip.hasAttribute("hidden")) {
+      const again = resolveHouseRef(houseRefs, devHoverHouseId);
+      if (again) {
+        setDevHouseTooltipRef(again);
+      }
+    }
+  }, 1200);
 }
 
 function setDevMode(on: boolean): void {
@@ -1817,13 +1945,17 @@ function setDevMode(on: boolean): void {
   }
   devBadge?.toggleAttribute("hidden", !on);
   if (!on) {
-    hideHouseTooltip();
+    clearDevHouseHover();
   }
   lastMinimapRender = -Infinity; // el minimapa també es pinta amb els colors del mode dev
 }
 
 renderer.domElement.addEventListener("pointermove", onDevHousePointerMove);
-renderer.domElement.addEventListener("pointerleave", hideHouseTooltip);
+renderer.domElement.addEventListener("pointerleave", onDevPointerLeaveCanvas);
+houseTooltip?.addEventListener("pointerleave", onDevPointerLeaveTooltip);
+houseTooltip?.addEventListener("click", () => {
+  void copyDevHouseRef();
+});
 
 // --- Minimapa: vista cenital orientada amb el kart, zoom segons la velocitat ---
 
@@ -1981,7 +2113,8 @@ function drawWaterways(
     if (pts.length < 2) {
       continue;
     }
-    const lw = Math.max(2 * dpr, course.width / mPerPx);
+    // Traç fi i poc opac: només un indici, no un riu destacat sobre el terreny.
+    const lw = Math.max(1.2 * dpr, course.width / mPerPx * 0.7);
     ctx.beginPath();
     pts.forEach(([px, pz], i) => {
       const q = toPx(px, pz, projB);
@@ -1991,14 +2124,11 @@ function drawWaterways(
         ctx.lineTo(q.x, q.y);
       }
     });
-    ctx.strokeStyle = "rgba(18, 72, 92, 0.92)";
-    ctx.lineWidth = lw + 2.5 * dpr;
+    ctx.strokeStyle = "rgba(40, 90, 105, 0.35)";
+    ctx.lineWidth = lw + 1 * dpr;
     ctx.stroke();
-    ctx.strokeStyle = "rgba(72, 168, 210, 0.88)";
+    ctx.strokeStyle = "rgba(90, 150, 170, 0.4)";
     ctx.lineWidth = lw;
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(160, 220, 245, 0.45)";
-    ctx.lineWidth = Math.max(1 * dpr, lw * 0.35);
     ctx.stroke();
   }
   ctx.restore();
@@ -2127,6 +2257,8 @@ function drawCompass(ctx: CanvasRenderingContext2D, r: number, dpr: number): voi
   const b = toMinimapPx(kart.position.x, kart.position.y, kart.position.z - 10, projB, size);
   const north = Math.atan2(b.y - a.y, b.x - a.x);
   const ring = r - 2 * dpr;
+  // El canvas és circular (border-radius): el distintiu ha de cabre sencer a dins.
+  const badgeR = 11 * dpr;
 
   ctx.save();
   ctx.translate(r, r);
@@ -2140,10 +2272,10 @@ function drawCompass(ctx: CanvasRenderingContext2D, r: number, dpr: number): voi
     ctx.stroke();
   }
 
-  const nx = Math.cos(north) * ring;
-  const ny = Math.sin(north) * ring;
+  const nx = Math.cos(north) * (ring - badgeR);
+  const ny = Math.sin(north) * (ring - badgeR);
   ctx.beginPath();
-  ctx.arc(nx, ny, 11 * dpr, 0, Math.PI * 2);
+  ctx.arc(nx, ny, badgeR, 0, Math.PI * 2);
   ctx.fillStyle = "#d8322b";
   ctx.fill();
   ctx.stroke();
@@ -2221,20 +2353,40 @@ function updateCurrentStreet(dt: number): void {
 const MINIMAP_INTERVAL_MS = 50;
 let lastMinimapRender = -Infinity;
 
+/** Vista de mapa sense boira visible. No es pot posar `scene.fog = null`: Three reutilitza programes
+ * sense uniforms de boira i el render següent petarà a `refreshFogUniforms`. */
+function beginMapView(): () => void {
+  const background = scene.background;
+  scene.background = MINIMAP_BG;
+  const fog = scene.fog;
+  let restoreFog = () => {};
+  if (fog && (fog as THREE.Fog).isFog) {
+    const linear = fog as THREE.Fog;
+    const near = linear.near;
+    const far = linear.far;
+    linear.near = 1e7;
+    linear.far = 1e7 + 1;
+    restoreFog = () => {
+      linear.near = near;
+      linear.far = far;
+    };
+  }
+  return () => {
+    restoreFog();
+    scene.background = background;
+  };
+}
+
 function renderMinimap(now: number): void {
   if (now - lastMinimapRender >= MINIMAP_INTERVAL_MS) {
     lastMinimapRender = now;
-    const fog = scene.fog;
-    const background = scene.background;
-    scene.fog = null;
-    scene.background = MINIMAP_BG;
+    const endMapView = beginMapView();
     renderer.shadowMap.autoUpdate = false;
     renderer.setRenderTarget(minimapTarget);
     renderer.render(scene, minimapCam);
     renderer.setRenderTarget(null);
     renderer.shadowMap.autoUpdate = true;
-    scene.fog = fog;
-    scene.background = background;
+    endMapView();
     drawMinimapOverlay();
   }
   // El quad del HUD sí que cal cada fotograma: el render principal esborra la pantalla.
@@ -2329,7 +2481,7 @@ function layoutBigMap(): void {
 }
 
 function captureBigMap(): void {
-  // Vista cenital nord amunt de la finestra actual, amb la calçada en groc i el terreny enfosquit.
+  // Vista cenital fixa com un mapa oficial: nord (−Z) sempre amunt, est (+X) a la dreta.
   // Es torna a renderitzar a cada zoom perquè es vegi nítid, no com una imatge ampliada.
   clampMapView();
   bigMapCam.left = -mapViewHalf;
@@ -2337,6 +2489,7 @@ function captureBigMap(): void {
   bigMapCam.top = mapViewHalf;
   bigMapCam.bottom = -mapViewHalf;
   bigMapCam.position.set(mapViewX, 300, mapViewZ);
+  // up = −Z → el nord queda al mig de la vora superior (no gira amb el kart).
   bigMapCam.up.set(0, 0, -1);
   bigMapCam.lookAt(mapViewX, 0, mapViewZ);
   bigMapCam.updateProjectionMatrix();
@@ -2348,10 +2501,7 @@ function captureBigMap(): void {
   }
   const terrainColor = terrainMaterial?.color.getHex();
   terrainMaterial?.color.setScalar(0.42);
-  const fog = scene.fog;
-  const background = scene.background;
-  scene.fog = null;
-  scene.background = MINIMAP_BG;
+  const endMapView = beginMapView();
   renderer.shadowMap.autoUpdate = false;
 
   renderer.setViewport(0, 0, bigMapPx, bigMapPx);
@@ -2367,8 +2517,7 @@ function captureBigMap(): void {
   renderer.setScissorTest(false);
   renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
   renderer.shadowMap.autoUpdate = true;
-  scene.fog = fog;
-  scene.background = background;
+  endMapView();
   if (terrainColor !== undefined) {
     terrainMaterial?.color.setHex(terrainColor);
   }
@@ -2420,6 +2569,56 @@ function drawScaleBar(ctx: CanvasRenderingContext2D, size: number, dpr: number):
   ctx.restore();
 }
 
+/** Rosa dels vents fixa al mig de dalt: el mapa gran sempre té el nord amunt. */
+function drawBigMapNorth(ctx: CanvasRenderingContext2D, size: number, dpr: number): void {
+  const cx = size / 2;
+  // Deixa marge perquè el distintiu N no es talli amb la vora superior.
+  const cy = 40 * dpr;
+  const needle = 14 * dpr;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.shadowColor = "rgba(0,0,0,.75)";
+  ctx.shadowBlur = 5 * dpr;
+
+  // Agulla: meitat nord vermella, meitat sud blanca.
+  ctx.beginPath();
+  ctx.moveTo(0, -needle);
+  ctx.lineTo(5.5 * dpr, 1 * dpr);
+  ctx.lineTo(0, 0);
+  ctx.closePath();
+  ctx.fillStyle = "#d8322b";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, -needle);
+  ctx.lineTo(-5.5 * dpr, 1 * dpr);
+  ctx.lineTo(0, 0);
+  ctx.closePath();
+  ctx.fillStyle = "#9a1e18";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, needle * 0.65);
+  ctx.lineTo(5.5 * dpr, 1 * dpr);
+  ctx.lineTo(-5.5 * dpr, 1 * dpr);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(255,255,255,.95)";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(0, -needle - 11 * dpr, 11 * dpr, 0, Math.PI * 2);
+  ctx.fillStyle = "#d8322b";
+  ctx.fill();
+  ctx.lineWidth = 2 * dpr;
+  ctx.strokeStyle = "rgba(255,255,255,.95)";
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#fff";
+  ctx.font = `700 ${12 * dpr}px system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("N", 0, -needle - 11 * dpr + 0.5 * dpr);
+  ctx.restore();
+}
+
 function drawBigMap(): void {
   if (!bigMapCanvas || !bigMapCtx) {
     return;
@@ -2435,6 +2634,7 @@ function drawBigMap(): void {
   const k = worldToMapPx(kart.position.x, kart.position.z, projA);
   drawArrow(ctx, k.x, k.y, state.heading, dpr * 1.2, "#f5c518");
   drawScaleBar(ctx, size, dpr);
+  drawBigMapNorth(ctx, size, dpr);
 
   let hint = "Roda: zoom · Arrossega: moure · Clic a prop d'un carrer: reaparèixer · M o Esc: tancar";
   if (hoverPx && hoverPick && !mapDrag?.moved) {
@@ -2818,18 +3018,31 @@ hudEl?.addEventListener("click", () => {
 });
 
 // --- Càmera orbital: O/L amunt/avall, K/Ñ esquerra/dreta; en accelerar torna darrere el cotxe ---
+// Z alterna la perspectiva (distància, inclinació i camp). L'òrbita és dins de la perspectiva activa.
 
-const CAM_DIST_M = Math.hypot(CAM_BACK_M, CAM_UP_M);
-const CAM_DEFAULT_PITCH = Math.atan2(CAM_UP_M, CAM_BACK_M);
 const CAM_MIN_PITCH = 0.05; // gairebé arran de terra
 const CAM_MAX_PITCH = 1.35; // gairebé zenital
+// A marxa ràpida la càmera s'allunya i s'inclina (mira més avall). El seguiment ja
+// la deixa una mica enrere; això és l'efecte expressament, a ple cap a ~115 km/h.
+const CAM_SPEED_MIN = 4;
+const CAM_SPEED_FULL = 32;
+/** Metres extres de distància a ple efecte. */
+const CAM_SPEED_EXTRA_DIST = 4.2;
+/** Inclinació extra (rad) a ple efecte, per damunt de la perspectiva. */
+const CAM_SPEED_PITCH = 0.22;
 const CAM_KEY_YAW_RATE = 1.8; // rad/s
 const CAM_KEY_PITCH_RATE = 0.9;
 // "Velocitat mitja" de retorn: ~80°/s de gir i ~35°/s d'inclinació.
 const CAM_RECENTER_YAW_RATE = 1.4;
 const CAM_RECENTER_PITCH_RATE = 0.6;
 /** `yaw`: gir respecte de darrere el cotxe (negatiu = cap a l'esquerra del cotxe). */
-const cameraOrbit = { yaw: 0, pitch: CAM_DEFAULT_PITCH };
+const cameraOrbit = { yaw: 0, pitch: camPresetPitch() };
+/** Mirada i camp que s'acosten a la perspectiva triada; la posició ja es interpola a part. */
+const camBlend = {
+  lookUp: camPreset().lookUp,
+  lookAhead: camPreset().lookAhead,
+  fov: camPreset().fov,
+};
 
 function approach(value: number, target: number, maxStep: number): number {
   return value + THREE.MathUtils.clamp(target - value, -maxStep, maxStep);
@@ -2850,24 +3063,79 @@ function updateCameraOrbit(dt: number, throttle: number): void {
   cameraOrbit.yaw = Math.atan2(Math.sin(cameraOrbit.yaw), Math.cos(cameraOrbit.yaw)); // dins (−π, π]
   if (throttle > 0 && !left && !right && !up && !lower) {
     cameraOrbit.yaw = approach(cameraOrbit.yaw, 0, CAM_RECENTER_YAW_RATE * dt);
-    cameraOrbit.pitch = approach(cameraOrbit.pitch, CAM_DEFAULT_PITCH, CAM_RECENTER_PITCH_RATE * dt);
+    cameraOrbit.pitch = approach(cameraOrbit.pitch, camPresetPitch(), CAM_RECENTER_PITCH_RATE * dt);
   }
 }
 
-/** Posició de la càmera respecte del cotxe segons l'òrbita actual. */
+/** 0 aturat, 1 a partir de `CAM_SPEED_FULL`: zoom out i inclinació de la persecució. */
+function camSpeedT(): number {
+  return THREE.MathUtils.smoothstep(Math.abs(state.speed), CAM_SPEED_MIN, CAM_SPEED_FULL);
+}
+
+/** Posició de la càmera respecte del cotxe segons l'òrbita, la perspectiva i la velocitat. */
 function cameraOffset(heading: number, out: THREE.Vector3): THREE.Vector3 {
+  const t = camSpeedT();
+  const dist = camPresetDist() + CAM_SPEED_EXTRA_DIST * t;
+  const pitch = THREE.MathUtils.clamp(cameraOrbit.pitch + CAM_SPEED_PITCH * t, CAM_MIN_PITCH, CAM_MAX_PITCH);
   const a = heading + cameraOrbit.yaw;
-  const flat = Math.cos(cameraOrbit.pitch) * CAM_DIST_M;
-  return out.set(-Math.sin(a) * flat, Math.sin(cameraOrbit.pitch) * CAM_DIST_M, -Math.cos(a) * flat);
+  const flat = Math.cos(pitch) * dist;
+  return out.set(-Math.sin(a) * flat, Math.sin(pitch) * dist, -Math.cos(a) * flat);
 }
 
 const camOffset = new THREE.Vector3();
+const camLook = new THREE.Vector3();
+
+function applyCamBlend(dt: number, snap = false): void {
+  const preset = camPreset();
+  if (snap) {
+    camBlend.lookUp = preset.lookUp;
+    camBlend.lookAhead = preset.lookAhead;
+    camBlend.fov = preset.fov;
+  } else {
+    const k = 1 - Math.exp(-4 * dt);
+    camBlend.lookUp += (preset.lookUp - camBlend.lookUp) * k;
+    camBlend.lookAhead += (preset.lookAhead - camBlend.lookAhead) * k;
+    camBlend.fov += (preset.fov - camBlend.fov) * k;
+    if (Math.abs(preset.lookUp - camBlend.lookUp) < 0.01) {
+      camBlend.lookUp = preset.lookUp;
+    }
+    if (Math.abs(preset.lookAhead - camBlend.lookAhead) < 0.02) {
+      camBlend.lookAhead = preset.lookAhead;
+    }
+    if (Math.abs(preset.fov - camBlend.fov) < 0.05) {
+      camBlend.fov = preset.fov;
+    }
+  }
+  if (camera.fov !== camBlend.fov) {
+    camera.fov = camBlend.fov;
+    camera.updateProjectionMatrix();
+  }
+}
+
+function aimCamera(heading: number): void {
+  camLook.set(
+    kart.position.x + Math.sin(heading) * camBlend.lookAhead,
+    kart.position.y + camBlend.lookUp,
+    kart.position.z + Math.cos(heading) * camBlend.lookAhead,
+  );
+  camera.lookAt(camLook);
+}
+
+/** Z: normal → oberta → curses. Torna a quedar darrere el cotxe, amb la inclinació d'aquella vista. */
+function cycleCameraPreset(): void {
+  camPresetIndex = (camPresetIndex + 1) % CAM_PRESETS.length;
+  cameraOrbit.yaw = 0;
+  cameraOrbit.pitch = camPresetPitch();
+  motionBlur.reset();
+}
 
 function placeCameraBehindKart(): void {
   cameraOrbit.yaw = 0;
-  cameraOrbit.pitch = CAM_DEFAULT_PITCH;
+  cameraOrbit.pitch = camPresetPitch();
+  applyCamBlend(0, true);
   camera.position.copy(kart.position).add(cameraOffset(state.heading, camOffset));
-  camera.lookAt(kart.position.x, kart.position.y + CAM_LOOK_UP_M, kart.position.z);
+  aimCamera(state.heading);
+  motionBlur.reset();
 }
 
 // Fora de l'asfalt el cotxe roda pitjor i no hi pot anar gaire de pressa: al camp de terra una
@@ -3017,17 +3285,18 @@ function update(dt: number): void {
     applySpawn();
   }
 
-  const camTarget = kart.position.clone().add(new THREE.Vector3(0, CAM_LOOK_UP_M, 0));
   updateCameraOrbit(dt, throttle);
+  applyCamBlend(dt);
   // La càmera segueix la marxa, no el morro: derrapant es veu el cotxe creuat.
-  const camPos = kart.position.clone().add(cameraOffset(state.heading + state.driftAngle, camOffset));
+  const travel = state.heading + state.driftAngle;
+  const camPos = kart.position.clone().add(cameraOffset(travel, camOffset));
   camera.position.lerp(camPos, 1 - Math.exp(-4 * dt));
   // Darrere d'un turó la càmera no pot quedar enterrada.
   const camGround = groundY(camera.position.x, camera.position.z);
   if (camGround !== null && camera.position.y < camGround + 1.5) {
     camera.position.y = camGround + 1.5;
   }
-  camera.lookAt(camTarget);
+  aimCamera(travel);
   updateMinimapCamera(dt, forward);
   updateCurrentStreet(dt);
   followSun();
@@ -3047,6 +3316,7 @@ function onResize(): void {
 window.addEventListener("resize", onResize);
 const optionsModal = document.getElementById("options");
 const optHideStreetNames = document.getElementById("opt-hide-street-names") as HTMLInputElement | null;
+const optMotionBlur = document.getElementById("opt-motion-blur") as HTMLInputElement | null;
 let optionsOpen = false;
 
 function toggleOptions(open: boolean): void {
@@ -3059,6 +3329,9 @@ function toggleOptions(open: boolean): void {
   if (open) {
     if (optHideStreetNames) {
       optHideStreetNames.checked = settings.hideStreetNames;
+    }
+    if (optMotionBlur) {
+      optMotionBlur.checked = settings.motionBlur;
     }
     optHideStreetNames?.focus();
   } else {
@@ -3074,6 +3347,13 @@ optHideStreetNames?.addEventListener("change", () => {
     streetBanner?.classList.remove("visible");
   }
   lastMinimapRender = -Infinity; // redibuixa el minimapa amb o sense noms de seguida
+});
+optMotionBlur?.addEventListener("change", () => {
+  settings.motionBlur = optMotionBlur.checked;
+  saveSettings();
+  if (!settings.motionBlur) {
+    motionBlur.reset();
+  }
 });
 optionsModal?.addEventListener("click", (e) => {
   if (e.target === optionsModal) {
@@ -3131,6 +3411,9 @@ function trackKey(e: KeyboardEvent, down: boolean): void {
     } else {
       respawnNearby();
     }
+  }
+  if (down && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && (fromKey === "z" || fromCode === "z")) {
+    cycleCameraPreset();
   }
   if (down && !e.repeat && (fromKey === "i" || fromCode === "i")) {
     setAutopilot(!autopilotOn);
@@ -3192,6 +3475,7 @@ function adaptResolution(fps: number): void {
   }
   if (next !== pr) {
     renderer.setPixelRatio(next);
+    motionBlur.setSizeFromRenderer(renderer);
     layoutMinimap();
   }
 }
@@ -3236,12 +3520,25 @@ function loop(now: number): void {
     waterTime.value = now / 1000;
     sky.update(dt, camera, sunOccluded);
     craneFlocks.update(dt, camera);
+    airParticles.update(dt, camera, {
+      position: kart.position,
+      heading: state.heading,
+      speed: state.speed,
+      surface: surfaceAt(kart.position.x, kart.position.z),
+    });
     // Un núvol davant del sol atenua la llum directa (i suavitza les ombres).
     sun.intensity = SUN_INTENSITY * (1 - 0.4 * sky.cloudOverSun);
-    renderer.render(scene, camera);
+    if (settings.motionBlur) {
+      motionBlur.render(renderer, scene, camera, state.speed);
+    } else {
+      renderer.render(scene, camera);
+    }
     sky.renderFlare(renderer);
     renderMinimap(now);
     updateHudCoords();
+    if (devMode && devHoverHouseId) {
+      positionDevHouseTooltip();
+    }
   }
   updatePerf(frameMs);
   requestAnimationFrame(loop);
