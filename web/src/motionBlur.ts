@@ -6,20 +6,22 @@
 // el refresc. El canvas de sota es conserva on el vel del gir no arriba,
 // així el centre no baixa a mitja resolució.
 //
-// L'escena es pinta al canvas. Parat i sense gir, no es fa cap passada extra.
+// L'escena ja és al canvas (suavitzada). Parat i sense gir, no es fa cap passada extra.
 
 import * as THREE from "three";
 
-const SAMPLES = 6;
+/** Mostres del traç. Tres n'hi ha prou per al vel i la passada es queda barata. */
+const SAMPLES = 3;
 /** Límit del vector de gir en UV per fotograma (evita estrebades en respawn). */
 const MAX_VELOCITY_UV = 0.028;
-/** Desplaçament en UV a partir del qual el gir comença a desenfocar, i on arriba al màxim. */
-const TURN_MIN_UV = 0.0025;
+/** Desplaçament en UV a partir del qual el gir comença a desenfocar, i on arriba al màxim.
+ *  El llindar és alt a propòsit: el trontoll del terra no ha d'obrir la passada anant recte. */
+const TURN_MIN_UV = 0.006;
 const TURN_FULL_UV = 0.01;
 /** Traç del gir. Curt a propòsit: en orbitar, un vel fort tapa el que es mira. */
 const TURN_INTENSITY = 0.5;
-/** Per sota d'això el traç del gir no es veu. */
-const MIN_BLUR_PX = 1.25;
+/** Per sota d'això el traç del gir no es veu i no s'obre la passada. */
+const MIN_BLUR_PX = 3;
 /** El vel del gir arriba al màxim cap a aquest traç (px). */
 const FULL_BLUR_PX = 8;
 /** Marxa (m/s) on l'efecte radial comença i on arriba al màxim. */
@@ -224,6 +226,7 @@ export class MotionBlur {
     state.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.lowFbo);
     if (gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
       this.lowFbo = null;
+      state.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
       state.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       return false;
     }
@@ -242,26 +245,22 @@ export class MotionBlur {
     if (this.blitOk === null) {
       // getError força una sincronització: només el primer fotograma.
       this.blitOk = gl.getError() === gl.NO_ERROR;
+      if (!this.blitOk) {
+        console.warn("[desenfoc] el blit del framebuffer ha fallat; el gir no es desenfoca");
+      }
     }
+    state.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
     state.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     return this.blitOk === true;
   }
 
   /**
-   * Dibuixa l'escena i, si la càmera gira, el vel a sobre.
+   * Si la càmera gira, posa el vel a sobre del canvas. L'escena ja hi ha d'estar pintada.
    * Anar recte no obre la passada.
    */
-  render(
-    renderer: THREE.WebGLRenderer,
-    scene: THREE.Scene,
-    camera: THREE.PerspectiveCamera,
-    speedMps: number,
-  ): void {
+  render(renderer: THREE.WebGLRenderer, camera: THREE.PerspectiveCamera, speedMps: number): void {
     const prevTarget = renderer.getRenderTarget();
     const prevAutoClear = renderer.autoClear;
-    renderer.setRenderTarget(null);
-    renderer.autoClear = true;
-    renderer.render(scene, camera);
 
     this.setSizeFromRenderer(renderer);
     this.updateRotation(camera);

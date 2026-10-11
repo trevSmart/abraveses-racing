@@ -144,8 +144,8 @@ const airParticles = new AirParticles(
 );
 airParticles.setEnabled(settings.airParticles);
 const renderer = new THREE.WebGLRenderer({
-  // Sense MSAA: a 1,5× ja hi ha prou píxels, i així es pot copiar el canvas a mitja
-  // resolució pel desenfoc (un blit des d'un framebuffer multisample no pot escalar).
+  // Sense MSAA ni passada a pantalla completa: a 1,5× ja es busca el refresc de 120 Hz,
+  // i un filtre de vores costava més que pintar el poble.
   antialias: false,
   powerPreference: "high-performance",
 });
@@ -294,9 +294,17 @@ const detailTextures = {
   brick: brickDetail(),
   roofTiles: roofTileDetail(),
 };
-// Les teulades i l'asfalt es veuen de biaix: amb poca anisotropia el mipmap els esborra el gra.
+// Teulades, asfalt i murs es veuen de biaix: amb poca anisotropia el gra i el morter
+// surten serrats (el mipmap isotròpic els esborra o els deixa a graons).
 const detailAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
-for (const tex of [detailTextures.roofTiles, detailTextures.asphalt, detailTextures.asphaltSurface]) {
+for (const tex of [
+  detailTextures.roofTiles,
+  detailTextures.asphalt,
+  detailTextures.asphaltSurface,
+  detailTextures.brick,
+  detailTextures.stone,
+  detailTextures.plaster,
+]) {
   tex.anisotropy = detailAniso;
   tex.needsUpdate = true;
 }
@@ -360,16 +368,131 @@ let terrainMaterial: THREE.MeshStandardMaterial | null = null;
 let roofMaterial: THREE.MeshStandardMaterial | null = null;
 let assetCacheKey = "1";
 
+type FetchedBytes = { ok: boolean; status: number; buffer: ArrayBuffer };
+
 // Descàrregues en paral·lel: en saber la clau de memòria cau (world_meta) es demanen tots els
 // fitxers alhora, i cada carregador reaprofita la seva petició en lloc de començar-la tard.
-const prefetchCache = new Map<string, Promise<Response>>();
-function fetchOnce(url: string): Promise<Response> {
-  let p = prefetchCache.get(url);
-  if (!p) {
-    p = fetch(url);
-    prefetchCache.set(url, p);
+const prefetchCache = new Map<string, Promise<FetchedBytes>>();
+
+/** Mida coneguda, per omplir la barra abans que arribi Content-Length. */
+const LOAD_BYTES: Record<string, number> = {
+  world: 147_256_680,
+  village: 18_459_646,
+  terrain: 5_306_572,
+  "terrain-center": 3_205_057,
+  cards: 141_773,
+  streets: 47_255,
+};
+
+/** Les baixades omplen aquest tram; el muntatge (GLB, vegetació, shaders) la resta. */
+const DOWNLOAD_BUDGET = 0.72;
+const CPU_BUDGET = 1 - DOWNLOAD_BUDGET;
+let trackedIds: string[] = [];
+const trackedState = new Map<string, { loaded: number; total: number }>();
+let cpuShare = 0;
+let loadingShown = -1;
+let loadingPaintQueued = false;
+
+function armDownloadProgress(ids: string[]): void {
+  trackedIds = ids;
+  for (const id of ids) {
+    trackedState.set(id, { loaded: 0, total: LOAD_BYTES[id] ?? 1 });
   }
-  return p.then((r) => r.clone());
+}
+
+function noteDownload(id: string, loaded: number, total: number): void {
+  const planned = LOAD_BYTES[id] ?? Math.max(loaded, 1);
+  const totalBytes = total > 0 ? total : planned;
+  trackedState.set(id, { loaded: Math.min(loaded, totalBytes), total: totalBytes });
+  scheduleLoadingPaint();
+}
+
+function downloadFraction(): number {
+  let expect = 0;
+  let got = 0;
+  for (const id of trackedIds) {
+    const slot = trackedState.get(id);
+    const total = slot?.total || LOAD_BYTES[id] || 1;
+    expect += total;
+    got += Math.min(slot?.loaded ?? 0, total);
+  }
+  return expect > 0 ? got / expect : 0;
+}
+
+function paintLoading(): void {
+  const percent = Math.round(Math.min(1, DOWNLOAD_BUDGET * downloadFraction() + cpuShare) * 100);
+  if (percent === loadingShown) {
+    return;
+  }
+  loadingShown = percent;
+  const fill = document.getElementById("loading-fill");
+  const bar = document.getElementById("loading-bar");
+  const pct = document.getElementById("loading-pct");
+  if (fill) {
+    fill.style.width = `${percent}%`;
+  }
+  if (bar) {
+    bar.setAttribute("aria-valuenow", String(percent));
+  }
+  if (pct) {
+    pct.textContent = `${percent}%`;
+  }
+}
+
+function scheduleLoadingPaint(): void {
+  if (loadingPaintQueued) {
+    return;
+  }
+  loadingPaintQueued = true;
+  requestAnimationFrame(() => {
+    loadingPaintQueued = false;
+    paintLoading();
+  });
+}
+
+/** Avança la part de la barra que no és baixada (muntar el GLB, plantar, compilar). */
+function advanceLoading(share: number, text?: string): void {
+  cpuShare = Math.min(CPU_BUDGET, cpuShare + share);
+  if (text) {
+    setLoading(text);
+  }
+  paintLoading();
+}
+
+function fetchAsset(url: string, trackId?: string): Promise<FetchedBytes> {
+  let pending = prefetchCache.get(url);
+  if (!pending) {
+    pending = new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url);
+      xhr.responseType = "arraybuffer";
+      xhr.onprogress = (ev) => {
+        if (trackId) {
+          noteDownload(trackId, ev.loaded, ev.lengthComputable ? ev.total : 0);
+        }
+      };
+      xhr.onload = () => {
+        const buffer = (xhr.response as ArrayBuffer | null) ?? new ArrayBuffer(0);
+        if (trackId) {
+          noteDownload(trackId, buffer.byteLength, buffer.byteLength || LOAD_BYTES[trackId] || 1);
+        }
+        resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, buffer });
+      };
+      xhr.onerror = () => {
+        if (trackId) {
+          noteDownload(trackId, LOAD_BYTES[trackId] ?? 1, LOAD_BYTES[trackId] ?? 1);
+        }
+        reject(new Error(`No s'ha pogut baixar ${url}`));
+      };
+      xhr.send();
+    });
+    prefetchCache.set(url, pending);
+  }
+  return pending;
+}
+
+function decodeJson<T>(buffer: ArrayBuffer): T {
+  return JSON.parse(new TextDecoder().decode(buffer)) as T;
 }
 
 /** En local, el GLB de `public/`. A Vercel, el de GitHub: el desplegament només té el punter LFS. */
@@ -378,14 +501,24 @@ function worldGlbUrl(): string {
 }
 
 function prefetchAssets(): void {
-  for (const name of ["village.json", "trees.json", "streets.json", "house_cards.json"]) {
-    void fetchOnce(`/${name}?${assetCacheKey}`);
+  const jobs: [string, string | undefined][] = [
+    [`/village.json?${assetCacheKey}`, "village"],
+    [`/trees.json?${assetCacheKey}`, undefined],
+    [`/streets.json?${assetCacheKey}`, "streets"],
+    [`/house_cards.json?${assetCacheKey}`, "cards"],
+    [`/terrain.jpg?${assetCacheKey}`, "terrain"],
+    [worldGlbUrl(), "world"],
+  ];
+  if (trackedIds.includes("terrain-center")) {
+    jobs.push([`/terrain_center.jpg?${assetCacheKey}`, "terrain-center"]);
   }
-  void fetchOnce(worldGlbUrl());
+  for (const [url, id] of jobs) {
+    void fetchAsset(url, id).catch(() => undefined);
+  }
 }
 
 function setLoading(text: string): void {
-  const el = document.getElementById("loading");
+  const el = document.getElementById("loading-text");
   if (el) {
     el.textContent = text;
   }
@@ -503,26 +636,44 @@ uniform float uHasCenter;`,
 /** Ortofotos pendents: la pantalla de càrrega les espera perquè no aparegui el terreny sense foto. */
 const orthoLoads: Promise<void>[] = [];
 
-function loadOrthoTexture(url: string, onLoad: (tex: THREE.Texture) => void, onError?: () => void): void {
+function textureFromBuffer(buffer: ArrayBuffer): Promise<THREE.Texture> {
+  const blob = new Blob([buffer], { type: "image/jpeg" });
+  const url = URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    textureLoader.load(
+      url,
+      (tex) => {
+        URL.revokeObjectURL(url);
+        resolve(tex);
+      },
+      undefined,
+      () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("textura"));
+      },
+    );
+  });
+}
+
+function loadOrthoTexture(url: string, trackId: string, onLoad: (tex: THREE.Texture) => void, onError?: () => void): void {
   orthoLoads.push(
-    new Promise((resolve) => {
-      textureLoader.load(
-        url,
-        (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-          tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-          // Pujada a la GPU (4096² amb mipmaps, ~0,25 s) ara, i no el primer fotograma que es dibuixa.
-          renderer.initTexture(tex);
-          onLoad(tex);
-          resolve();
-        },
-        undefined,
-        () => {
+    (async () => {
+      try {
+        const { ok, buffer } = await fetchAsset(url, trackId);
+        if (!ok || buffer.byteLength < 32) {
           onError?.();
-          resolve();
-        },
-      );
-    }),
+          return;
+        }
+        const tex = await textureFromBuffer(buffer);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+        // Pujada a la GPU (4096² amb mipmaps, ~0,25 s) ara, i no el primer fotograma que es dibuixa.
+        renderer.initTexture(tex);
+        onLoad(tex);
+      } catch {
+        onError?.();
+      }
+    })(),
   );
 }
 
@@ -549,6 +700,7 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
     orthoUniforms.uHalfCenter.value = orthoCenterM / 2;
     loadOrthoTexture(
       `/terrain.jpg?${assetCacheKey}`,
+      "terrain",
       (tex) => {
         ground.map = tex;
         ground.needsUpdate = true;
@@ -561,7 +713,7 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
       },
     );
     if (orthoCenterM > 0 && orthoCenterM < terrainSizeM) {
-      loadOrthoTexture(`/terrain_center.jpg?${assetCacheKey}`, (tex) => {
+      loadOrthoTexture(`/terrain_center.jpg?${assetCacheKey}`, "terrain-center", (tex) => {
         orthoUniforms.uCenterMap.value = tex;
         orthoUniforms.uHasCenter.value = 1;
       });
@@ -1652,11 +1804,11 @@ function buildCartoonTrees(instances: TreesFile["trees"]): THREE.InstancedMesh {
 }
 
 async function loadTrees(): Promise<void> {
-  const res = await fetchOnce(`/trees.json?${assetCacheKey}`);
-  if (!res.ok) {
+  const { ok, buffer } = await fetchAsset(`/trees.json?${assetCacheKey}`);
+  if (!ok) {
     return;
   }
-  const data = (await res.json()) as TreesFile;
+  const data = decodeJson<TreesFile>(buffer);
   if (!data.trees?.length) {
     return;
   }
@@ -2220,11 +2372,11 @@ function registerHortPlants(plants: PlantRow[]): void {
 }
 
 async function loadVillage(): Promise<void> {
-  const res = await fetchOnce(`/village.json?${assetCacheKey}`);
-  if (!res.ok) {
+  const { ok, buffer } = await fetchAsset(`/village.json?${assetCacheKey}`, "village");
+  if (!ok) {
     return;
   }
-  const data = (await res.json()) as VillageFile;
+  const data = decodeJson<VillageFile>(buffer);
   houseRefs = data.houses ?? {};
   if (data.trees?.length) {
     registerVillageTrees(data.trees);
@@ -2237,11 +2389,11 @@ async function loadVillage(): Promise<void> {
 }
 
 async function loadHouseCards(): Promise<void> {
-  const res = await fetchOnce(`/house_cards.json?${assetCacheKey}`);
-  if (!res.ok) {
+  const { ok, buffer } = await fetchAsset(`/house_cards.json?${assetCacheKey}`, "cards");
+  if (!ok) {
     return;
   }
-  houseCards = (await res.json()) as Record<string, HouseCard>;
+  houseCards = decodeJson<Record<string, HouseCard>>(buffer);
   const ref = houseTooltip?.dataset.ref;
   if (ref && devHoverHouseId && houseTooltip && !houseTooltip.hasAttribute("hidden")) {
     renderHouseCard(ref);
@@ -2271,17 +2423,18 @@ function followSun(): void {
 
 async function loadWorld(): Promise<void> {
   const loader = new GLTFLoader();
-  const res = await fetchOnce(worldGlbUrl());
-  if (!res.ok) {
-    throw new Error(`world.glb HTTP ${res.status}`);
+  const { ok, status, buffer } = await fetchAsset(worldGlbUrl(), "world");
+  if (!ok) {
+    throw new Error(`world.glb HTTP ${status}`);
   }
-  const buffer = await res.arrayBuffer();
   if (buffer.byteLength < 512) {
     const head = new TextDecoder().decode(buffer);
     if (head.startsWith("version https://git-lfs.github.com/spec/v1")) {
       throw new Error("world.glb és un punter de Git LFS, no el model");
     }
   }
+  setLoading("Muntant el poble…");
+  await nextPaint();
   const gltf = await loader.parseAsync(buffer, "");
   const world = gltf.scene;
   tintWorld(world);
@@ -2290,6 +2443,7 @@ async function loadWorld(): Promise<void> {
   world.updateMatrixWorld(true);
   freezeStatic(world);
   indexGroundMeshes();
+  advanceLoading(0.12);
 }
 
 /** El món no es mou: sense recalcular matrius a cada fotograma. */
@@ -2812,11 +2966,11 @@ function shortStreetName(name: string): string {
 }
 
 async function loadStreets(): Promise<void> {
-  const res = await fetchOnce(`/streets.json?${assetCacheKey}`);
-  if (!res.ok) {
+  const { ok, buffer } = await fetchAsset(`/streets.json?${assetCacheKey}`, "streets");
+  if (!ok) {
     return;
   }
-  const data = (await res.json()) as StreetsFile;
+  const data = decodeJson<StreetsFile>(buffer);
   roadPolylines.push(...(data.roads ?? data.streets.map((s) => s.points)));
   waterPolylines.push(...(data.waterways ?? []));
   autopilot = new Autopilot(roadPolylines);
@@ -4506,8 +4660,9 @@ let slowSamples = 0;
 let fastSamples = 0;
 /** Fotogrames de la finestra de mig segon, per mirar el pitjor i no només la mitjana. */
 const perfTimes: number[] = [];
-/** Període del refresc (ms). 8,33 a 120 Hz, 16,67 a 60 Hz; es dedueix dels fotogrames. */
-let refreshMs = 16.67;
+/** Període del refresc (ms). Es parteix de 120 Hz, que és el sostre que es vol; si els
+ *  fotogrames cauen al ritme de 60 Hz, es corregeix (vegeu updatePerf). */
+let refreshMs = 1000 / 120;
 /** La compilació de shaders i la vegetació inicial fan fotogrames lents que no representen el joc. */
 const ADAPT_WARMUP_MS = 5000;
 let adaptWarmupUntil = 0;
@@ -4516,13 +4671,51 @@ let adaptWarmupUntil = 0;
 let prCeiling = MAX_PIXEL_RATIO;
 let prCeilingUntil = 0;
 const PR_CEILING_MS = 20000;
+/** Relació i p95 just abans de l'últim descens, per desfer-lo si el fotograma no s'escurça. */
+let prBeforeDrop = 0;
+let p95BeforeDrop = 0;
+let awaitDropResult = false;
+/** Finestres a ignorar després d'un canvi: realocar el framebuffer fa una estrebada. */
+let dropSettle = 0;
+/** No baixem per sota d'aquí mentre un descens no hagi escurçat el fotograma. */
+let prFloor = MIN_PIXEL_RATIO;
+let prFloorUntil = 0;
 
-/** Baixa la resolució si el fotograma pitjor no entra al refresc, i la recupera quan hi cap. */
+function applyPixelRatio(next: number): void {
+  renderer.setPixelRatio(next);
+  motionBlur.setSizeFromRenderer(renderer);
+  layoutMinimap();
+}
+
+/** Baixa la resolució si el fotograma pitjor no entra al refresc, i la recupera quan hi cap.
+ *  Un descens que no escurça el fotograma (CPU, ombres) es desfà: només empitjoraria la imatge. */
 function adaptResolution(fps: number, p95: number): void {
   const pr = renderer.getPixelRatio();
   const now = performance.now();
   if (now > prCeilingUntil) {
     prCeiling = MAX_PIXEL_RATIO;
+  }
+  if (now > prFloorUntil) {
+    prFloor = MIN_PIXEL_RATIO;
+  }
+  if (dropSettle > 0) {
+    dropSettle--;
+    return;
+  }
+  if (awaitDropResult) {
+    awaitDropResult = false;
+    // Menys d'un 12%: el cost no és el nombre de píxels. Tornem a la relació d'abans.
+    if (p95 > p95BeforeDrop * 0.88 && prBeforeDrop > pr) {
+      applyPixelRatio(prBeforeDrop);
+      prCeiling = prBeforeDrop;
+      prCeilingUntil = now + PR_CEILING_MS;
+      prFloor = prBeforeDrop;
+      prFloorUntil = now + 60000;
+      dropSettle = 1;
+      slowSamples = 0;
+      fastSamples = 0;
+      return;
+    }
   }
   // Un fotograma que es passa del refresc es veu com una estrebada, encara que la mitjana sigui alta.
   if (p95 > refreshMs * 1.35) {
@@ -4536,8 +4729,13 @@ function adaptResolution(fps: number, p95: number): void {
     fastSamples = 0;
   }
   let next = pr;
-  if (slowSamples >= 2 && pr > MIN_PIXEL_RATIO) {
-    next = Math.max(MIN_PIXEL_RATIO, Math.round((pr - 0.15) * 20) / 20);
+  const floor = Math.max(MIN_PIXEL_RATIO, prFloor);
+  if (slowSamples >= 2 && pr > floor) {
+    prBeforeDrop = pr;
+    p95BeforeDrop = p95;
+    awaitDropResult = true;
+    dropSettle = 1;
+    next = Math.max(floor, Math.round((pr - 0.15) * 20) / 20);
     slowSamples = 0;
     prCeiling = next;
     prCeilingUntil = now + PR_CEILING_MS;
@@ -4546,9 +4744,7 @@ function adaptResolution(fps: number, p95: number): void {
     fastSamples = 0;
   }
   if (next !== pr) {
-    renderer.setPixelRatio(next);
-    motionBlur.setSizeFromRenderer(renderer);
-    layoutMinimap();
+    applyPixelRatio(next);
   }
 }
 
@@ -4622,10 +4818,9 @@ function loop(now: number): void {
     // Un núvol davant del sol atenua la llum directa (i suavitza les ombres).
     sun.intensity = SUN_INTENSITY * (1 - 0.4 * sky.cloudOverSun);
     hideHouseUniform.value = insideHouseId;
+    renderer.render(scene, camera);
     if (settings.motionBlur) {
-      motionBlur.render(renderer, scene, camera, state.speed);
-    } else {
-      renderer.render(scene, camera);
+      motionBlur.render(renderer, camera, state.speed);
     }
     // El minimapa i el mapa gran ensenyen la casa sencera.
     hideHouseUniform.value = 0;
@@ -4645,6 +4840,11 @@ async function boot(): Promise<void> {
     // Aquí i no a dalt: les constants del model (R12_*) es defineixen més avall del mòdul.
     markLoad("mòdul i textures procedurals");
     await Promise.all([loadSpawn(), loadWorldMeta()]);
+    const downloadIds = ["world", "village", "terrain", "cards", "streets"];
+    if (orthoCenterM > 0 && orthoCenterM < terrainSizeM) {
+      downloadIds.push("terrain-center");
+    }
+    armDownloadProgress(downloadIds);
     prefetchAssets();
     buildKartVisual(kart);
     mergeStaticParts(kart);
@@ -4657,16 +4857,22 @@ async function boot(): Promise<void> {
     await nextPaint();
     await Promise.all([loadTrees(), loadVillage(), loadStreets(), loadHouseCards()]);
     markLoad("vegetació i carrers");
+    advanceLoading(0.07);
     layoutMinimap();
     applySpawn();
     markLoad("spawn");
     // La vegetació de prop del punt de sortida, ja; la resta es va construint mentre es juga.
     cullByDistance(performance.now(), Infinity, 160);
     markLoad("vegetació propera");
+    advanceLoading(0.03, "Preparant el paisatge…");
+    await nextPaint();
     await Promise.all(orthoLoads);
     markLoad("ortofotos");
+    advanceLoading(0.03);
+    await nextPaint();
     renderer.compile(scene, camera);
     markLoad("compilació de shaders");
+    advanceLoading(0.03);
     document.getElementById("loading")?.remove();
     const hud = document.getElementById("hud");
     if (hud) {
@@ -4683,11 +4889,8 @@ async function boot(): Promise<void> {
       console.info("[càrrega]", JSON.stringify(loadTimings));
     });
   } catch (err) {
-    const el = document.getElementById("loading");
-    if (el) {
-      el.textContent =
-        "No s'ha pogut carregar el món. Executa: python tools/mapgen/build_world.py --all";
-    }
+    document.getElementById("loading")?.classList.add("failed");
+    setLoading("No s'ha pogut carregar el món. Executa: python tools/mapgen/build_world.py --all");
     console.error(err);
   }
 }
