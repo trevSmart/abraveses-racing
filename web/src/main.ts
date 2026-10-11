@@ -28,6 +28,7 @@ import { Sky, SUN_VISUAL_ELEVATION_DEG, sunDirection } from "./sky";
 import { R12, stepSpeed, stepSteer, turnRadius, yawRate } from "./vehicle";
 import { applyWaterMaterial, setWaterEnvironment, waterTime } from "./water";
 import { buildHouseCenters, houseCenterToClient, houseIdFromHit, resolveHouseRef } from "./housePick";
+import { inject as injectAnalytics } from "@vercel/analytics";
 import { MotionBlur } from "./motionBlur";
 
 type SpawnData = {
@@ -4837,6 +4838,7 @@ function loop(now: number): void {
 
 async function boot(): Promise<void> {
   try {
+    injectAnalytics();
     // Aquí i no a dalt: les constants del model (R12_*) es defineixen més avall del mòdul.
     markLoad("mòdul i textures procedurals");
     await Promise.all([loadSpawn(), loadWorldMeta()]);
