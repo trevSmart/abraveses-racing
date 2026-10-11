@@ -7,6 +7,46 @@ import { defineConfig } from "vite";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const casesDir = path.join(repoRoot, "data", "cases");
 
+/** A Vercel el clone no baixa Git LFS, així que `world.glb` queda com a punter.
+ *  El model es llegeix de GitHub amb el SHA d'aquest commit. */
+function remoteWorldGlbUrl(): string {
+  if (!process.env.VERCEL) {
+    return "";
+  }
+  const owner = process.env.VERCEL_GIT_REPO_OWNER;
+  const repo = process.env.VERCEL_GIT_REPO_SLUG;
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA;
+  if (!owner || !repo || !sha) {
+    return "";
+  }
+  return `https://media.githubusercontent.com/media/${owner}/${repo}/${sha}/web/public/world.glb`;
+}
+
+/** Treu el punter de Git LFS de la sortida: si es servís, el joc el prendria per un GLB. */
+function dropLfsWorldPointer(): Plugin {
+  let outFile = "";
+  return {
+    name: "drop-lfs-world-pointer",
+    apply: "build",
+    configResolved(config) {
+      outFile = path.resolve(config.root, config.build.outDir, "world.glb");
+    },
+    closeBundle() {
+      if (!outFile || !fs.existsSync(outFile)) {
+        return;
+      }
+      const buf = Buffer.alloc(64);
+      const fd = fs.openSync(outFile, "r");
+      const n = fs.readSync(fd, buf, 0, 64, 0);
+      fs.closeSync(fd);
+      const head = buf.subarray(0, n).toString("utf8");
+      if (head.startsWith("version https://git-lfs.github.com/spec/v1")) {
+        fs.unlinkSync(outFile);
+      }
+    },
+  };
+}
+
 /** Serveix `data/cases/<ref>/cadastre_facana.jpg` a `/facades/<ref>.jpg` (el tooltip del mode dev). */
 function facadePhotos(): Plugin {
   const serve: Connect.NextHandleFunction = (req, res, next) => {
@@ -52,6 +92,9 @@ function facadePhotos(): Plugin {
 export default defineConfig({
   root: ".",
   publicDir: "public",
-  plugins: [facadePhotos()],
+  define: {
+    __WORLD_GLB_URL__: JSON.stringify(remoteWorldGlbUrl()),
+  },
+  plugins: [facadePhotos(), dropLfsWorldPointer()],
   server: { port: 5173, open: true },
 });

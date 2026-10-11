@@ -372,10 +372,16 @@ function fetchOnce(url: string): Promise<Response> {
   return p.then((r) => r.clone());
 }
 
+/** En local, el GLB de `public/`. A Vercel, el de GitHub: el desplegament només té el punter LFS. */
+function worldGlbUrl(): string {
+  return __WORLD_GLB_URL__ || `/world.glb?${assetCacheKey}`;
+}
+
 function prefetchAssets(): void {
-  for (const name of ["world.glb", "village.json", "trees.json", "streets.json", "house_cards.json"]) {
+  for (const name of ["village.json", "trees.json", "streets.json", "house_cards.json"]) {
     void fetchOnce(`/${name}?${assetCacheKey}`);
   }
+  void fetchOnce(worldGlbUrl());
 }
 
 function setLoading(text: string): void {
@@ -2265,7 +2271,17 @@ function followSun(): void {
 
 async function loadWorld(): Promise<void> {
   const loader = new GLTFLoader();
-  const buffer = await (await fetchOnce(`/world.glb?${assetCacheKey}`)).arrayBuffer();
+  const res = await fetchOnce(worldGlbUrl());
+  if (!res.ok) {
+    throw new Error(`world.glb HTTP ${res.status}`);
+  }
+  const buffer = await res.arrayBuffer();
+  if (buffer.byteLength < 512) {
+    const head = new TextDecoder().decode(buffer);
+    if (head.startsWith("version https://git-lfs.github.com/spec/v1")) {
+      throw new Error("world.glb és un punter de Git LFS, no el model");
+    }
+  }
   const gltf = await loader.parseAsync(buffer, "");
   const world = gltf.scene;
   tintWorld(world);
