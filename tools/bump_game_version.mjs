@@ -1,11 +1,11 @@
-// Puja l'enter de VERSION després d'un merge a main.
+// Puja el patch de VERSION (major.minor.patch) després d'un merge a main.
 //
 //   node tools/bump_game_version.mjs
 //
 // El workflow de GitHub el crida quan es fusiona una pull request. Si el merge
-// ja deixa un número més alt (el fitxer és nou, o algú l'ha pujat a mà), el
+// ja deixa una versió més alta (el fitxer és nou, o algú l'ha pujada a mà), la
 // respecta. Si el número no canvia —o baixa, com quan un squash arrossega la
-// versió vella de la branca—, l'incrementa des de la que hi havia a main.
+// versió vella de la branca—, puja el patch de la que hi havia a main.
 
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -30,31 +30,50 @@ function versionAt(rev) {
   }
 }
 
-function asInt(value) {
-  if (!/^\d+$/.test(value)) {
+/** @returns {[number, number, number] | null} */
+function parseVersion(value) {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value);
+  if (!match) {
     return null;
   }
-  const n = Number(value);
-  return Number.isSafeInteger(n) ? n : null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+/** Negatiu si a < b, zero si són iguals, positiu si a > b. */
+function compareVersion(a, b) {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) {
+      return a[i] - b[i];
+    }
+  }
+  return 0;
+}
+
+function bumpPatch(version) {
+  return `${version[0]}.${version[1]}.${version[2] + 1}`;
 }
 
 const current = fs.readFileSync(versionPath, "utf8").trim();
-const currentN = asInt(current);
-if (currentN === null) {
-  console.error(`VERSION ha de ser un enter, i és «${current}»`);
+const currentV = parseVersion(current);
+if (currentV === null) {
+  console.error(`VERSION ha de ser major.minor.patch, i és «${current}»`);
   process.exit(1);
 }
 const previous = versionAt("HEAD~1");
-const previousN = previous === null ? null : asInt(previous);
-if (previous !== null && previousN === null) {
-  console.error(`La versió anterior no és un enter: «${previous}»`);
+const previousV = previous === null ? null : parseVersion(previous);
+if (previous !== null && previousV === null && previous !== current) {
+  console.log(`La versió ja queda fixada en aquest merge (${previous} → ${current}).`);
+  process.exit(0);
+}
+if (previous !== null && previousV === null) {
+  console.error(`La versió anterior no és major.minor.patch: «${previous}»`);
   process.exit(1);
 }
 // El merge ja deixa una versió nova (l'acabem de crear, o el canvi la puja a mà).
-if (previousN === null || currentN > previousN) {
+if (previousV === null || compareVersion(currentV, previousV) > 0) {
   console.log(`La versió ja queda fixada en aquest merge (${previous ?? "cap"} → ${current}).`);
   process.exit(0);
 }
-const next = String(previousN + 1);
+const next = bumpPatch(previousV);
 fs.writeFileSync(versionPath, `${next}\n`);
 console.log(`Versió ${current} → ${next}`);

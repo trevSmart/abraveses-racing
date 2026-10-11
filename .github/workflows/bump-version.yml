@@ -1,4 +1,4 @@
-# Després de fusionar una pull request a main, puja l'enter de VERSION.
+# Després de fusionar una pull request a main, puja el patch de VERSION.
 # El commit que en resulta no torna a disparar aquest workflow: només escolta
 # pull_request, no els push directes.
 

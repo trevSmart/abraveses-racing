@@ -47,11 +47,11 @@ function dropLfsWorldPointer(): Plugin {
   };
 }
 
-/** Enter de `VERSION`, a l'arrel del repo. El puja el workflow en fer merge a main. */
+/** Semver de `VERSION`, a l'arrel del repo. El workflow en puja el patch en fer merge a main. */
 function readGameVersion(): string {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
-  if (!/^\d+$/.test(version)) {
-    throw new Error(`VERSION ha de ser un enter, i és «${version}»`);
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(`VERSION ha de ser major.minor.patch, i és «${version}»`);
   }
   return version;
 }
