@@ -1,0 +1,43 @@
+# Després de fusionar una pull request a main, puja l'enter de VERSION.
+# El commit que en resulta no torna a disparar aquest workflow: només escolta
+# pull_request, no els push directes.
+
+name: Puja la versió
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump-game-version
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Incrementa la versió
+        run: node tools/bump_game_version.mjs
+
+      - name: Desa la versió
+        run: |
+          if git diff --quiet -- VERSION; then
+            echo "Res a desar."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          version=$(tr -d '[:space:]' < VERSION)
+          git add VERSION
+          git commit -m "Bump the game version to v${version}."
+          git push

@@ -19,6 +19,10 @@ Edificis (`BuildingPart`, amb nombre de plantes) i parcel·les cadastrals — ©
 - **Preferit:** MDT05 — © [Instituto Geográfico Nacional (IGN) / CNIG](https://www.ign.es/), descàrrega via [Centro de Descargas CNIG](https://centrodedescargas.cnig.es/). Consulta les condicions d’ús del producte al portal d’IGN.
 - **Fallback automàtic del pipeline:** DEM sintètic en UTM (~718 m + relleu suau) si Copernicus no es pot descarregar; preferible col·locar un GeoTIFF **MDT05** local a `config.yaml` → `mdt_local_path`.
 
+## Escut municipal
+
+Escut de Micereces de Tera (l’alzina és la de la Virgen de las Encinas, a Abraveses). Dibuix de [Totemkin](https://commons.wikimedia.org/wiki/File:Escudo_de_Micereces_de_Tera.svg), llicència [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Al fitxer `web/public/escut.svg` només s’hi ha afegit un comentari d’atribució.
+
 ## Motor de joc
 
 [Unity](https://unity.com/) — consulta les condicions de llicència del teu pla Unity.

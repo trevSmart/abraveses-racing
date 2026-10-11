@@ -47,6 +47,25 @@ function dropLfsWorldPointer(): Plugin {
   };
 }
 
+/** Enter de `VERSION`, a l'arrel del repo. El puja el workflow en fer merge a main. */
+function readGameVersion(): string {
+  const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
+  if (!/^\d+$/.test(version)) {
+    throw new Error(`VERSION ha de ser un enter, i és «${version}»`);
+  }
+  return version;
+}
+
+/** Escriu la versió a la pantalla de càrrega (`%%GAME_VERSION%%` a `index.html`). */
+function injectGameVersion(): Plugin {
+  return {
+    name: "game-version",
+    transformIndexHtml(html) {
+      return html.replaceAll("%%GAME_VERSION%%", readGameVersion());
+    },
+  };
+}
+
 /** Serveix `data/cases/<ref>/cadastre_facana.jpg` a `/facades/<ref>.jpg` (el tooltip del mode dev). */
 function facadePhotos(): Plugin {
   const serve: Connect.NextHandleFunction = (req, res, next) => {
@@ -95,6 +114,6 @@ export default defineConfig({
   define: {
     __WORLD_GLB_URL__: JSON.stringify(remoteWorldGlbUrl()),
   },
-  plugins: [facadePhotos(), dropLfsWorldPointer()],
+  plugins: [injectGameVersion(), facadePhotos(), dropLfsWorldPointer()],
   server: { port: 5173, open: true },
 });
