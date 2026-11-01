@@ -23,7 +23,7 @@
       }
       #options .shortcuts h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: rgba(255,255,255,.65); }
       #credit {
-        position: fixed; right: 10px; bottom: 8px; left: 150px; z-index: 10;
+        position: fixed; right: 10px; bottom: 8px; left: 176px; z-index: 10;
         text-align: right;
         font-size: 11px; color: rgba(255,255,255,.55);
       }
@@ -90,16 +90,16 @@
       #street-banner.visible { opacity: 1; transform: translate(-50%, 0); }
       #speedometer {
         position: fixed; left: 16px; bottom: 16px; z-index: 10; pointer-events: none;
-        color: #fff; background: rgba(0,0,0,.55); padding: 6px 14px; border-radius: 8px;
-        font: 700 22px/1.2 system-ui, sans-serif; font-variant-numeric: tabular-nums; min-width: 120px;
+        width: 148px; height: 148px; border-radius: 50%;
       }
       #perf {
-        position: fixed; left: 16px; bottom: 62px; z-index: 10; pointer-events: none;
+        position: fixed; left: 16px; bottom: 172px; z-index: 10; pointer-events: none;
         color: #c8f7c5; background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 6px;
         font: 600 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap;
       }
       #perf.slow { color: #ff9a8f; }
       /* --- Controls tàctils (vegeu touchControls.ts). `.touch` és a <html> si es juga amb el dit. --- */
+      .touch { --touch-steer-top: 118px; }
       .touch-only { display: none; }
       .touch .touch-only { display: block; }
       .touch .desktop-only { display: none; }
@@ -112,7 +112,7 @@
         -webkit-tap-highlight-color: transparent;
       }
       #touch[hidden] { display: none; }
-      #touch button, #touch-steer { position: absolute; pointer-events: auto; touch-action: none; }
+      #touch button, #touch .slider { position: absolute; pointer-events: auto; touch-action: none; }
       #touch button {
         display: flex; align-items: center; justify-content: center; padding: 0;
         color: #fff; border: 2px solid rgba(255,255,255,.5); border-radius: 50%; cursor: pointer;
@@ -121,23 +121,39 @@
         width: 46%; height: 46%; fill: none; stroke: currentColor; stroke-width: 2.4;
         stroke-linecap: round; stroke-linejoin: round; pointer-events: none;
       }
-      #touch-steer {
-        left: 16px; bottom: var(--controls-bottom); width: 168px; height: 84px;
+      #touch .slider {
         background: rgba(0,0,0,.38); border: 2px solid rgba(255,255,255,.4); border-radius: 42px;
       }
-      #touch-steer-knob {
+      #touch .knob {
         position: absolute; left: 50%; top: 50%; width: 68px; height: 68px; margin: -34px 0 0 -34px;
         background: rgba(255,255,255,.6); border-radius: 50%; pointer-events: none;
       }
-      #touch #touch-gas { right: 16px; bottom: var(--controls-bottom); width: 88px; height: 88px; background: rgba(38,150,76,.62); }
-      #touch #touch-brake { right: 116px; bottom: var(--controls-bottom); width: 68px; height: 68px; background: rgba(196,54,44,.62); }
+      #touch-steer { left: 16px; bottom: var(--controls-bottom); width: 168px; height: 84px; }
+      /* Accelerador: verd a dalt (accelerar), vermell a baix (frenar i marxa enrere). */
+      #touch #touch-throttle {
+        /* Sota el minimapa (8 + 110 px i 16 de marge), encara que la pantalla sigui baixa (Safari en horitzontal). */
+        right: 16px; bottom: var(--controls-bottom); width: 84px;
+        height: min(156px, max(96px, calc(100% - 134px - var(--controls-bottom))));
+        background: linear-gradient(rgba(38,150,76,.6), rgba(0,0,0,.3) 42% 58%, rgba(196,54,44,.6));
+      }
+      #touch-throttle svg { position: absolute; left: 50%; width: 28px; height: 28px; margin-left: -14px; opacity: .85; }
+      #touch-throttle .up-arrow { top: 6px; }
+      #touch-throttle .down-arrow { bottom: 6px; }
+      #touch #touch-throttle.up .knob { background: rgba(140,240,160,.9); }
+      #touch #touch-throttle.down .knob { background: rgba(255,150,140,.9); }
       #touch #touch-hop {
-        right: 16px; bottom: calc(var(--controls-bottom) + 98px); width: 56px; height: 56px;
+        right: 116px; bottom: var(--controls-bottom); width: 56px; height: 56px;
         color: #f5c518; background: rgba(0,0,0,.45); border-color: rgba(245,197,24,.75);
       }
-      #touch #touch-gas.on { background: rgba(38,170,86,.92); }
-      #touch #touch-brake.on { background: rgba(214,54,44,.92); }
       #touch #touch-hop:active { background: rgba(245,197,24,.4); }
+      #touch button[hidden] { display: none; }
+      #touch #touch-shift-up, #touch #touch-shift-down {
+        right: 122px; width: 44px; height: 44px; background: rgba(0,0,0,.5);
+        font: 800 22px/1 system-ui, sans-serif;
+      }
+      #touch #touch-shift-down { bottom: calc(var(--controls-bottom) + 64px); }
+      #touch #touch-shift-up { bottom: calc(var(--controls-bottom) + 114px); }
+      #touch #touch-shift-up:active, #touch #touch-shift-down:active { background: rgba(255,255,255,.3); }
       #touch-actions button { top: var(--actions-top); width: 40px; height: 40px; background: rgba(0,0,0,.5); }
       #touch-actions button:active { background: rgba(255,255,255,.3); }
       #touch-options { left: 16px; }
@@ -149,19 +165,22 @@
       .touch #hud { left: 16px; top: 8px; padding: 4px 8px; font-size: 10px; }
       .touch #minimap { right: 8px; top: 8px; width: 110px; height: 110px; }
       .touch #perf { top: 90px; bottom: auto; font-size: 11px; }
-      .touch #speedometer {
-        left: 50%; bottom: 30px; transform: translateX(-50%);
-        min-width: 0; padding: 4px 12px; font-size: 18px; text-align: center; white-space: nowrap;
-      }
+      /* A sobre del lliscant de gir: al centre taparia el cotxe. */
+      .touch #speedometer { bottom: calc(var(--touch-steer-top) + 8px); width: 116px; height: 116px; }
       .touch #autopilot-badge { bottom: 72px; padding: 4px 12px; font-size: 12px; }
       .touch #street-banner { top: 10px; padding: 5px 14px; font-size: 14px; }
       .touch #credit { left: 10px; right: 10px; bottom: 4px; font-size: 8px; line-height: 1.25; text-align: center; pointer-events: none; }
       @media (orientation: portrait) {
+        .touch { --touch-steer-top: 132px; }
         #touch { --controls-bottom: 48px; }
         .touch #perf { display: none; }
-        .touch #speedometer { bottom: 142px; }
-        .touch #autopilot-badge { bottom: 182px; }
+        .touch #autopilot-badge { bottom: 212px; }
         .touch #street-banner { top: 126px; }
+      }
+      /* Pantalles baixes: a sobre del lliscant tocaria els botons de dalt, i va al seu costat. */
+      @media (orientation: landscape) and (max-height: 356px) {
+        .touch #speedometer { left: 192px; bottom: 26px; width: 84px; height: 84px; }
+        .touch #autopilot-badge { bottom: 116px; }
       }
       /* Les coordenades ja no hi caben al costat del minimapa. */
       @media (max-width: 400px) {
@@ -171,6 +190,15 @@
       }
       @media (max-width: 340px) {
         #touch-steer { width: 112px; }
+      }
+      /* Mòbil en horitzontal amb les barres del navegador: el lliscant vertical queda curt. El marge
+         de baix deixa lloc als crèdits, que en una pantalla estreta fan dues línies. */
+      @media (max-height: 340px) {
+        #touch { --controls-bottom: 26px; }
+        #touch #touch-throttle .knob { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+        #touch-throttle svg { width: 22px; height: 22px; margin-left: -11px; }
+        #touch-throttle .up-arrow { top: 3px; }
+        #touch-throttle .down-arrow { bottom: 3px; }
       }
       #autopilot-badge {
         position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 11;
@@ -278,7 +306,7 @@
     <canvas id="minimap" hidden></canvas>
     <div id="street-banner" aria-live="polite"></div>
     <div id="perf" aria-live="off">– FPS</div>
-    <div id="speedometer" aria-live="off">0 km/h</div>
+    <canvas id="speedometer" role="img" aria-label="0 km/h, D1"></canvas>
     <div id="autopilot-badge" hidden>AUTOPILOT<span class="desktop-only"> · I per sortir</span></div>
     <div id="dev-badge" hidden>DEV · Maj+D per sortir</div>
     <div id="house-tooltip" hidden title="Clic per copiar la referència">
@@ -318,14 +346,22 @@
           <input type="checkbox" id="opt-air-particles" checked />
           Partícules de l'aire
         </label>
+        <label class="option">
+          <input type="checkbox" id="opt-manual-gears" />
+          Canvi de marxes manual
+        </label>
+        <label class="option">
+          <input type="checkbox" id="opt-engine-sound" checked />
+          So del motor
+        </label>
         <div class="shortcuts touch-only" aria-label="Controls tàctils">
           <h3>Controls</h3>
-          Palanca: girar · Fletxa verda: accelerar · Fletxa vermella: frenar i marxa enrere · Fletxa groga: saltar ·
+          Lliscant de l'esquerra: girar · Lliscant de la dreta: amunt accelera, avall frena i fa marxa enrere · Fletxa groga: saltar · + i −: canvi manual ·
           A dalt: opcions, perspectiva, tornar al carrer i autopilot · Toca el minimapa per obrir el mapa
         </div>
         <div class="shortcuts desktop-only" aria-label="Controls del joc">
           <h3>Controls</h3>
-          <kbd>W</kbd> accelerar · <kbd>S</kbd> frenar / enrere · <kbd>A</kbd>/<kbd>D</kbd> girar · <kbd>Espai</kbd> salt ·
+          <kbd>W</kbd> accelerar · <kbd>S</kbd> frenar / enrere · <kbd>A</kbd>/<kbd>D</kbd> girar · <kbd>Espai</kbd> salt · <kbd>E</kbd>/<kbd>Q</kbd> pujar / baixar de marxa (canvi manual) ·
           <kbd>R</kbd> respawn · <kbd>Maj</kbd>+<kbd>R</kbd> inici · <kbd>I</kbd> autopilot · <kbd>M</kbd> mapa · <kbd>Maj</kbd>+<kbd>D</kbd> mode dev ·
           <kbd>Z</kbd> perspectiva · <kbd>O</kbd><kbd>K</kbd><kbd>L</kbd><kbd>Ñ</kbd> càmera · <kbd>Esc</kbd> opcions
         </div>
@@ -334,10 +370,15 @@
       </div>
     </div>
     <div id="touch" hidden>
-      <div id="touch-steer" role="slider" aria-label="Volant" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"><div id="touch-steer-knob"></div></div>
-      <button id="touch-gas" type="button" aria-label="Accelerar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg></button>
-      <button id="touch-brake" type="button" aria-label="Frenar o marxa enrere"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg></button>
+      <div id="touch-steer" class="slider" role="slider" aria-label="Volant" aria-orientation="horizontal" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"><div class="knob"></div></div>
+      <div id="touch-throttle" class="slider" role="slider" aria-label="Accelerador: amunt accelera, avall frena i fa marxa enrere" aria-orientation="vertical" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0">
+        <svg class="up-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg>
+        <svg class="down-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>
+        <div class="knob"></div>
+      </div>
       <button id="touch-hop" type="button" aria-label="Saltar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6 12l6-6 6 6"/></svg></button>
+      <button id="touch-shift-up" type="button" aria-label="Pujar de marxa" hidden>+</button>
+      <button id="touch-shift-down" type="button" aria-label="Baixar de marxa" hidden>−</button>
       <div id="touch-actions">
         <button id="touch-options" type="button" aria-label="Opcions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
         <button id="touch-camera" type="button" aria-label="Canviar la perspectiva"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M9 7l1.5-3h3L15 7"/></svg></button>

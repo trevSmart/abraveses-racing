@@ -61,6 +61,9 @@ necessita.
 | `.claude/skills/casa-a-mida/` | **skill** amb el procediment complet i les lliçons per fer l'anàlisi detallada d'una casa |
 | `tools/mapgen/church.py`, `hermitage.py` | models propis de l'església i l'ermita |
 | `web/src/main.ts` | joc: càrrega del món, materials, física, HUD, minimapa, mode dev |
+| `web/src/vehicle.ts` | física del cotxe i caixa de 4 marxes (automàtica, o manual amb l'opció del menú: E/Q) |
+| `web/src/speedometer.ts` | velocímetre d'agulla del HUD: km/h, anell de voltes i marxa |
+| `web/src/engineAudio.ts` | so del motor, sintetitzat amb Web Audio segons les voltes i el gas (sense fitxers de so) |
 | `web/src/touchControls.ts` | controls tàctils per al mòbil (l'HTML i el CSS són a `web/index.html`) |
 | `docs/MAP_PIPELINE.md` | detall del pipeline de dades |
 
