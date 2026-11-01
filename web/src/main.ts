@@ -27,7 +27,9 @@ import { Autopilot } from "./autopilot";
 import { AirParticles } from "./airParticles";
 import { CraneFlocks } from "./birds";
 import { Sky, SUN_VISUAL_ELEVATION_DEG, sunDirection } from "./sky";
-import { R12, stepSpeed, stepSteer, turnRadius, yawRate } from "./vehicle";
+import { EngineAudio } from "./engineAudio";
+import { Speedometer } from "./speedometer";
+import { engineLoad, newGearbox, R12, resetGearbox, shiftGear, stepGearbox, stepSpeed, stepSteer, turnRadius, yawRate } from "./vehicle";
 import { applyWaterMaterial, setWaterEnvironment, waterTime } from "./water";
 import { buildHouseCenters, houseCenterToClient, houseIdFromHit, resolveHouseRef } from "./housePick";
 import { inject as injectAnalytics } from "@vercel/analytics";
@@ -102,11 +104,23 @@ const keys = new Set<string>();
 
 // --- Opcions (tecla O): es desen al navegador ---
 
-type Settings = { hideStreetNames: boolean; motionBlur: boolean; airParticles: boolean };
+type Settings = {
+  hideStreetNames: boolean;
+  motionBlur: boolean;
+  airParticles: boolean;
+  manualGears: boolean;
+  engineSound: boolean;
+};
 const SETTINGS_KEY = "abraveses-racing.settings";
 
 function loadSettings(): Settings {
-  const defaults: Settings = { hideStreetNames: false, motionBlur: true, airParticles: true };
+  const defaults: Settings = {
+    hideStreetNames: false,
+    motionBlur: true,
+    airParticles: true,
+    manualGears: false,
+    engineSound: true,
+  };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Settings>) } : defaults;
@@ -239,6 +253,7 @@ const state = {
    */
   driftAngle: 0,
 };
+const gearbox = newGearbox();
 
 const GRAVITY = 38;
 const HOP_VELOCITY = 10.5;
@@ -1583,6 +1598,7 @@ function tryHop(): void {
 
 function applySpawn(): void {
   state.speed = 0;
+  resetGearbox(gearbox);
   state.verticalVelocity = 0;
   state.steer = 0;
   state.accelPitch = 0;
@@ -2779,7 +2795,7 @@ function positionDevHouseTooltip(): void {
   const h = houseTooltip.offsetHeight;
   const margin = 12;
   // El HUD de baix (velocímetre, FPS i el rètol DEV) i el minimapa de dalt a la dreta.
-  const bottomHud = 132;
+  const bottomHud = 240;
   const miniLeft = window.innerWidth - 16 - 200;
   let left = pos.x - w / 2;
   let top = pos.y - h - 18;
@@ -3660,6 +3676,7 @@ function toggleBigMap(open: boolean): void {
 
 function respawnAt(pick: RespawnPick): void {
   state.speed = 0;
+  resetGearbox(gearbox);
   state.steer = 0;
   state.verticalVelocity = 0;
   state.accelPitch = 0;
@@ -4047,17 +4064,24 @@ function readInput(dt: number): { throttle: number; steer: number; brake: boolea
   };
 }
 
-const speedometer = document.getElementById("speedometer");
-
-let speedometerText = "";
+const speedometer = new Speedometer(document.getElementById("speedometer") as HTMLCanvasElement | null);
+const engineAudio = new EngineAudio();
+engineAudio.setEnabled(settings.engineSound);
 
 function updateSpeedometer(): void {
-  const kmh = Math.round(Math.abs(state.speed) * 3.6);
-  const text = state.speed < -0.3 ? `R ${kmh} km/h` : `${kmh} km/h`;
-  // Escriure el DOM a cada fotograma força recalcular estils i maquetació encara que no canviï.
-  if (speedometer && text !== speedometerText) {
-    speedometerText = text;
-    speedometer.textContent = text;
+  speedometer.update({
+    speed: state.speed,
+    rpm: gearbox.rpm,
+    gear: gearbox.gear,
+    manual: gearbox.manual,
+    shifting: gearbox.shift > 0,
+  });
+}
+
+/** Tecles E i Q i botons tàctils. Amb el canvi automàtic o l'autopilot no fan res. */
+function shiftManual(delta: number): void {
+  if (settings.manualGears && !autopilotOn) {
+    shiftGear(gearbox, delta, state.speed);
   }
 }
 
@@ -4439,7 +4463,10 @@ function update(dt: number): void {
   const headingBefore = state.heading;
   const drifting = updateDrift(throttle, brake, dt);
   const speedSliding = state.speed;
-  state.speed = stepSpeed(state.speed, throttle, brake, dt);
+  gearbox.manual = settings.manualGears && !autopilotOn;
+  stepGearbox(gearbox, state.speed, throttle, dt);
+  engineAudio.update(gearbox.rpm, engineLoad(state.speed, throttle, brake, gearbox));
+  state.speed = stepSpeed(state.speed, throttle, brake, dt, gearbox);
   if (drifting) {
     state.speed = speedSliding + (state.speed - speedSliding) * R12.driftBrakeFactor;
   }
@@ -4550,6 +4577,8 @@ const optionsModal = document.getElementById("options");
 const optHideStreetNames = document.getElementById("opt-hide-street-names") as HTMLInputElement | null;
 const optMotionBlur = document.getElementById("opt-motion-blur") as HTMLInputElement | null;
 const optAirParticles = document.getElementById("opt-air-particles") as HTMLInputElement | null;
+const optManualGears = document.getElementById("opt-manual-gears") as HTMLInputElement | null;
+const optEngineSound = document.getElementById("opt-engine-sound") as HTMLInputElement | null;
 let optionsOpen = false;
 
 function toggleOptions(open: boolean): void {
@@ -4569,6 +4598,12 @@ function toggleOptions(open: boolean): void {
     }
     if (optAirParticles) {
       optAirParticles.checked = settings.airParticles;
+    }
+    if (optManualGears) {
+      optManualGears.checked = settings.manualGears;
+    }
+    if (optEngineSound) {
+      optEngineSound.checked = settings.engineSound;
     }
     optHideStreetNames?.focus();
   } else {
@@ -4596,6 +4631,16 @@ optAirParticles?.addEventListener("change", () => {
   settings.airParticles = optAirParticles.checked;
   saveSettings();
   airParticles.setEnabled(settings.airParticles);
+});
+optManualGears?.addEventListener("change", () => {
+  settings.manualGears = optManualGears.checked;
+  saveSettings();
+  touch.setManualGears(settings.manualGears);
+});
+optEngineSound?.addEventListener("change", () => {
+  settings.engineSound = optEngineSound.checked;
+  saveSettings();
+  engineAudio.setEnabled(settings.engineSound);
 });
 optionsModal?.addEventListener("click", (e) => {
   if (e.target === optionsModal) {
@@ -4665,6 +4710,13 @@ function trackKey(e: KeyboardEvent, down: boolean): void {
   if (down && !e.repeat && e.code === "Space") {
     tryHop();
   }
+  if (down && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (fromKey === "e" || fromCode === "e") {
+      shiftManual(1);
+    } else if (fromKey === "q" || fromCode === "q") {
+      shiftManual(-1);
+    }
+  }
   if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(fromKey)) {
     e.preventDefault();
   }
@@ -4684,7 +4736,9 @@ const touch = new TouchControls({
       setAutopilot(false);
     }
   },
+  shift: shiftManual,
 });
+touch.setManualGears(settings.manualGears);
 
 // --- Rendiment: indicador de FPS i resolució adaptativa ---
 
@@ -4836,6 +4890,7 @@ function loop(now: number): void {
   renderer.info.reset();
   // Amb el mapa gran obert el joc està en pausa i tapat: no cal dibuixar res al darrere.
   // Amb les opcions obertes està en pausa però es veu al fons.
+  engineAudio.setPaused(bigMapOpen || optionsOpen);
   if (!bigMapOpen) {
     if (!optionsOpen) {
       update(dt);
@@ -4921,6 +4976,7 @@ async function boot(): Promise<void> {
     document.getElementById("credit")?.removeAttribute("hidden");
     minimapCanvas?.removeAttribute("hidden");
     touch.show();
+    engineAudio.arm();
     renderer.domElement.focus();
     requestAnimationFrame((t) => {
       loop(t);
@@ -4937,4 +4993,4 @@ async function boot(): Promise<void> {
 }
 
 boot();
-(window as unknown as { __dbg: unknown }).__dbg = { scene, kart, state, camera, placeCameraBehindKart }; // TEMP
+(window as unknown as { __dbg: unknown }).__dbg = { scene, kart, state, gearbox, engineAudio, camera, placeCameraBehindKart }; // TEMP
