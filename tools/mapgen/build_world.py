@@ -176,6 +176,16 @@ def _build_heightmap(cfg: dict, dem: DemSampler) -> dict:
     return meta
 
 
+def _compress_world(raw_glb: Path, out_glb: Path) -> None:
+    """Passa el GLB pel compressor de la web: el joc no carrega el fitxer sense comprimir."""
+    web_dir = Path(__file__).resolve().parents[2] / "web"
+    subprocess.run(
+        ["node", "scripts/compress-world.mjs", str(raw_glb.resolve()), str(out_glb.resolve())],
+        cwd=web_dir,
+        check=True,
+    )
+
+
 def _terrain_mesh(ground: Ground, meta: dict, res: int) -> trimesh.Trimesh:
     gx, gy = _grid(float(meta["size_m"]), res)
     z = ground.height(gx, gy)
@@ -872,14 +882,16 @@ def build_world(use_blender: bool = False) -> Path:
         buildings.fix_normals()
         scene.add_geometry(buildings, geom_name="buildings")
 
+    raw_glb = ensure_parent(cfg["paths"]["world_glb_raw"])
+    scene.export(raw_glb, include_normals=True)
     out_glb = ensure_parent(cfg["paths"]["world_glb"])
-    scene.export(out_glb, include_normals=True)
+    _compress_world(raw_glb, out_glb)
     total_verts = sum(
         len(g.vertices) for g in scene.geometry.values() if hasattr(g, "vertices")
     )
     n_terrain = sum(1 for name, _mesh in terrain_tiles if name.startswith("terrain_"))
     print(
-        f"Exported {out_glb} ({total_verts} verts, terrain {mesh_res}² en {n_terrain} trossos, "
+        f"Exported {raw_glb} ({total_verts} verts, terrain {mesh_res}² en {n_terrain} trossos, "
         f"{len(road_parts)} road tiles, greens, buildings)"
     )
 
@@ -897,7 +909,7 @@ def build_world(use_blender: bool = False) -> Path:
     if use_blender:
         script = Path(__file__).parent / "blender_export_world.py"
         subprocess.run(
-            ["blender", "--background", "--python", str(script), "--", str(out_glb)],
+            ["blender", "--background", "--python", str(script), "--", str(raw_glb)],
             check=False,
         )
     return out_glb

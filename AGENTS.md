@@ -30,7 +30,7 @@ Zamora). El món surt de dades obertes: OpenStreetMap, MDT de l'IGN, ortofoto PN
 
 ```bash
 source .venv/bin/activate                       # Python 3.9+ (tools/requirements.txt)
-python tools/mapgen/build_world.py              # regenera web/public/world.glb (~2 min)
+python tools/mapgen/build_world.py              # regenera web/public/world.glb.gz (~5 min)
 python tools/mapgen/build_world.py --all        # també torna a baixar OSM i DEM
 python tools/mapgen/fetch_cadastre.py           # torna a baixar el Cadastre (data/raw/catastro)
 python tools/mapgen/casa_info.py <ref>          # expedient d'una casa (vegeu més avall)
@@ -40,7 +40,7 @@ cd web && npm run dev                           # joc a http://localhost:5173
 cd web && npm run build                         # tsc + vite build
 ```
 
-`data/raw` i `data/processed` no són al repo. `web/public/world.glb` sí, perquè el joc el
+`data/raw` i `data/processed` no són al repo. `web/public/world.glb.gz` sí (Git LFS), perquè el joc el
 necessita.
 
 ## Estructura
@@ -48,7 +48,8 @@ necessita.
 | Camí | Què hi ha |
 |---|---|
 | `tools/mapgen/config.yaml` | bbox, origen, zona de detall, camins de sortida |
-| `tools/mapgen/build_world.py` | orquestra el món: terreny, carrers, aigua, poble i export a GLB |
+| `tools/mapgen/build_world.py` | orquestra el món: terreny, carrers, aigua, poble i export a GLB (`data/processed/world.glb`, per obrir-lo amb altres eines) |
+| `web/scripts/compress-world.mjs` | comprimeix el GLB per al joc (Meshopt i gzip): manté els atributs propis, els `Float32` i els noms de malla |
 | `tools/mapgen/village.py` | poble en 3D: cases (Cadastre), tàpies, arbres, parcel·les, fitxes de casa |
 | `tools/mapgen/cases.yaml` | **fitxes de casa a mida**, per referència cadastral |
 | `tools/mapgen/walls.yaml` | **fitxes de tàpia a mida**: llargada de la vora cadastral, alçada de la foto |

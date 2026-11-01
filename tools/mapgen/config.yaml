@@ -56,7 +56,8 @@ paths:
   heightmap_png: data/processed/heightmap.png
   world_meta_json: data/processed/world_meta.json
   spawn_json: web/public/spawn.json
-  world_glb: web/public/world.glb
+  world_glb: web/public/world.glb.gz
+  world_glb_raw: data/processed/world.glb
   world_obj: data/processed/world.obj
   ortho_jpg: web/public/terrain.jpg
   ortho_center_jpg: web/public/terrain_center.jpg

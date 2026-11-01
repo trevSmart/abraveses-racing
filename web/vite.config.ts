@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const casesDir = path.join(repoRoot, "data", "cases");
 
-/** A Vercel el clone no baixa Git LFS, així que `world.glb` queda com a punter.
+/** A Vercel el clone no baixa Git LFS, així que `world.glb.gz` queda com a punter.
  *  El model es llegeix de GitHub amb el SHA d'aquest commit. */
 function remoteWorldGlbUrl(): string {
   if (!process.env.VERCEL) {
@@ -19,7 +19,7 @@ function remoteWorldGlbUrl(): string {
   if (!owner || !repo || !sha) {
     return "";
   }
-  return `https://media.githubusercontent.com/media/${owner}/${repo}/${sha}/web/public/world.glb`;
+  return `https://media.githubusercontent.com/media/${owner}/${repo}/${sha}/web/public/world.glb.gz`;
 }
 
 /** Treu el punter de Git LFS de la sortida: si es servís, el joc el prendria per un GLB. */
@@ -29,7 +29,7 @@ function dropLfsWorldPointer(): Plugin {
     name: "drop-lfs-world-pointer",
     apply: "build",
     configResolved(config) {
-      outFile = path.resolve(config.root, config.build.outDir, "world.glb");
+      outFile = path.resolve(config.root, config.build.outDir, "world.glb.gz");
     },
     closeBundle() {
       if (!outFile || !fs.existsSync(outFile)) {

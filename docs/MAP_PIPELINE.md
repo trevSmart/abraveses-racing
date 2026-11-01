@@ -56,7 +56,8 @@ python tools/mapgen/build_world.py --all
 | `data/raw/dem_clip.tif` | DEM retallat al bbox |
 | `data/processed/heightmap.png` | Relleu normalitzat (16-bit) |
 | `data/processed/world_meta.json` | Origen UTM, mides, cota mín/màx |
-| `web/public/world.glb` | Terreny + carreteres + edificis (joc web Three.js) |
+| `data/processed/world.glb` | Terreny + carreteres + edificis, sense comprimir (per a altres eines) |
+| `web/public/world.glb.gz` | El mateix món comprimit (Meshopt i gzip): el que carrega el joc web |
 | `web/public/world.obj` | Export opcional (debug; `data/processed/world.obj`) |
 | `web/public/spawn.json` | Posició i rotació de spawn en metres locals |
 | `web/public/world_meta.json` | Metadades del terreny (còpia) |
@@ -64,7 +65,7 @@ python tools/mapgen/build_world.py --all
 
 ## Validació
 
-1. Obre `world.glb` a Blender o https://gltf-viewer.donmccurdy.com/
+1. Obre `data/processed/world.glb` a Blender o https://gltf-viewer.donmccurdy.com/
 2. Compara amb [OpenStreetMap](https://www.openstreetmap.org/#map=17/41.9930/-5.8950) al nucli del poble.
 
 ## Convenció d’escala

@@ -31,7 +31,7 @@ source .venv/bin/activate
 python tools/mapgen/build_world.py --all
 ```
 
-Sortida principal: `web/public/world.glb` + `web/public/spawn.json`.
+Sortida principal: `web/public/world.glb.gz` + `web/public/spawn.json`.
 
 Detalls: [docs/MAP_PIPELINE.md](docs/MAP_PIPELINE.md).
 
@@ -43,7 +43,7 @@ Detalls: [docs/MAP_PIPELINE.md](docs/MAP_PIPELINE.md).
 
 ```
 web/              Joc Three.js (Vite)
-web/public/       world.glb, spawn.json (generats)
+web/public/       world.glb.gz, spawn.json (generats)
 tools/mapgen/     Pipeline OSM + DEM
 unity/            (legacy, opcional)
 docs/
