@@ -20,7 +20,8 @@ Zamora). El món surt de dades obertes: OpenStreetMap, MDT de l'IGN, ortofoto PN
   - si el nom conté `tapia` o `brick`, fa servir la textura de maó; si conté `stone`, la de
     pedra; si no, la d'arrebossat;
   - `roof*` porta el color mitjà de teula de l'ortofoto al color de vèrtex (sense projectar la
-    foto) i un detall de teula alineat segons la normal de cada vessant;
+    foto, amb el contrast ampliat per `_grade_tile`) i un detall de teula alineat segons la normal
+    de cada vessant; `roofs_fibro` i `roofs_metal` porten planxa ondulada en lloc de teula;
   - `prop*` són detalls sense col·lisió, i `prop_windows` és el vidre.
 - **Imperfeccions de parets i teulades** (`web/src/detail.ts`): es calculen al shader en
   coordenades del món, perquè no es repeteixin: to de cada totxo i teula, taques, regalims,
@@ -59,6 +60,7 @@ necessita.
 | `tools/mapgen/village.py` | poble en 3D: cases (Cadastre), tàpies, arbres, parcel·les, fitxes de casa |
 | `tools/mapgen/cases.yaml` | **fitxes de casa a mida**, per referència cadastral |
 | `tools/mapgen/walls.yaml` | **fitxes de tàpia a mida**: llargada de la vora cadastral, alçada de la foto |
+| `tools/mapgen/roofs.yaml` | **teulades vistes des de dalt**: forma i material de cada part, també de les cases sense fitxa (vegeu «Teulades vistes des de dalt») |
 | `tools/mapgen/walls.py` | quines vores tenen tàpia segons l'ombra de l'ortofoto, i com es resolen les fitxes |
 | `tools/mapgen/poles.yaml`, `poles.py` | **postes elèctrics** situats a Street View: pal de formigó (`building_poles`, amb col·lisió) i cables (`prop_wires`, sense) |
 | `tools/mapgen/casa_info.py` | expedient d'una casa per preparar-ne la fitxa |
@@ -363,6 +365,31 @@ Sense fitxa, `walls.py` posa tàpia on l'ortofoto en mostra l'ombra, amb una al�
   pillars: {w: 0.45, h: 2.0, color: [r, g, b], cap: [r, g, b]}   # opcional (ends, gates: true)
   photo: "d'on surt l'alçada"
 ```
+
+### Teulades vistes des de dalt (`roofs.yaml`)
+
+Sense entrada, una part genèrica té dues aigües sobre l'eix llarg i teula. `roofs.yaml` diu la forma
+i el material reals, per part cadastral, a partir de la vista de satèl·lit de Google Maps (només
+referència: al fitxer només hi ha el tipus, cap píxel). Mana sobre `cases.yaml` en la forma de la
+teulada: des del carrer no es veu si és a quatre aigües, i diverses fitxes s'hi equivocaven.
+Es manté el que no es veu des de dalt (ràfec, frontal).
+
+```yaml
+<referència cadastral>:
+  part2: {type: hip}                       # gable | hip | shed | flat
+  part3: {type: gable, ridge_az: 90}       # carener: 0 = N-S, 90 = E-O, 45 = NE-SO, 135 = NO-SE
+  part4: {type: shed, toward: "NO"}        # ràfec cap a aquesta banda
+  part5: {type: gable, wings: true}        # planta en L, una teulada per ala
+  part6: {material: fibro}                 # metal | fibro (per defecte, teula); sense canviar la forma
+  part7: {material: metal, color: [r, g, b]}  # sRGB, si l'ortofoto no dona el to
+```
+
+- Només s'hi posa el que es veu clar. El dubtós es deixa sense entrada.
+- Si dues parts són els dos vessants d'una sola teulada, fes-les `shed` cap a bandes contràries: amb
+  `gable` en sortirien dos careners.
+- `wings` només funciona si la planta té un vèrtex entrant (el registre avisa «teulada per ales»).
+- Per comparar, posa la càmera del joc a la vertical amb la mateixa escala que Google Maps a
+  zoom 20 (0,111 m/px): el sol ve del sud, així que el vessant nord surt fosc.
 
 ### Recorregut de tàpies d'un carrer
 

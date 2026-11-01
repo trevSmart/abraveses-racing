@@ -17,6 +17,7 @@ import {
   plasterDetail,
   plateMap,
   roofTileDetail,
+  sheetRoofDetail,
   stoneDetail,
   brickDetail,
   BRICK_GRID,
@@ -315,6 +316,9 @@ const detailTextures = {
   stone: stoneDetail(),
   brick: brickDetail(),
   roofTiles: roofTileDetail(),
+  // 17 cm d'ona al fibrociment i 40 cm de costella a la xapa grecada.
+  roofFibro: sheetRoofDetail(10, 0, 62),
+  roofMetal: sheetRoofDetail(8, 0.55, 63),
   weather: weatherMap(),
 };
 weatherUniforms.uWeatherMap.value = detailTextures.weather;
@@ -323,6 +327,8 @@ weatherUniforms.uWeatherMap.value = detailTextures.weather;
 const detailAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
 for (const tex of [
   detailTextures.roofTiles,
+  detailTextures.roofFibro,
+  detailTextures.roofMetal,
   detailTextures.asphalt,
   detailTextures.asphaltSurface,
   detailTextures.brick,
@@ -391,6 +397,8 @@ let terrainSizeM = 700;
 let orthoCenterM = 0;
 let terrainMaterial: THREE.MeshStandardMaterial | null = null;
 let roofMaterial: THREE.MeshStandardMaterial | null = null;
+let roofFibroMaterial: THREE.MeshStandardMaterial | null = null;
+let roofMetalMaterial: THREE.MeshStandardMaterial | null = null;
 let assetCacheKey = "1";
 
 type FetchedBytes = { ok: boolean; status: number; buffer: ArrayBuffer };
@@ -729,6 +737,14 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
     addWorldDetail(ground, { map: detailTextures.ground, mode: "top", scaleM: 3, strength: 0.85, secondScale: 0.11, fade: [45, 170] });
     addWorldDetail(roof, { map: detailTextures.roofTiles, mode: "ridge", scaleM: 1.6, strength: 0.9, fade: [35, 140], weather: "roof", grid: ROOF_TILE_GRID });
     installHouseHide(roof);
+    const sheet = (roughness: number, metalness: number) =>
+      new THREE.MeshStandardMaterial({ vertexColors: true, color: 0xffffff, roughness, metalness, side: THREE.DoubleSide });
+    roofFibroMaterial = sheet(0.92, 0);
+    addWorldDetail(roofFibroMaterial, { map: detailTextures.roofFibro, mode: "ridge", scaleM: 1.77, strength: 0.8, fade: [30, 110], weather: "roof" });
+    installHouseHide(roofFibroMaterial);
+    roofMetalMaterial = sheet(0.55, 0.25);
+    addWorldDetail(roofMetalMaterial, { map: detailTextures.roofMetal, mode: "ridge", scaleM: 3.2, strength: 0.7, fade: [40, 150] });
+    installHouseHide(roofMetalMaterial);
     terrainMaterial = ground;
     roofMaterial = roof;
     orthoUniforms.uHalfFull.value = terrainSizeM / 2;
@@ -757,9 +773,21 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
   return { ground: terrainMaterial, roof: roofMaterial };
 }
 
+/** Per defecte, teula. `roofs_fibro` i `roofs_metal` surten de `roofs.yaml` (vegeu AGENTS.md). */
+function roofMaterialFor(meshName: string, tile: THREE.Material): THREE.Material {
+  const name = meshName.toLowerCase();
+  if (name.includes("fibro") && roofFibroMaterial) {
+    return roofFibroMaterial;
+  }
+  if (name.includes("metal") && roofMetalMaterial) {
+    return roofMetalMaterial;
+  }
+  return tile;
+}
+
 function applyTerrainMaterial(mesh: THREE.Mesh, kind: "terrain" | "roof"): void {
   const mats = sharedTerrainMaterials();
-  mesh.material = kind === "roof" ? mats.roof : mats.ground;
+  mesh.material = kind === "roof" ? roofMaterialFor(mesh.name, mats.roof) : mats.ground;
 }
 
 // --- Renault 12 low-poly a mida real (4,35 × 1,64 m), +Z endavant, rodes tocant y = 0 ---

@@ -1106,6 +1106,61 @@ def load_house_specs(path: Path) -> dict[str, dict]:
         return {str(k): v for k, v in (yaml.safe_load(f) or {}).items()}
 
 
+def load_roof_overrides(path: Path) -> dict[str, dict]:
+    """Teulades vistes des de dalt (`roofs.yaml`): {referència: {partN: {type, ridge_az, …}}}."""
+    return load_house_specs(path)
+
+
+def _roof_override(overrides: dict[str, dict], ref: str, part_keys) -> dict:
+    """La primera entrada de `roofs.yaml` que toca alguna d'aquestes parts de la casa."""
+    entries = overrides.get(str(ref)) or {}
+    for key in part_keys:
+        if key in entries:
+            return entries[key] or {}
+    return {}
+
+
+def _with_roof_override(spec: dict, override: dict) -> dict:
+    """La fitxa amb la forma de teulada vista des de dalt. Es manté el que no es veu des de dalt
+    (ràfec, frontal). Si canvia el tipus, el pendent de l'anterior ja no val: una aigua de garatge
+    fa 8° i una teulada de quatre aigües, més del doble."""
+    shape = {k: v for k, v in override.items() if k not in ("material", "color")}
+    if not shape:
+        return spec
+    roof = dict(spec.get("roof") or {})
+    if shape.get("type", roof.get("type")) != roof.get("type"):
+        for stale in ("pitch_deg", "toward", "parapet_m", "cap", "floor_color", "wings"):
+            roof.pop(stale, None)
+    if "ridge_az" in shape:
+        roof.pop("ridge", None)
+    return {**spec, "roof": {**roof, **shape}}
+
+
+def _roof_tint(ortho: "Ortho", geom: Polygon, override: dict) -> tuple[int, int, int]:
+    """To de la teulada. La xapa i el fibrociment no són de color teula: filtrar-los com si ho
+    fossin deixaria només les taques vermelloses i els faria d'un to que no tenen."""
+    if "color" in override:
+        return _lin(override["color"])
+    if override.get("material") not in ("metal", "fibro"):
+        return roof_tint_from_ortho(ortho, geom)
+    rgb, transform = ortho.window(geom.bounds, CLASS_RES_M)
+    mask = _rasterize([geom], rgb.shape[:2], transform)
+    if not mask.any():
+        return roof_tint_from_ortho(ortho, geom)
+    med = tuple(int(x) for x in np.median(rgb[mask], axis=0))
+    if override["material"] == "fibro":
+        # Fibrociment: gris neutre; l'ortofoto i el reflex del cel el tiren cap al blau.
+        grey = sum(med) / 3
+        med = tuple(int(min(190, max(118, grey)) * k) for k in (1.0, 0.98, 0.94))
+    return _lin(med)
+
+
+def _tag_roof_material(meshes: list, override: dict) -> None:
+    if override.get("material"):
+        for m in meshes:
+            m.metadata["roof_mat"] = override["material"]
+
+
 def _lin(c) -> tuple[int, int, int]:
     """Color sRGB de la fitxa → lineal (vèrtexs del glTF)."""
     r, g, b, _ = _srgb_to_linear(c)
@@ -1633,6 +1688,10 @@ def house_meshes(
         ridge = (fb - fa) / max(float(np.hypot(*(fb - fa))), 1e-6)
         if roof_spec["ridge"] == "across":
             ridge = np.array([-ridge[1], ridge[0]])
+    if "ridge_az" in roof_spec:
+        # Direcció del carener vista des de dalt, en graus des del nord (0 = N-S, 90 = E-O).
+        az = np.radians(float(roof_spec["ridge_az"]))
+        ridge = np.array([np.sin(az), np.cos(az)])
     # `none`: ruïna o solar amb murets, sense teulada (parets fins a `eave_m`).
     flat = roof_spec.get("type") in ("flat", "none")
     pitch = 0.0 if flat else roof_spec.get("pitch_deg")
@@ -2356,7 +2415,24 @@ def roof_tint_from_ortho(ortho: Ortho, geom: Polygon) -> tuple[int, int, int]:
     if rmask.any():
         sel = sel[rmask]
     med = np.median(sel, axis=0)
-    return _lin(tuple(int(x) for x in med))
+    return _lin(_grade_tile(tuple(int(x) for x in med)))
+
+
+def _grade_tile(rgb: tuple[int, int, int]) -> tuple[int, int, int]:
+    """L'ortofoto PNOA és pàl·lida i la mediana barreja els dos vessants: totes les teulades
+    surten d'un rosat semblant (saturació ~0,2, lluminositat 0,73–0,82), quan de veritat van del
+    taronja al marró fosc. S'amplia la diferència mantenint l'ordre entre cases. El que no és
+    color de teula (gris, blanc) es deixa com està."""
+    import colorsys
+
+    h, s, v = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
+    if s < 0.08:
+        return rgb
+    hue = min(30.0, max(10.0, h * 360 if h < 0.5 else h * 360 - 360))
+    sat = min(0.62, max(0.3, s * 2.3))
+    val = min(0.88, max(0.36, 0.78 + (v - 0.78) * 2.6))
+    r, g, b = colorsys.hsv_to_rgb(hue / 360, sat, val)
+    return (int(r * 255), int(g * 255), int(b * 255))
 
 
 def _roof_vertex_rgba(_ux: float, _uy: float, rgb_lin: tuple[int, int, int]) -> list[int]:
@@ -2653,6 +2729,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
     # diccionari, cada part porta la seva fitxa, amb els camps comuns de l'edifici, i les parts
     # que no hi surten es fan com sempre.
     specs = load_house_specs(Path(__file__).with_name("cases.yaml"))
+    roof_overrides = load_roof_overrides(Path(__file__).with_name("roofs.yaml"))
     spec_hulls, spec_parts = [], set()
     part_key = parts["localId"].astype(str).str.split("_").str[-1]
     for ref, spec in specs.items():
@@ -2679,6 +2756,8 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
                 footprint, sp = join_footprint(footprint, other), {**sp, "_shared": other}
             n_floors = int(sp.get("floors", max(_floors(f) for f in sub["numberOfFloorsAboveGround"])))
             color = _lin(sp["wall"]) if "wall" in sp else WALL_PALETTE[0]
+            override = _roof_override(roof_overrides, ref, list(part_key[sub.index]))
+            sp = _with_roof_override(sp, override)
             w, r, d, win = house_meshes(
                 footprint,
                 n_floors,
@@ -2689,8 +2768,9 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
                 zlib.crc32(ref.encode()),
                 taken,
                 sp,
-                roof_tint_from_ortho(ortho, footprint),
+                _roof_tint(ortho, footprint, override),
             )
+            _tag_roof_material(r, override)
             assign_house(w + r + d + win, house_ids, house_refs, ref)
             spec_hulls.append(_occupied(w))
             walls += w
@@ -2723,6 +2803,7 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         # caràcters es repetia massa entre referències cadastrals.
         seed = zlib.crc32(str(row["building"]).encode())
         cadastral = str(row["building"])
+        override = _roof_override(roof_overrides, cadastral, [str(row["localId"]).split("_")[-1]])
         for poly in getattr(row.geometry, "geoms", [row.geometry]):
             if poly.area < 4:
                 continue
@@ -2735,8 +2816,10 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
                 roads_u,
                 seed,
                 taken,
-                roof_lin=roof_tint_from_ortho(ortho, poly),
+                _with_roof_override({}, override),
+                roof_lin=_roof_tint(ortho, poly, override),
             )
+            _tag_roof_material(r, override)
             assign_house(w + r + d + win, house_ids, house_refs, cadastral)
             walls += w
             roofs += r
@@ -2873,8 +2956,11 @@ def build_village(cfg: dict, ground, ortho: Ortho, roads_local: list[Polygon], o
         meshes.append(("prop_facades", concat_tagged(details)))
     if window_panes:
         meshes.append(("prop_windows", concat_tagged(window_panes)))
-    if roofs:
-        meshes.append(("roofs", concat_tagged(roofs)))
+    # El joc tria el material de la teulada pel nom de la malla (vegeu `roofMaterialFor` a main.ts).
+    for material, name in ((None, "roofs"), ("metal", "roofs_metal"), ("fibro", "roofs_fibro")):
+        group = [m for m in roofs if m.metadata.get("roof_mat") == material]
+        if group:
+            meshes.append((name, concat_tagged(group)))
     counts = {k: sum(1 for p in parcel_info if p["type"] == k) for k in PARCEL_TYPES}
     print(
         f"Village: parcel·les {counts}, {len(tapia_lines)} trams de tàpia, {len(trees)} arbres, "

@@ -1,0 +1,411 @@
+# Teulades vistes des de dalt: forma i material de cada part cadastral.
+# Font: vista de satèl·lit de Google Maps (només referència: aquí només hi ha el tipus, cap píxel).
+# Mana sobre `cases.yaml` en la forma de la teulada, i també s'aplica a les cases sense fitxa.
+# Format i criteris: vegeu «Teulades vistes des de dalt» a AGENTS.md.
+#
+#   type: gable | hip | shed | flat
+#   ridge_az: direcció del carener en graus des del nord (0 = N-S, 90 = E-O, 45 = NE-SO, 135 = NO-SE)
+#   toward: on cau el ràfec d'una teulada d'una aigua (N, E, S, O…)
+#   wings: planta en L, una teulada per ala
+#   material: metal | fibro (per defecte, teula)
+#   color: sRGB, si l'ortofoto no el dona bé
+000100100TM65A:
+  part1: {material: fibro}
+000100300TM65C:
+  part1: {type: gable, ridge_az: 90}
+000100400TM65C:
+  part2: {type: hip}
+000100500TM65C:
+  part1: {material: fibro}
+  part2: {material: fibro}
+000100600TM65C:
+  part1: {material: fibro}
+  part2: {material: fibro}
+000100700TM65C:
+  part1: {material: fibro}
+000100800TM65C:
+  part1: {material: fibro}
+  part2: {material: fibro}
+000101200TM65C:
+  part1: {material: fibro}
+  part2: {material: fibro}
+000101300TM65C:
+  part1: {material: fibro}
+000102100TM65C:
+  part1: {material: fibro}
+000102200TM65C:
+  part1: {material: metal}
+000500200TM55D:
+  part1: {material: metal}
+000500600TM55D:
+  part1: {type: hip}
+000502400TM55D:
+  part1: {material: fibro}
+000502500TM55D:
+  part1: {material: metal}
+000502600TM55D:
+  part1: {material: fibro}
+000503200TM55D:
+  part2: {material: fibro}
+001100100TM65C:
+  part1: {type: hip}
+002000100TM55D:
+  part2: {type: hip}
+002000200TM55D:
+  part1: {type: gable, material: fibro}
+  part2: {material: fibro}
+002000300TM55D:
+  part2: {type: hip}
+002000500TM55D:
+  part3: {type: hip}
+002100200TM65C:
+  part1: {material: fibro}
+002100300TM65C:
+  part1: {material: fibro}
+002500200TM55F:
+  part1: {material: fibro}
+0032901TM6503S:
+  part3: {type: hip}
+0032941TM6503S:
+  part1: {material: metal}
+0132131TM6503S:
+  part2: {material: metal}
+0232104TM6503S:
+  part1: {type: hip, material: fibro}
+0232105TM6503S:
+  part2: {type: hip, material: fibro}
+0232110TM6503S:
+  part2: {material: metal}
+0233149TM6503S:
+  part1: {type: gable, ridge_az: 45}
+  part2: {type: gable, ridge_az: 45}
+0233401TM6503S:
+  part1: {material: fibro}
+  part2: {material: metal}
+0233701TM6503S:
+  part2: {material: metal}
+0331103TM6503S:
+  part1: {type: hip}
+0332001TM6503S:
+  part4: {type: hip}
+0332501TM6503S:
+  part4: {material: metal}
+0332506TM6503S:
+  part1: {material: fibro}
+0332508TM6503S:
+  part1: {type: gable, ridge_az: 45}
+0332703TM6503S:
+  part3: {material: metal}
+0333204TM6503S:
+  part1: {type: gable, ridge_az: 90, material: fibro}
+0333205TM6503S:
+  part1: {material: fibro}
+  part2: {material: fibro}
+  part3: {type: hip}
+0333207TM6503S:
+  part1: {type: hip}
+0333211TM6503S:
+  part1: {material: fibro}
+  part2: {material: fibro}
+0333216TM6503S:
+  part3: {type: gable, material: metal}
+0333221TM6503S:
+  part3: {material: metal}
+0333602TM6503S:
+  part1: {material: metal}
+  part2: {material: fibro}
+0333610TM6503S:
+  part2: {type: hip}
+0334201TM6503N:
+  part1: {material: metal}
+0334203TM6503S:
+  part1: {type: gable, material: fibro}
+  part2: {material: fibro}
+0334204TM6503S:
+  part2: {type: gable, ridge_az: 45, material: metal}
+0334205TM6503S:
+  part2: {type: gable, material: fibro}
+  part4: {material: fibro}
+0334209TM6503S:
+  part1: {type: gable, material: metal}
+0334601TM6503S:
+  part2: {type: gable, ridge_az: 45, material: fibro}
+0334603TM6503S:
+  part2: {type: gable, ridge_az: 45, material: fibro}
+  part3: {material: fibro}
+0431701TM6503S:
+  part1: {material: fibro}
+0431705TM6503S:
+  part1: {material: fibro}
+  part2: {material: fibro}
+0432803TM6503S:
+  part1: {material: metal}
+0432814TM6503S:
+  part2: {type: gable, ridge_az: 0, material: fibro}
+0432817TM6503S:
+  part3: {material: metal}
+0432818TM6503S:
+  part1: {type: hip}
+0432821TM6503S:
+  part1: {material: fibro}
+  part3: {material: fibro}
+0432823TM6503S:
+  part1: {type: gable, ridge_az: 90}
+0432826TM6503S:
+  part5: {material: metal}
+0432828TM6503S:
+  part1: {material: metal}
+0432830TM6503S:
+  part1: {material: metal}
+0432831TM6503S:
+  part1: {type: gable, ridge_az: 90}
+0432836TM6503S:
+  part1: {material: metal}
+0432837TM6503S:
+  part1: {material: fibro}
+  part2: {material: fibro}
+0432839TM6503S:
+  part1: {material: metal}
+0530101TM6503S:
+  part1: {material: metal}
+  part3: {material: metal}
+0530104TM6503S:
+  part1: {material: fibro}
+  part2: {material: metal}
+  part3: {material: metal}
+0530503TM6503S:
+  part1: {material: fibro}
+0531998TM6503S:
+  part2: {type: hip}
+49130A50100077:
+  part1: {type: gable, material: metal}
+49130A50100371:
+  part4: {material: metal}
+49130A50100381:
+  part1: {material: fibro}
+49130A50100388:
+  part1: {material: fibro}
+  part2: {material: fibro}
+49130A50100411:
+  part1: {material: fibro}
+49130A50108447:
+  part1: {type: gable, material: metal}
+49130A80105026:
+  part1: {material: fibro}
+49130A80105176:
+  part1: {material: fibro}
+49130A80105178:
+  part1: {material: metal}
+  part2: {material: metal}
+49130A80105295:
+  part1: {material: fibro}
+49228A01200081:
+  part1: {type: hip}
+  part2: {type: hip}
+  part3: {type: hip}
+49228A01200083:
+  part2: {type: gable, ridge_az: 135}
+49228A01200086:
+  part2: {type: hip, material: fibro}
+49228A01200092:
+  part1: {type: gable, material: metal}
+49228A01200387:
+  part1: {type: flat, material: metal}
+  part2: {material: fibro}
+  part3: {material: fibro}
+  part4: {material: fibro}
+  part5: {material: fibro}
+49228A01200430:
+  part1: {material: metal}
+  part2: {type: hip}
+49228A01200435:
+  part1: {material: metal}
+  part2: {material: metal}
+  part3: {material: metal}
+  part4: {material: fibro}
+49228A01200539:
+  part1: {type: gable, ridge_az: 90, material: metal}
+49228A01200569:
+  part1: {type: gable, ridge_az: 90}
+49228A01200575:
+  part1: {type: gable, ridge_az: 90, material: metal}
+49228A01200603:
+  part1: {material: fibro}
+49228A01200604:
+  part1: {type: gable, material: fibro}
+  part2: {material: fibro}
+49228A01200615:
+  part1: {material: fibro}
+49228A01200626:
+  part1: {type: gable, ridge_az: 90, material: metal}
+49228A01200627:
+  part1: {material: metal}
+  part2: {type: gable, ridge_az: 90, material: metal}
+  part3: {type: gable, ridge_az: 90, material: metal}
+49228A01200755:
+  part1: {material: fibro}
+49228A01200760:
+  part1: {material: fibro}
+  part2: {material: fibro}
+49228A01400234:
+  part1: {type: hip, material: fibro}
+  part2: {type: hip, material: fibro}
+  part3: {type: hip, material: fibro}
+49228A01400244:
+  part1: {type: gable, ridge_az: 90}
+  part2: {type: gable, ridge_az: 90}
+49228A01400268:
+  part1: {material: metal}
+  part2: {material: metal}
+49228A01400277:
+  part2: {type: hip}
+49228A01400317:
+  part1: {type: gable, ridge_az: 90}
+  part5: {type: gable, ridge_az: 90, material: fibro}
+49228A01400331:
+  part1: {type: hip}
+9548402TM5594N:
+  part5: {material: metal}
+9548403TM5594N:
+  part3: {type: hip}
+9548405TM5594N:
+  part1: {material: metal}
+9548406TM5594N:
+  part1: {material: metal}
+9548409TM5594N:
+  part2: {material: fibro}
+9548410TM5594N:
+  part2: {material: metal}
+  part3: {material: metal}
+9549001TM5594N:
+  part3: {material: metal}
+9549003TM5594N:
+  part1: {type: gable, ridge_az: 90}
+9549502TM5594N:
+  part1: {material: fibro}
+9549503TM5594N:
+  part1: {type: gable, material: fibro}
+9549504TM5594N:
+  part1: {material: metal}
+9549506TM5594N:
+  part4: {material: metal}
+9549701TM5594N:
+  part3: {material: fibro}
+9648004TM5594N:
+  part1: {type: gable, ridge_az: 90}
+  part2: {type: gable, wings: true}
+9648007TM5594N:
+  part1: {type: hip}
+9648009TM5594N:
+  part2: {material: fibro}
+9648011TM5594N:
+  part1: {type: flat, material: metal}
+9648013TM5594N:
+  part1: {type: hip, material: fibro}
+9648014TM5594N:
+  part1: {material: fibro}
+  part3: {material: fibro}
+9648015TM5594N:
+  part1: {material: fibro}
+9648018TM5594N:
+  part2: {material: metal}
+9648019TM5594N:
+  part1: {type: gable, ridge_az: 45}
+  part2: {material: fibro}
+9648023TM5594N:
+  part1: {type: gable, ridge_az: 45}
+  part3: {material: metal}
+9648024TM5594N:
+  part2: {type: gable, ridge_az: 45}
+9649003TM5594N:
+  part1: {type: gable, ridge_az: 90}
+9649004TM5594N:
+  part1: {type: gable, ridge_az: 90}
+  part2: {type: gable, ridge_az: 90}
+  part3: {type: gable, ridge_az: 90}
+9649006TM5594N:
+  part1: {material: metal}
+9649008TM5594N:
+  part2: {material: metal}
+9649009TM5594N:
+  part1: {material: metal}
+9747605TM5594N:
+  part1: {material: fibro}
+  part2: {type: gable, material: metal}
+9747606TM5594N:
+  part1: {material: fibro}
+9747608TM5594N:
+  part2: {material: fibro}
+  part3: {type: gable, material: metal}
+  part4: {material: fibro}
+9747609TM5594N:
+  part2: {type: hip}
+9748301TM5594N:
+  part3: {type: gable, ridge_az: 90}
+9748302TM5594N:
+  part2: {material: fibro}
+9748310TM5594N:
+  part2: {material: fibro}
+9748312TM5594N:
+  part1: {material: fibro}
+  part2: {material: fibro}
+9748313TM5594N:
+  part2: {type: shed, toward: "NO"}
+  part3: {type: shed, toward: SE}
+9748403TM5594N:
+  part1: {type: hip, material: fibro}
+9748404TM5594N:
+  part2: {material: fibro}
+9748405TM5594N:
+  part2: {material: metal}
+9748410TM5594N:
+  part1: {type: gable, material: metal}
+9748411TM5594N:
+  part1: {material: fibro}
+  part2: {material: fibro}
+9748804TM5594N:
+  part1: {material: fibro}
+  part2: {material: fibro}
+9748806TM5594N:
+  part2: {type: gable, ridge_az: 90, material: metal}
+9748809TM5594N:
+  part2: {material: metal}
+9748811TM5594N:
+  part3: {type: gable, ridge_az: 90, material: fibro}
+9748815TM5594N:
+  part3: {material: fibro}
+  part4: {material: metal}
+9748816TM5594N:
+  part1: {material: fibro}
+9749601TM5594N:
+  part2: {type: hip}
+  part4: {material: fibro}
+9749602TM5594N:
+  part1: {material: fibro}
+9848202TM5594N:
+  part1: {type: hip}
+  part2: {type: hip}
+  part3: {type: hip}
+  part4: {type: hip}
+  part5: {type: hip}
+9848203TM5594N:
+  part1: {type: hip}
+  part2: {type: hip}
+  part3: {type: hip}
+  part4: {type: hip}
+9848701TM5594N:
+  part1: {material: fibro}
+9848704TM5594N:
+  part3: {material: fibro}
+  part6: {material: metal}
+9849002TM5594N:
+  part1: {material: fibro}
+9849008TM5594N:
+  part1: {material: fibro}
+  part2: {material: fibro}
+9849303TM5594N:
+  part1: {type: hip, material: fibro}
+9948801TM5594N:
+  part1: {material: fibro}
+  part2: {material: fibro}
+  part3: {type: hip, material: fibro}

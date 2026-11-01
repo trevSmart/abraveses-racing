@@ -566,6 +566,23 @@ export function roofTileDetail(): THREE.DataTexture {
   return grayTexture(size, normalizeDetail(v, 0.22));
 }
 
+/** Planxa ondulada (fibrociment, xapa): costelles al llarg del pendent. u = al llarg del carener,
+ * v = pendent avall. `ribs` per repetició; `flat` és la part plana de cada costella (xapa grecada). */
+export function sheetRoofDetail(ribs: number, flat: number, seed: number): THREE.DataTexture {
+  const size = 256;
+  const noise = fbm(size, 16, 3, seed);
+  const v = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const t = ((x / size) * ribs) % 1;
+      const wave = Math.sin(t * Math.PI * 2) * 0.5 + 0.5;
+      const rib = flat > 0 ? Math.min(1, wave / (1 - flat)) : wave;
+      v[y * size + x] = rib * 0.8 + noise[y * size + x] * 0.2;
+    }
+  }
+  return grayTexture(size, normalizeDetail(v, 0.16));
+}
+
 // --- Color -------------------------------------------------------------------------------------
 
 function canvasTexture(size: number, draw: (ctx: CanvasRenderingContext2D) => void, srgb = true): THREE.CanvasTexture {
