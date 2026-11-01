@@ -22,6 +22,12 @@ Zamora). El món surt de dades obertes: OpenStreetMap, MDT de l'IGN, ortofoto PN
   - `roof*` porta el color mitjà de teula de l'ortofoto al color de vèrtex (sense projectar la
     foto) i un detall de teula alineat segons la normal de cada vessant;
   - `prop*` són detalls sense col·lisió, i `prop_windows` és el vidre.
+- **Imperfeccions de parets i teulades** (`web/src/detail.ts`): es calculen al shader en
+  coordenades del món, perquè no es repeteixin: to de cada totxo i teula, taques, regalims,
+  brutícia i humitat a tocar de terra, esquerdes, arrebossat caigut i liquen. La quantitat depèn del
+  desgast de cada casa (`houseWear`: any i estat de `house_cards.json`), o sigui que no cal posar-ho
+  a la fitxa. Els colors de `cases.yaml` hi queden a sota: una casa vella es veurà una mica més fosca
+  que el color de la fitxa.
 - Hi pot haver **altres agents treballant alhora** al mateix repo. Abans d'editar un fitxer,
   rellegeix-lo, i no revertis canvis que no siguin teus.
 - No facis commits si no te'ls demanen.
