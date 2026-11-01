@@ -60,6 +60,7 @@ necessita.
 | `.claude/skills/casa-a-mida/` | **skill** amb el procediment complet i les lliçons per fer l'anàlisi detallada d'una casa |
 | `tools/mapgen/church.py`, `hermitage.py` | models propis de l'església i l'ermita |
 | `web/src/main.ts` | joc: càrrega del món, materials, física, HUD, minimapa, mode dev |
+| `web/src/touchControls.ts` | controls tàctils per al mòbil (l'HTML i el CSS són a `web/index.html`) |
 | `docs/MAP_PIPELINE.md` | detall del pipeline de dades |
 
 ## Cases a mida: substituir les cases genèriques una per una
