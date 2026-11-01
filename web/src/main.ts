@@ -6,7 +6,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from "three-mesh-bvh";
-import { addWorldDetail } from "./detail";
+import { addWorldDetail, houseWear, setGroundHeights, setHouseWear, weatherUniforms } from "./detail";
 import {
   asphaltMaps,
   barkMap,
@@ -19,6 +19,9 @@ import {
   roofTileDetail,
   stoneDetail,
   brickDetail,
+  BRICK_GRID,
+  ROOF_TILE_GRID,
+  weatherMap,
   tyreMap,
   tyreSidewallMap,
   windowGlassMap,
@@ -116,7 +119,7 @@ const SETTINGS_KEY = "abraveses-racing.settings";
 function loadSettings(): Settings {
   const defaults: Settings = {
     hideStreetNames: false,
-    motionBlur: true,
+    motionBlur: false,
     airParticles: true,
     manualGears: false,
     engineSound: true,
@@ -312,7 +315,9 @@ const detailTextures = {
   stone: stoneDetail(),
   brick: brickDetail(),
   roofTiles: roofTileDetail(),
+  weather: weatherMap(),
 };
+weatherUniforms.uWeatherMap.value = detailTextures.weather;
 // Teulades, asfalt i murs es veuen de biaix: amb poca anisotropia el gra i el morter
 // surten serrats (el mipmap isotròpic els esborra o els deixa a graons).
 const detailAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
@@ -323,6 +328,7 @@ for (const tex of [
   detailTextures.brick,
   detailTextures.stone,
   detailTextures.plaster,
+  detailTextures.weather,
 ]) {
   tex.anisotropy = detailAniso;
   tex.needsUpdate = true;
@@ -721,7 +727,7 @@ function sharedTerrainMaterials(): { ground: THREE.MeshStandardMaterial; roof: T
     // L'ortofoto (17–44 cm/px) es veu borrosa de prop: gra de terra a escala real; les teules no
     // porten la foto projectada, només el to mitjà de l'ortofoto al color de vèrtex.
     addWorldDetail(ground, { map: detailTextures.ground, mode: "top", scaleM: 3, strength: 0.85, secondScale: 0.11, fade: [45, 170] });
-    addWorldDetail(roof, { map: detailTextures.roofTiles, mode: "ridge", scaleM: 1.6, strength: 0.9, fade: [35, 140] });
+    addWorldDetail(roof, { map: detailTextures.roofTiles, mode: "ridge", scaleM: 1.6, strength: 0.9, fade: [35, 140], weather: "roof", grid: ROOF_TILE_GRID });
     installHouseHide(roof);
     terrainMaterial = ground;
     roofMaterial = roof;
@@ -1633,10 +1639,10 @@ const worldMaterials = {
 };
 worldMaterials.roadDirt.onBeforeCompile = (shader) => injectOrthoShader(shader);
 // Arrebossat amb antirepetició: les façanes són llises i grans i el patró de 2,5 m es veia repetit.
-addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "triplanar", scaleM: 2.5, strength: 0.35, fade: [30, 120], antiTile: true });
+addWorldDetail(worldMaterials.building, { map: detailTextures.plaster, mode: "wall", scaleM: 2.5, strength: 0.35, fade: [30, 120], antiTile: true, weather: "plaster", bump: 0.006 });
 // Tàpies de totxo amb la junta de morter clar; la maçoneria de l'església, amb junta fosca.
-addWorldDetail(worldMaterials.tapia, { map: detailTextures.brick, mode: "triplanar", scaleM: 3.15, strength: 1, fade: [30, 120], secondScale: 0.13, mortar: new THREE.Color(0xe2dccd) });
-addWorldDetail(worldMaterials.stone, { map: detailTextures.stone, mode: "triplanar", scaleM: 3, strength: 1, fade: [30, 120], secondScale: 0.12 });
+addWorldDetail(worldMaterials.tapia, { map: detailTextures.brick, mode: "wall", scaleM: 3.3, strength: 1, fade: [30, 120], mortar: new THREE.Color(0xe2dccd), weather: "brick", grid: BRICK_GRID, bump: 0.014 });
+addWorldDetail(worldMaterials.stone, { map: detailTextures.stone, mode: "wall", scaleM: 3, strength: 1, fade: [30, 120], weather: "stone", bump: 0.018 });
 addWorldDetail(worldMaterials.green, { map: detailTextures.ground, mode: "top", scaleM: 3, strength: 0.8, secondScale: 0.11 });
 addWorldDetail(worldMaterials.road, {
   map: detailTextures.asphalt,
@@ -1731,6 +1737,15 @@ function tintWorld(root: THREE.Object3D): void {
     mesh.receiveShadow = kind !== "prop";
 
     if (kind === "building") {
+      // Les parets tenen cares planes: la textura s'alinea amb la normal i, si fos la mitjana de la
+      // cantonada, s'estiraria. El túnel té arcs i manté les normals suaus.
+      if (!/pole|tunnel/.test(mesh.name.toLowerCase())) {
+        const flat = flatFaceNormals(mesh.geometry);
+        if (flat !== mesh.geometry) {
+          mesh.geometry.dispose();
+          mesh.geometry = flat;
+        }
+      }
       wallMeshes.push(mesh);
       computeOwnBoundsTree(mesh.geometry);
       if (mesh.name.toLowerCase().includes("pole")) {
@@ -2408,6 +2423,7 @@ async function loadVillage(): Promise<void> {
   }
   const data = decodeJson<VillageFile>(buffer);
   houseRefs = data.houses ?? {};
+  applyHouseWear();
   if (data.trees?.length) {
     registerVillageTrees(data.trees);
   }
@@ -2418,12 +2434,26 @@ async function loadVillage(): Promise<void> {
   worldRoot.add(vegetationRoot);
 }
 
+/** Desgast de les parets segons l'any i l'estat de cada casa. village.json i house_cards.json
+ * arriben en paral·lel: es torna a calcular quan arriba cadascun. */
+function applyHouseWear(): void {
+  const wear = new Map<number, number>();
+  for (const [id, ref] of Object.entries(houseRefs)) {
+    const card = houseCards[ref];
+    if (card) {
+      wear.set(Number(id), houseWear(Number(id), card.year, card.condition));
+    }
+  }
+  setHouseWear(wear);
+}
+
 async function loadHouseCards(): Promise<void> {
   const { ok, buffer } = await fetchAsset(`/house_cards.json?${assetCacheKey}`, "cards");
   if (!ok) {
     return;
   }
   houseCards = decodeJson<Record<string, HouseCard>>(buffer);
+  applyHouseWear();
   const ref = houseTooltip?.dataset.ref;
   if (ref && devHoverHouseId && houseTooltip && !houseTooltip.hasAttribute("hidden")) {
     renderHouseCard(ref);
@@ -2472,9 +2502,41 @@ async function loadWorld(): Promise<void> {
   prepareDevTint(world);
   worldRoot.add(world);
   world.updateMatrixWorld(true);
+  bakeGroundHeights(world);
   freezeStatic(world);
   indexGroundMeshes();
   advanceLoading(0.12);
+}
+
+/** Alçada del terreny per al shader de les parets (brutícia i humitat a tocar de terra). Les malles
+ * `terrain_*` formen una graella regular; n'hi ha prou amb un vèrtex de cada dos. */
+function bakeGroundHeights(root: THREE.Object3D): void {
+  const half = terrainSizeM / 2;
+  const tiles: THREE.BufferAttribute[] = [];
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (mesh.isMesh && mesh.name.startsWith("terrain_")) {
+      tiles.push(mesh.geometry.attributes.position as THREE.BufferAttribute);
+    }
+  });
+  if (!tiles.length) {
+    return;
+  }
+  const spacing = Math.abs(tiles[0].getX(1) - tiles[0].getX(0));
+  const cells = Math.round(terrainSizeM / spacing);
+  const stride = cells % 2 === 0 ? 2 : 1;
+  const n = cells / stride + 1;
+  const heights = new Float32Array(n * n);
+  for (const pos of tiles) {
+    for (let i = 0; i < pos.count; i++) {
+      const ix = Math.round((pos.getX(i) + half) / spacing);
+      const iz = Math.round((pos.getZ(i) + half) / spacing);
+      if (ix % stride === 0 && iz % stride === 0) {
+        heights[(iz / stride) * n + ix / stride] = pos.getY(i);
+      }
+    }
+  }
+  setGroundHeights(heights, n, half);
 }
 
 /** El món no es mou: sense recalcular matrius a cada fotograma. */

@@ -347,6 +347,8 @@ export function plasterDetail(): THREE.DataTexture {
       }
     }
   }
+  // Porus i grumolls de l'arrebossat fet a mà. El canal B (igual que R) fa de relleu al shader.
+  speckles(v, size, 420, 0.5, 1.8, 0.1, 44);
   return grayTexture(size, normalizeDetail(v, 0.12));
 }
 
@@ -373,55 +375,88 @@ export function windowGlassMap(): THREE.DataTexture {
   return finishTexture(tex, true);
 }
 
-/** Maçoneria (església, ermita): filades irregulars de blocs amb junta fosca. ~3 m per repetició. */
+/** Maçoneria (església, ermita, sòcols): filades de carreus irregulars, vores gastades i cops.
+ * R = to (mitjana 0,5); B = relleu (1 a la cara, 0 al fons de la junta). ~3 m per repetició. */
 export function stoneDetail(): THREE.DataTexture {
-  const size = DETAIL_SIZE;
+  const size = 512;
   const noise = fbm(size, 32, 3, 51);
+  const wobble = fbm(size, 10, 3, 53);
+  const pits = new Float32Array(size * size);
+  speckles(pits, size, 700, 0.8, 3.2, 0.5, 54);
   const v = new Float32Array(size * size);
+  const height = new Float32Array(size * size);
   const rng = mulberry32(52);
   const rows = 10;
   const rowH = size / rows;
   for (let r = 0; r < rows; r++) {
-    let x = rng() * 40 * K;
-    const blocks: { x0: number; x1: number; tone: number }[] = [];
-    while (x < size + 60 * K) {
-      const w = (36 + rng() * 60) * K;
-      blocks.push({ x0: x, x1: x + w, tone: 0.4 + rng() * 0.25 });
+    // Peça que toca a cada columna de la filada. Les peces fan la volta a la rajola.
+    const start = rng() * 80;
+    const owner = new Int32Array(size);
+    const blocks: { x0: number; x1: number; tone: number; dome: number }[] = [];
+    let x = start;
+    while (x < start + size) {
+      const w = Math.min(36 + rng() * 120, start + size - x);
+      blocks.push({ x0: x, x1: x + w, tone: 0.38 + rng() * 0.3, dome: 0.5 + rng() * 0.5 });
+      for (let px = Math.floor(x); px < x + w; px++) owner[px % size] = blocks.length - 1;
       x += w;
     }
     for (let y = Math.floor(r * rowH); y < Math.floor((r + 1) * rowH); y++) {
       const ly = y - r * rowH;
       for (let px = 0; px < size; px++) {
-        const b = blocks.find((bl) => (px >= bl.x0 && px < bl.x1) || (px + size >= bl.x0 && px + size < bl.x1)) ?? blocks[0];
-        const lx = Math.min(px - b.x0 < 0 ? px + size - b.x0 : px - b.x0, b.x1 - (px < b.x0 ? px + size : px));
-        const edge = Math.min(ly, rowH - ly, lx);
-        const mortar = edge < 3 * K ? 0.18 : 1;
-        v[y * size + px] = mortar * (b.tone + noise[y * size + px] * 0.3);
+        const i = y * size + px;
+        const b = blocks[owner[px]];
+        const ax = px < b.x0 ? px + size : px;
+        // La vora ondula: els carreus no són rectangles perfectes.
+        const edge = Math.min(ly, rowH - ly, ax - b.x0, b.x1 - ax) + (wobble[i] - 0.5) * 11 + (noise[i] - 0.5) * 3;
+        const face = Math.min(1, Math.max(0, (edge - 2) / 3.5));
+        const dome = Math.min(1, Math.max(0, edge / 16));
+        // La junta enfosqueix poc: la maçoneria real té el morter del color de la pedra.
+        v[i] = (0.62 + 0.38 * face) * (b.tone + noise[i] * 0.3) * (0.9 + 0.1 * dome) + pits[i] * face * 0.16;
+        height[i] = face * (0.72 + 0.2 * dome * b.dome + (noise[i] - 0.5) * 0.14) + pits[i] * face * 0.2;
       }
     }
   }
-  return grayTexture(size, normalizeDetail(v, 0.2));
+  return detailWithHeight(size, normalizeDetail(v, 0.14), new Float32Array(size * size), height);
 }
 
-/** Paret de totxo a trencajunt. R = to del totxo (multiplicador, mitjana 0,5); G = màscara de la
- * junta de morter, que el shader pinta d'un color clar propi (vegeu `mortar` a detail.ts).
- * 21 filades × 9 totxos per repetició: a 3,15 m, totxos de 35 × 15 cm amb junta d'~1,2 cm. */
+/** Filades i peces per repetició del totxo, també per al shader (vegeu `grid` a detail.ts). */
+export const BRICK_GRID = { cols: 9, rows: 22, jitter: 0.12 };
+/** Teules per repetició: u = al llarg del carener, v = pendent avall. */
+export const ROOF_TILE_GRID = { cols: 8, rows: 4, jitter: 0 };
+
+/** Paret de totxo a trencajunt, feta de peces desiguals. R = gra de la peça (el to de cada totxo el
+ * posa el shader, perquè no es repeteixi); G = màscara de la junta de morter, que el shader pinta
+ * d'un color clar propi (`mortar` a detail.ts); B = relleu. A 3,3 m per repetició, totxos de
+ * 37 × 15 cm amb junta d'~1,3 cm. Les filades són parells: si no, la junta s'alinea a cada volta. */
 export function brickDetail(): THREE.DataTexture {
   const size = 512;
-  const courses = 21;
-  const bricks = 9;
-  const joint = 2.2; // px
+  const { cols: bricks, rows: courses, jitter } = BRICK_GRID;
+  const joint = 2.1; // px
   const courseH = size / courses;
   const brickW = size / bricks;
   const rng = mulberry32(55);
   const noise = fbm(size, 64, 3, 56);
   const stain = fbm(size, 4, 3, 57);
-  // To de cada totxo: poca variació, tots molt clars (sense trossos foscos ni molt cuits).
-  const tone = Array.from({ length: courses * bricks }, () => 0.96 + rng() * 0.06);
-  // Cada filada desplaçada mitja peça (trencajunt) amb una mica de desordre.
-  const shift = Array.from({ length: courses }, (_, r) => (r % 2) * 0.5 + (rng() - 0.5) * 0.12);
+  const wobble = fbm(size, 24, 2, 58);
+  const pits = new Float32Array(size * size);
+  speckles(pits, size, 1100, 0.5, 1.9, 0.6, 59);
+  // La fórmula del desplaçament és la mateixa que `detPiece` del shader.
+  const shift = Array.from({ length: courses }, (_, r) => (r % 2) * 0.5 + (((r * 0.618034) % 1) - 0.5) * jitter);
+  // Cada totxo és lleugerament desigual: fa la junta més ampla o més estreta a cada costat. Alguns
+  // tenen una cantonada trencada, que omple el morter.
+  const pieces = Array.from({ length: courses * bricks }, () => ({
+    left: rng() * 1.3,
+    right: rng() * 1.3,
+    top: rng() * 1.0,
+    bottom: rng() * 1.0,
+    chipR: rng() < 0.16 ? 3 + rng() * 6 : 0,
+    chipX: rng() < 0.5 ? 0 : 1,
+    chipY: rng() < 0.5 ? 0 : 1,
+    face: 0.9 + rng() * 0.1,
+  }));
   const v = new Float32Array(size * size);
   const mortar = new Float32Array(size * size);
+  const height = new Float32Array(size * size);
   for (let y = 0; y < size; y++) {
     const row = Math.floor(y / courseH);
     const ly = y - row * courseH;
@@ -430,24 +465,77 @@ export function brickDetail(): THREE.DataTexture {
       const col = ((Math.floor(fx) % bricks) + bricks) % bricks;
       const lx = (fx - Math.floor(fx)) * brickW;
       const i = y * size + x;
-      // Distància a la junta, amb la vora del totxo una mica irregular.
-      const edge = Math.min(ly, courseH - ly, lx, brickW - lx) + (noise[i] - 0.5) * 1.6;
+      const p = pieces[row * bricks + col];
+      // Distància a la junta, amb la vora del totxo irregular.
+      let edge = Math.min(ly - p.bottom, courseH - ly - p.top, lx - p.left, brickW - lx - p.right);
+      edge += (noise[i] - 0.5) * 1.8 + (wobble[i] - 0.5) * 2.2;
+      if (p.chipR > 0) {
+        const d = Math.hypot(lx - p.chipX * brickW, ly - p.chipY * courseH) - p.chipR * (0.7 + wobble[i] * 0.6);
+        edge = Math.min(edge, d + joint);
+      }
       const m = Math.min(1, Math.max(0, (joint - edge) / 1.2 + 0.5));
       mortar[i] = m;
       // La vora del totxo, enfonsada respecte a la cara, queda una mica més fosca.
-      const rim = edge < joint + 2 ? 0.94 : 1;
-      const brick = tone[row * bricks + col] * rim * (0.94 + noise[i] * 0.1) * (0.97 + stain[i] * 0.06);
+      const rim = Math.min(1, Math.max(0, (edge - joint) / 3));
+      const brick = (0.92 + 0.08 * rim) * (0.92 + noise[i] * 0.14) * (0.96 + stain[i] * 0.08) - pits[i] * 0.16;
       // Al morter, el to només hi aporta un gra suau (el color el posa el shader).
-      v[i] = brick * (1 - m) + (0.9 + noise[i] * 0.2) * m;
+      v[i] = brick * (1 - m) + (0.88 + noise[i] * 0.24) * m;
+      height[i] = (1 - m) * (0.55 + 0.45 * Math.min(1, rim * 1.6)) * p.face - pits[i] * 0.3 * (1 - m) + m * (noise[i] * 0.12);
     }
   }
-  const r = normalizeDetail(v, 0.07);
+  return detailWithHeight(size, normalizeDetail(v, 0.08), mortar, height);
+}
+
+/** Textura de detall amb els tres canals: R = to, G = màscara, B = relleu. */
+function detailWithHeight(size: number, tone: Float32Array, mask: Float32Array, height: Float32Array): THREE.DataTexture {
+  const data = new Uint8Array(size * size * 4);
+  const byte = (x: number) => Math.round(Math.min(1, Math.max(0, x)) * 255);
+  for (let i = 0; i < tone.length; i++) {
+    data[i * 4] = byte(tone[i]);
+    data[i * 4 + 1] = byte(mask[i]);
+    data[i * 4 + 2] = byte(height[i]);
+    data[i * 4 + 3] = 255;
+  }
+  return finishTexture(new THREE.DataTexture(data, size, size), false);
+}
+
+/** Soroll enrajolable d'envelliment, per mostrejar en coordenades del món (vegeu detail.ts).
+ * R = taques; G = clapat fi; B = regalims (molt estirats en v); A = línies d'on surten les
+ * esquerdes. Tots quatre canals tenen mitjana 0,5 i desviació 0,18, per poder triar llindars. */
+export function weatherMap(): THREE.DataTexture {
+  const size = 256;
+  const r = normalizeDetail(fbm(size, 4, 6, 301, 0.55), 0.18);
+  const g = normalizeDetail(fbm(size, 24, 3, 302, 0.55), 0.18);
+  const a = normalizeDetail(fbm(size, 8, 3, 303, 0.42), 0.18);
+  const b = new Float32Array(size * size);
+  const rng = mulberry32(304);
+  // Cada columna té la seva foscor i s'esvaeix al llarg de v: una textura de franges verticals.
+  for (const [cols, spans, amp] of [[48, 3, 1], [96, 5, 0.6]] as const) {
+    const lattice = new Float32Array(cols * spans).map(() => rng());
+    for (let y = 0; y < size; y++) {
+      const fy = (y / size) * spans;
+      const y0 = Math.floor(fy);
+      const ty = fy - y0;
+      const sy = ty * ty * (3 - 2 * ty);
+      for (let x = 0; x < size; x++) {
+        const fx = (x / size) * cols;
+        const x0 = Math.floor(fx);
+        const tx = fx - x0;
+        const sx = tx * tx * (3 - 2 * tx);
+        const at = (cx: number, cy: number) => lattice[(cy % spans) * cols + (cx % cols)];
+        const top = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * sx;
+        const bottom = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * sx;
+        b[y * size + x] += (top + (bottom - top) * sy) * amp;
+      }
+    }
+  }
+  const streaks = normalizeDetail(b, 0.18);
   const data = new Uint8Array(size * size * 4);
   for (let i = 0; i < r.length; i++) {
     data[i * 4] = Math.round(r[i] * 255);
-    data[i * 4 + 1] = Math.round(mortar[i] * 255);
-    data[i * 4 + 2] = 0;
-    data[i * 4 + 3] = 255;
+    data[i * 4 + 1] = Math.round(g[i] * 255);
+    data[i * 4 + 2] = Math.round(streaks[i] * 255);
+    data[i * 4 + 3] = Math.round(a[i] * 255);
   }
   return finishTexture(new THREE.DataTexture(data, size, size), false);
 }
@@ -456,8 +544,7 @@ export function brickDetail(): THREE.DataTexture {
  * u = al llarg del carener (8 canals), v = pendent avall (4 filades). Repetició ~1,6 × 1,4 m. */
 export function roofTileDetail(): THREE.DataTexture {
   const size = DETAIL_SIZE;
-  const cols = 8;
-  const rows = 4;
+  const { cols, rows } = ROOF_TILE_GRID;
   const rng = mulberry32(61);
   const tone = Array.from({ length: cols * rows }, () => 0.85 + rng() * 0.3);
   const noise = fbm(size, 64, 2, 62);
