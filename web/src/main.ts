@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { gunzipSync } from "three/examples/jsm/libs/fflate.module.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -378,7 +380,7 @@ const prefetchCache = new Map<string, Promise<FetchedBytes>>();
 
 /** Mida coneguda, per omplir la barra abans que arribi Content-Length. */
 const LOAD_BYTES: Record<string, number> = {
-  world: 147_256_680,
+  world: 15_286_363,
   village: 18_459_646,
   terrain: 5_306_572,
   "terrain-center": 3_205_057,
@@ -499,7 +501,17 @@ function decodeJson<T>(buffer: ArrayBuffer): T {
 
 /** En local, el GLB de `public/`. A Vercel, el de GitHub: el desplegament només té el punter LFS. */
 function worldGlbUrl(): string {
-  return __WORLD_GLB_URL__ || `/world.glb?${assetCacheKey}`;
+  return __WORLD_GLB_URL__ || `/world.glb.gz?${assetCacheKey}`;
+}
+
+/** GitHub serveix el fitxer tal qual. Si un altre servidor ja l'ha descomprimit, ve sense la marca de gzip. */
+function gunzipWorld(buffer: ArrayBuffer): ArrayBuffer {
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) {
+    return buffer;
+  }
+  const glb = gunzipSync(bytes);
+  return glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength) as ArrayBuffer;
 }
 
 function prefetchAssets(): void {
@@ -2425,6 +2437,7 @@ function followSun(): void {
 
 async function loadWorld(): Promise<void> {
   const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
   const { ok, status, buffer } = await fetchAsset(worldGlbUrl(), "world");
   if (!ok) {
     throw new Error(`world.glb HTTP ${status}`);
@@ -2437,7 +2450,7 @@ async function loadWorld(): Promise<void> {
   }
   setLoading("Muntant el poble…");
   await nextPaint();
-  const gltf = await loader.parseAsync(buffer, "");
+  const gltf = await loader.parseAsync(gunzipWorld(buffer), "");
   const world = gltf.scene;
   tintWorld(world);
   prepareDevTint(world);

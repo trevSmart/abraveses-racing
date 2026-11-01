@@ -547,7 +547,9 @@ class Waterways:
         if idx.size < 2:
             return None
         rng = np.random.default_rng(seed)
-        unit = trimesh.creation.icosphere(subdivisions=1, radius=1.0)
+        # Icosaedre (20 triangles): són pedretes de 2-11 cm i n'hi ha ~17.000. Amb una subdivisió més,
+        # eren 1,4 M de triangles, un quart de tot el món.
+        unit = trimesh.creation.icosphere(subdivisions=0, radius=1.0)
         parts: list[trimesh.Trimesh] = []
         # Densitat: ~4 còdols/m al llarg × 3 de banda ≈ llit pedregós.
         along = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pts[idx], axis=0), axis=1))])
