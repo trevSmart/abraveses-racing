@@ -30,6 +30,7 @@ import { applyWaterMaterial, setWaterEnvironment, waterTime } from "./water";
 import { buildHouseCenters, houseCenterToClient, houseIdFromHit, resolveHouseRef } from "./housePick";
 import { inject as injectAnalytics } from "@vercel/analytics";
 import { MotionBlur } from "./motionBlur";
+import { TouchControls } from "./touchControls";
 
 type SpawnData = {
   position: { x: number; y: number; z: number };
@@ -2889,6 +2890,10 @@ houseTooltip?.addEventListener("click", () => {
 
 const MINIMAP_PX = 200;
 const MINIMAP_MARGIN = 16;
+// Al mòbil és més petit (ha de coincidir amb `.touch #minimap` a index.html).
+const MINIMAP_TOUCH_PX = 110;
+const MINIMAP_TOUCH_MARGIN = 8;
+let minimapPx = MINIMAP_PX;
 const MINIMAP_HALF_SLOW = 45;
 const MINIMAP_HALF_FAST = 110;
 /** Velocitat (m/s) a partir de la qual el minimapa ja és al zoom més llunyà (~90 km/h). */
@@ -2945,17 +2950,17 @@ function circleMaskTexture(): THREE.CanvasTexture {
 }
 
 function layoutMinimap(): void {
+  const touchLayout = document.documentElement.classList.contains("touch");
+  minimapPx = touchLayout ? MINIMAP_TOUCH_PX : MINIMAP_PX;
+  const margin = touchLayout ? MINIMAP_TOUCH_MARGIN : MINIMAP_MARGIN;
   const dpr = renderer.getPixelRatio();
-  const px = Math.round(MINIMAP_PX * dpr);
+  const px = Math.round(minimapPx * dpr);
   minimapTarget.setSize(px, px);
   hudCam.right = window.innerWidth;
   hudCam.top = window.innerHeight;
   hudCam.updateProjectionMatrix();
-  minimapQuad.position.set(
-    window.innerWidth - MINIMAP_MARGIN - MINIMAP_PX / 2,
-    window.innerHeight - MINIMAP_MARGIN - MINIMAP_PX / 2,
-    0,
-  );
+  minimapQuad.scale.setScalar(minimapPx / MINIMAP_PX);
+  minimapQuad.position.set(window.innerWidth - margin - minimapPx / 2, window.innerHeight - margin - minimapPx / 2, 0);
   if (minimapCanvas) {
     minimapCanvas.width = px;
     minimapCanvas.height = px;
@@ -3115,7 +3120,7 @@ function drawMinimapOverlay(): void {
   }
   const ctx = minimapCtx;
   const size = minimapCanvas.width;
-  const dpr = size / MINIMAP_PX;
+  const dpr = size / minimapPx;
   const r = size / 2;
   ctx.clearRect(0, 0, size, size);
 
@@ -3564,7 +3569,9 @@ function drawBigMap(): void {
   drawScaleBar(ctx, size, dpr);
   drawBigMapNorth(ctx, size, dpr);
 
-  let hint = "Roda: zoom · Arrossega: moure · Clic a prop d'un carrer: reaparèixer · M o Esc: tancar";
+  let hint = touch.enabled
+    ? "Toca a prop d'un carrer per reaparèixer"
+    : "Roda: zoom · Arrossega: moure · Clic a prop d'un carrer: reaparèixer · M o Esc: tancar";
   if (hoverPx && hoverPick && !mapDrag?.moved) {
     const [hx, hy] = hoverPx;
     const ok = hoverPick.dist <= RESPAWN_MAX_M;
@@ -3623,6 +3630,7 @@ function toggleBigMap(open: boolean): void {
   }
   bigMapOpen = open;
   keys.clear();
+  touch.reset();
   hoverPx = null;
   hoverPick = null;
   mapDrag = null;
@@ -4009,16 +4017,19 @@ function setAutopilot(on: boolean): void {
   autopilotOn = on && !!autopilot?.ready;
   autopilot?.reset();
   document.getElementById("autopilot-badge")?.toggleAttribute("hidden", !autopilotOn);
+  touch.setAutopilot(autopilotOn);
 }
 
 function readInput(dt: number): { throttle: number; steer: number; brake: boolean } {
   if (autopilotOn && autopilot) {
     return autopilot.update(kart.position.x, kart.position.z, state.heading, state.speed, dt);
   }
+  const throttle =
+    (keys.has("w") || keys.has("arrowup") ? 1 : 0) - (keys.has("s") || keys.has("arrowdown") ? 1 : 0);
+  const steer = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0);
   return {
-    throttle:
-      (keys.has("w") || keys.has("arrowup") ? 1 : 0) - (keys.has("s") || keys.has("arrowdown") ? 1 : 0),
-    steer: (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0),
+    throttle: THREE.MathUtils.clamp(throttle + touch.throttle, -1, 1),
+    steer: THREE.MathUtils.clamp(steer + touch.steer, -1, 1),
     brake: false,
   };
 }
@@ -4534,6 +4545,7 @@ function toggleOptions(open: boolean): void {
   }
   optionsOpen = open;
   keys.clear();
+  touch.reset();
   optionsModal.hidden = !open;
   if (open) {
     if (optHideStreetNames) {
@@ -4647,6 +4659,19 @@ function trackKey(e: KeyboardEvent, down: boolean): void {
 
 window.addEventListener("keydown", (e) => trackKey(e, true));
 window.addEventListener("keyup", (e) => trackKey(e, false));
+
+const touch = new TouchControls({
+  hop: tryHop,
+  camera: cycleCameraPreset,
+  respawn: respawnNearby,
+  options: () => toggleOptions(true),
+  autopilot: () => setAutopilot(!autopilotOn),
+  drive: () => {
+    if (autopilotOn) {
+      setAutopilot(false);
+    }
+  },
+});
 
 // --- Rendiment: indicador de FPS i resolució adaptativa ---
 
@@ -4882,6 +4907,7 @@ async function boot(): Promise<void> {
     }
     document.getElementById("credit")?.removeAttribute("hidden");
     minimapCanvas?.removeAttribute("hidden");
+    touch.show();
     renderer.domElement.focus();
     requestAnimationFrame((t) => {
       loop(t);

@@ -16,7 +16,7 @@ python tools/mapgen/build_world.py --all
 cd web && npm install && npm run dev
 ```
 
-S’obrirà el navegador a `http://localhost:5173`. Controls: **W/A/S/D**, **Espai**, **R**.
+S’obrirà el navegador a `http://localhost:5173`. Controls: **W/A/S/D**, **Espai**, **R**. Al mòbil surten controls tàctils a la pantalla.
 
 Guia: [docs/JOC_WEB.md](docs/JOC_WEB.md).
 
