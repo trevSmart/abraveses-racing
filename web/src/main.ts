@@ -119,7 +119,7 @@ const SETTINGS_KEY = "abraveses-racing.settings";
 function loadSettings(): Settings {
   const defaults: Settings = {
     hideStreetNames: false,
-    motionBlur: true,
+    motionBlur: false,
     airParticles: true,
     manualGears: false,
     engineSound: true,
