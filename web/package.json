@@ -9,6 +9,7 @@
     "knip": "knip"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "three": "^0.171.0",
     "three-mesh-bvh": "^0.8.3"
   },
